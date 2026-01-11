@@ -18,3 +18,16 @@ View your app in AI Studio: https://ai.studio/apps/drive/1p0w5diAkiHLfdVNjpvvAdK
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 3. Run the app:
    `npm run dev`
+
+## Database Setup (Supabase)
+
+The application requires specific columns in the `profiles` table.
+
+Please run the SQL migration found in `supabase/migrations/20240523000000_add_social_columns.sql` in your Supabase SQL Editor to ensure the schema is correct.
+
+```sql
+ALTER TABLE profiles
+ADD COLUMN IF NOT EXISTS instagram TEXT,
+ADD COLUMN IF NOT EXISTS telegram TEXT,
+ADD COLUMN IF NOT EXISTS phone TEXT;
+```
