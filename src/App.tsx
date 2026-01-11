@@ -15,8 +15,10 @@ import { MobileHeader } from './components/MobileHeader';
 import { MobileNav } from './components/MobileNav';
 import { Toast } from './components/Toast';
 import { CheckoutModal } from './components/CheckoutModal';
+import { ModeProvider, useMode } from './context/ModeContext';
+import './i18n';
 
-function App() {
+function AppContent() {
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [videos, setVideos] = useState<GeneratedVideo[]>([]);
@@ -26,6 +28,8 @@ function App() {
   const [toast, setToast] = useState<string|null>(null);
   const [selPlan, setSelPlan] = useState<{key: string, annual: boolean} | null>(null);
   const [profile, setProfile] = useState<UserProfile>({ name: "Agencia", email: "" });
+
+  const { mode, theme } = useMode();
 
   const notify = (msg: string) => setToast(msg);
 
@@ -37,14 +41,12 @@ function App() {
   useEffect(() => {
     try { const i=localStorage.getItem('lux_inf'); if(i) setInfluencers(JSON.parse(i)); } catch(e){}
 
-    // Initial session check
     supabase.auth.getSession().then(({data:{session}}) => {
       setSession(session);
       if(session) initData(session.user.id);
       else setLoading(false);
     });
 
-    // Auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
       setSession(session);
       if(session) initData(session.user.id);
@@ -54,8 +56,6 @@ function App() {
   }, []);
 
   const initData = async (uid:string) => {
-      // Mock data if table doesn't exist yet or just fallback
-      // ideally we should handle error here
       try {
         const { data: p, error: pError } = await supabase.from('profiles').select('*').eq('id', uid).single();
         if(p && !pError) {
@@ -63,7 +63,6 @@ function App() {
             setUserPlan(p.plan);
             setProfile({...p, email: session?.user?.email});
         } else {
-             // Fallback/Default for new users if trigger fails
              setCredits(50);
              setUserPlan('starter');
              setProfile({name: "User", email: session?.user?.email || ""});
@@ -91,7 +90,7 @@ function App() {
 
   return (
     <Router>
-      <div className={S.bg}>
+      <div className={`${mode === 'velvet' ? S.bg : 'bg-gray-50 min-h-screen text-gray-900 font-sans'}`}>
         {toast && <Toast msg={toast} onClose={()=>setToast(null)}/>}
         {selPlan && <CheckoutModal planKey={selPlan.key} annual={selPlan.annual} onClose={()=>setSelPlan(null)}/>}
 
@@ -99,7 +98,7 @@ function App() {
         <MobileHeader credits={credits} />
 
         {/* CONTENT */}
-        <main className="lg:ml-80 min-h-screen pt-20 lg:pt-0">
+        <main className="lg:ml-80 min-h-screen pt-20 lg:pt-0 transition-colors duration-500">
             <Routes>
                 <Route path="/" element={<StudioPage onGen={handleVideoSaved} influencers={influencers} credits={credits} notify={notify} onUp={()=>setSelPlan({key:'creator', annual:true})} userPlan={userPlan} talents={influencers}/>}/>
                 <Route path="/talent" element={<TalentPage list={influencers} add={handleInf.add} del={handleInf.del} notify={notify}/>}/>
@@ -112,6 +111,14 @@ function App() {
         <MobileNav />
       </div>
     </Router>
+  );
+}
+
+function App() {
+  return (
+    <ModeProvider>
+      <AppContent />
+    </ModeProvider>
   );
 }
 

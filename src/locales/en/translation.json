@@ -1,0 +1,26 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "mode": {
+      "velvet": "Velvet Mode",
+      "agency": "Agency Mode"
+    },
+    "nav": {
+      "studio": "Studio",
+      "talent": "Talents",
+      "gallery": "Gallery",
+      "billing": "Billing",
+      "settings": "Settings"
+    }
+  },
+  "studio": {
+    "generate": "Generate Video",
+    "processing": "Creating Magic...",
+    "source": "Source",
+    "settings": "Settings"
+  }
+}
