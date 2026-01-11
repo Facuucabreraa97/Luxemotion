@@ -1,0 +1,150 @@
+import express from 'express';
+import cors from 'cors';
+import Replicate from 'replicate';
+import dotenv from 'dotenv';
+import fs from 'fs';
+import { pipeline } from 'stream/promises';
+import { MercadoPagoConfig, Preference } from 'mercadopago'; 
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import compression from 'compression';
+import { createClient } from '@supabase/supabase-js';
+
+dotenv.config();
+
+const app = express();
+const port = 3001;
+
+// --- CONFIGURACIÓN ---
+const supabaseAdmin = createClient(
+  process.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder'
+);
+
+const client = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN || 'TEST-TOKEN' });
+const replicate = new Replicate({ auth: process.env.REPLICATE_API_TOKEN });
+
+// --- MIDDLEWARE ---
+app.use(helmet());
+app.use(compression());
+app.use(cors({ origin: '*', methods: ['GET', 'POST'] }));
+app.use(express.json({ limit: '50mb' }));
+
+// --- API GENERAR VIDEO (MOTOR VELVET ULTRA) ---
+app.post('/api/generate', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) throw new Error("Falta Token");
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    if (authError || !user) throw new Error("Usuario inválido");
+
+    // 1. Costos
+    const { duration, mode, prompt, aspectRatio, image, inputVideo, endImage, velvetStyle } = req.body;
+    let cost = Number(duration) === 5 ? 10 : 20; 
+    if (mode === 'velvet') cost += 10; // Plus por calidad Velvet
+
+    // 2. Verificar Saldo
+    const { data: profile } = await supabaseAdmin.from('profiles').select('credits').eq('id', user.id).single();
+    if (!profile || profile.credits < cost) throw new Error(`Saldo insuficiente (${profile?.credits}cr). Necesitas ${cost}cr.`);
+
+    // 3. Descontar
+    await supabaseAdmin.from('profiles').update({ credits: profile.credits - cost }).eq('id', user.id);
+
+    // 4. INGENIERÍA DE PROMPTS "ULTRA HOT"
+    let stylePrompt = "";
+    
+    if (mode === 'velvet') {
+        // Base: Estética "Leaked" / Casera de Alta Gama
+        const baseVelvet = ", shot on iPhone 15 Pro Max, amateur footage aesthetic, raw aesthetic, leaked tape vibe, flash photography, heavy breathing, flushed skin, sweat glisten, ultra-realistic skin pores, goosebumps, imperfect skin texture, 8k uhd, hard flash lighting, bedroom background, intimate atmosphere";
+        
+        switch (velvetStyle) {
+            case 'cosplay':
+                stylePrompt = baseVelvet + ", wearing detailed latex cosplay, anime character in real life, tight fit, shiny texture, looking at viewer, shy but seductive pose, messy hair, realistic cosplay, hentai aesthetic realism";
+                break;
+            case 'pov':
+                stylePrompt = baseVelvet + ", POV shot from boyfriend perspective, extremely close up to face, biting lip, looking down at camera, intimate distance, handheld camera shake, eye contact";
+                break;
+            case 'hentai': // Nuevo estilo solicitado
+                 stylePrompt = baseVelvet + ", hyperrealistic anime girl, pink aesthetic, soft skin, glowing eyes, fantasy lingerie, unreal proportions but realistic texture, 8k wallpaper";
+                 break;
+            default: // Glamour/Lingerie
+                stylePrompt = baseVelvet + ", wearing sheer lace lingerie, dim red neon lights, luxury hotel room, seductive body language, wet look hair, cinematic shadows, sultry gaze, boudoir photography";
+        }
+    } else {
+        stylePrompt = ", cinematic lighting, commercial grade, sharp focus, masterpiece, shot on ARRI Alexa, color graded, professional studio, vogue magazine style, 4k, clean composition";
+    }
+
+    const inputPayload = {
+      prompt: (prompt || "Beautiful subject") + stylePrompt,
+      aspect_ratio: aspectRatio || "9:16",
+      duration: Number(duration),
+      cfg_scale: mode === 'velvet' ? 0.45 : 0.6, 
+      negative_prompt: "cartoon, drawing, illustration, plastic skin, doll-like, deformed, ugly, blur, watermark, text, low quality, distortion, bad anatomy, extra limbs, cgi, 3d render"
+    };
+
+    if (inputVideo) {
+        inputPayload.video = inputVideo;
+        if (image) inputPayload.start_image = image;
+    } else {
+        inputPayload.start_image = image;
+        if (endImage) inputPayload.tail_image = endImage;
+    }
+
+    console.log(`🎬 Generando ${mode.toUpperCase()} (${velvetStyle || 'std'}) para ${user.email}`);
+    const output = await replicate.run("kwaivgi/kling-v2.5-turbo-pro", { input: inputPayload });
+    const remoteUrl = Array.isArray(output) ? output[0] : output;
+
+    // 5. Guardar en Nube
+    const videoRes = await fetch(remoteUrl);
+    const videoBlob = await videoRes.arrayBuffer();
+    const fileName = `luxe_${user.id}_${Date.now()}.mp4`;
+
+    const { error: uploadError } = await supabaseAdmin.storage
+        .from('videos')
+        .upload(fileName, videoBlob, { contentType: 'video/mp4' });
+
+    if (uploadError) throw new Error("Error subiendo a nube: " + uploadError.message);
+
+    const { data: { publicUrl } } = supabaseAdmin.storage.from('videos').getPublicUrl(fileName);
+
+    await supabaseAdmin.from('generations').insert({
+        user_id: user.id,
+        video_url: publicUrl,
+        prompt: prompt,
+        aspect_ratio: aspectRatio,
+        cost: cost
+    });
+
+    res.json({ videoUrl: publicUrl, cost, remainingCredits: profile.credits - cost });
+
+  } catch (error) {
+    console.error("❌ Error:", error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// --- API PAGOS (Con Conversión USD/ARS) ---
+app.post('/api/create-preference', async (req, res) => {
+  try {
+    const { title, price, quantity, currency } = req.body;
+    
+    // Si es ARS, asumimos un cambio manual o fijo para el ejemplo
+    // En producción conectarías una API de cambio real
+    const finalPrice = currency === 'ARS' ? price : price * 1200; // Ejemplo: 1 USD = 1200 ARS
+
+    const preference = new Preference(client);
+    const result = await preference.create({
+      body: {
+        items: [{ title, unit_price: Number(finalPrice), quantity: Number(quantity), currency_id: 'ARS' }], // MP suele procesar en moneda local
+        back_urls: { success: "http://localhost:5173/billing?status=success", failure: "http://localhost:5173/billing?status=failure" },
+        auto_return: "approved",
+      }
+    });
+    res.json({ url: result.init_point });
+  } catch (error) {
+    res.status(500).json({ error: "Error pago" });
+  }
+});
+
+app.listen(port, () => console.log(`🛡️ SERVER LUXE (ULTRA HOT) EN PUERTO ${port}`));

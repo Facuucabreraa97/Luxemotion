@@ -1,0 +1,7 @@
+{
+  "name": "LuxeMotion: AI Fashion Animator",
+  "description": "A high-end fashion video generator using Gemini Veo. Transform still portraits into cinematic, high-fashion advertisements with ultra-realistic movement and textures.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
