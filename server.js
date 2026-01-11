@@ -12,6 +12,39 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3001;
 
+// --- CACHE ---
+let exchangeRateCache = {
+  rate: null,
+  timestamp: 0
+};
+
+const CACHE_DURATION = 3600 * 1000; // 1 hora
+
+async function getUsdToArsRate() {
+  const now = Date.now();
+  if (exchangeRateCache.rate && (now - exchangeRateCache.timestamp < CACHE_DURATION)) {
+    return exchangeRateCache.rate;
+  }
+
+  try {
+    const response = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+    if (!response.ok) throw new Error('Failed to fetch rates');
+    const data = await response.json();
+    const rate = data.rates.ARS;
+    if (rate) {
+      exchangeRateCache = {
+        rate: rate,
+        timestamp: now
+      };
+      return rate;
+    }
+  } catch (error) {
+    console.error("Error fetching exchange rate, using fallback:", error.message);
+  }
+
+  return exchangeRateCache.rate || 1200; // Fallback
+}
+
 // --- CONFIGURACIÓN ---
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder';
@@ -134,7 +167,11 @@ app.post('/api/create-preference', async (req, res) => {
 
     // Si es ARS, asumimos un cambio manual o fijo para el ejemplo
     // En producción conectarías una API de cambio real
-    const finalPrice = currency === 'ARS' ? price : price * 1200; // Ejemplo: 1 USD = 1200 ARS
+    let finalPrice = price;
+    if (currency !== 'ARS') {
+      const rate = await getUsdToArsRate();
+      finalPrice = price * rate;
+    }
 
     const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
 
