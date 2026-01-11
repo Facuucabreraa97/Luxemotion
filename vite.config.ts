@@ -6,8 +6,8 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   return {
     server: {
-      port: 5173,       // <--- CAMBIO CLAVE: Puerto estándar de Vite
-      strictPort: true, // <--- OBLIGA a usar este puerto (si está ocupado, avisa en vez de cambiarse solo)
+      port: 5173,
+      strictPort: true,
       host: '0.0.0.0',
     },
     plugins: [react()],
@@ -17,7 +17,7 @@ export default defineConfig(({ mode }) => {
     },
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': path.resolve(__dirname, './src'),
       }
     }
   };
