@@ -787,32 +787,35 @@ const GalleryPage = ({ videos }: any) => {
 };
 
 const BillingPage = ({ onSelect }: any) => {
+  const { mode } = useMode();
   const [annual, setAnnual] = useState(true);
+  const isVelvet = mode === 'velvet';
+
   return (
     <div className="p-6 lg:p-12 pb-32 max-w-7xl mx-auto animate-in fade-in">
       <div className="text-center mb-16">
-          <h2 className="text-4xl lg:text-5xl font-bold text-white uppercase tracking-[0.2em] mb-4">Membresía</h2>
+          <h2 className={`text-4xl lg:text-5xl font-bold uppercase tracking-[0.2em] mb-4 ${isVelvet ? 'text-white' : 'text-gray-900'}`}>Membresía</h2>
           <div className="flex items-center justify-center gap-4 mt-8">
-              <span className={`text-[10px] font-bold uppercase tracking-widest ${!annual ? 'text-[#C6A649]' : 'text-white/40'}`}>Mensual</span>
-              <button onClick={()=>setAnnual(!annual)} className="w-12 h-6 bg-white/10 rounded-full relative p-1 transition-colors hover:bg-white/20"><div className={`w-4 h-4 bg-[#C6A649] rounded-full shadow-lg transition-transform duration-300 ${annual ? 'translate-x-6' : ''}`}></div></button>
-              <span className={`text-[10px] font-bold uppercase tracking-widest ${annual ? 'text-[#C6A649]' : 'text-white/40'}`}>Anual <span className="bg-[#C6A649] text-black px-2 py-0.5 rounded text-[8px] ml-1">-20%</span></span>
+              <span className={`text-[10px] font-bold uppercase tracking-widest ${!annual ? (isVelvet ? 'text-[#C6A649]' : 'text-blue-600') : (isVelvet ? 'text-white/40' : 'text-gray-400')}`}>Mensual</span>
+              <button onClick={()=>setAnnual(!annual)} className={`w-12 h-6 rounded-full relative p-1 transition-colors ${isVelvet ? 'bg-white/10 hover:bg-white/20' : 'bg-gray-200 hover:bg-gray-300'}`}><div className={`w-4 h-4 rounded-full shadow-lg transition-transform duration-300 ${annual ? 'translate-x-6' : ''} ${isVelvet ? 'bg-[#C6A649]' : 'bg-white'}`}></div></button>
+              <span className={`text-[10px] font-bold uppercase tracking-widest ${annual ? (isVelvet ? 'text-[#C6A649]' : 'text-blue-600') : (isVelvet ? 'text-white/40' : 'text-gray-400')}`}>Anual <span className={`${isVelvet ? 'bg-[#C6A649] text-black' : 'bg-blue-600 text-white'} px-2 py-0.5 rounded text-[8px] ml-1`}>-20%</span></span>
           </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           {Object.entries(PRICING).map(([k, p]) => {
               const price = annual && (p as any).yearlyPrice ? (p as any).yearlyPrice : p.price;
               return (
-                  <div key={k} className={`p-10 rounded-[40px] text-center flex flex-col items-center relative overflow-hidden group hover:scale-105 transition-transform duration-500 ${S.panel} ${p.popular ? 'border-[#C6A649]/50 shadow-[0_0_50px_rgba(198,166,73,0.15)]' : ''}`}>
-                      {p.popular && <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-[#C6A649] to-[#FBF5B7]"/>}
-                      {p.popular && <div className="bg-[#C6A649]/20 text-[#C6A649] text-[8px] font-bold px-4 py-1 rounded-full uppercase tracking-widest mb-6 border border-[#C6A649]/30">Recomendado</div>}
-                      <h3 className="text-xl font-bold text-white uppercase tracking-[0.2em] mb-2">{p.name}</h3>
-                      <div className="text-5xl font-bold text-white mb-8 tracking-tighter">${price}<span className="text-sm font-normal text-white/30 ml-2">/mo</span></div>
-                      <div className="w-full h-px bg-white/5 mb-8"></div>
+                  <div key={k} className={`p-10 rounded-[40px] text-center flex flex-col items-center relative overflow-hidden group hover:scale-105 transition-transform duration-500 ${isVelvet ? S.panel : 'bg-white border border-gray-200 shadow-xl'} ${p.popular ? (isVelvet ? 'border-[#C6A649]/50 shadow-[0_0_50px_rgba(198,166,73,0.15)]' : 'border-blue-500 shadow-lg scale-105') : ''}`}>
+                      {p.popular && <div className={`absolute top-0 inset-x-0 h-1.5 ${isVelvet ? 'bg-gradient-to-r from-[#C6A649] to-[#FBF5B7]' : 'bg-blue-500'}`}/>}
+                      {p.popular && <div className={`${isVelvet ? 'bg-[#C6A649]/20 text-[#C6A649] border-[#C6A649]/30' : 'bg-blue-50 text-blue-600 border-blue-200'} text-[8px] font-bold px-4 py-1 rounded-full uppercase tracking-widest mb-6 border`}>Recomendado</div>}
+                      <h3 className={`text-xl font-bold uppercase tracking-[0.2em] mb-2 ${isVelvet ? 'text-white' : 'text-gray-900'}`}>{p.name}</h3>
+                      <div className={`text-5xl font-bold mb-8 tracking-tighter ${isVelvet ? 'text-white' : 'text-gray-900'}`}>${price}<span className={`text-sm font-normal ml-2 ${isVelvet ? 'text-white/30' : 'text-gray-400'}`}>/mo</span></div>
+                      <div className={`w-full h-px mb-8 ${isVelvet ? 'bg-white/5' : 'bg-gray-100'}`}></div>
                       <div className="space-y-5 mb-10 w-full text-left">
-                          <div className="bg-white/5 p-3 rounded-xl flex items-center justify-center gap-3 border border-white/5 mb-6"><Zap size={14} className="text-[#C6A649]"/><span className="text-xs font-bold text-white uppercase tracking-widest">{p.creds} Créditos</span></div>
-                          {p.feats.map(f => <div key={f} className="flex items-center gap-3 text-[10px] uppercase tracking-widest text-white/60"><Check size={10} className="text-[#C6A649]"/> {f}</div>)}
+                          <div className={`p-3 rounded-xl flex items-center justify-center gap-3 border mb-6 ${isVelvet ? 'bg-white/5 border-white/5' : 'bg-gray-50 border-gray-100'}`}><Zap size={14} className={isVelvet ? 'text-[#C6A649]' : 'text-blue-500'}/><span className={`text-xs font-bold uppercase tracking-widest ${isVelvet ? 'text-white' : 'text-gray-900'}`}>{p.creds} Créditos</span></div>
+                          {p.feats.map(f => <div key={f} className={`flex items-center gap-3 text-[10px] uppercase tracking-widest ${isVelvet ? 'text-white/60' : 'text-gray-500'}`}><Check size={10} className={isVelvet ? 'text-[#C6A649]' : 'text-blue-500'}/> {f}</div>)}
                       </div>
-                      <button onClick={()=>onSelect(k, annual)} className={`w-full py-5 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] ${p.popular ? S.btnGold : 'bg-white/5 text-white hover:bg-white hover:text-black transition-all'}`}>Elegir Plan</button>
+                      <button onClick={()=>onSelect(k, annual)} className={`w-full py-5 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] ${p.popular ? (isVelvet ? S.btnGold : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg') : (isVelvet ? 'bg-white/5 text-white hover:bg-white hover:text-black transition-all' : 'bg-gray-100 text-gray-900 hover:bg-black hover:text-white transition-all')}`}>Elegir Plan</button>
                   </div>
               );
           })}
@@ -822,7 +825,10 @@ const BillingPage = ({ onSelect }: any) => {
 };
 
 const SettingsPage = ({ profile, setProfile, notify }: any) => {
+  const { mode } = useMode();
   const [data, setData] = useState(profile);
+  const isVelvet = mode === 'velvet';
+
   const save = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if(user) {
@@ -832,17 +838,17 @@ const SettingsPage = ({ profile, setProfile, notify }: any) => {
   };
   return (
     <div className="p-6 lg:p-12 max-w-4xl mx-auto">
-       <h2 className="text-4xl font-bold uppercase tracking-[0.2em] mb-12 border-b border-white/10 pb-8 text-white">Ajustes</h2>
-       <div className={`p-10 rounded-[40px] mb-12 ${S.panel} flex items-center gap-10`}>
-           <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#C6A649] to-black p-[2px] flex items-center justify-center"><span className="text-3xl font-bold text-[#C6A649]">JD</span></div>
-           <div><h3 className="text-2xl font-bold text-white">{data.name}</h3><p className="text-[#C6A649] text-xs uppercase tracking-widest font-bold mt-1">Plan Pro</p></div>
+       <h2 className={`text-4xl font-bold uppercase tracking-[0.2em] mb-12 border-b pb-8 ${isVelvet ? 'text-white border-white/10' : 'text-gray-900 border-gray-200'}`}>Ajustes</h2>
+       <div className={`p-10 rounded-[40px] mb-12 flex items-center gap-10 ${isVelvet ? S.panel : 'bg-white shadow-xl border border-gray-200'}`}>
+           <div className={`w-24 h-24 rounded-full p-[2px] flex items-center justify-center ${isVelvet ? 'bg-gradient-to-br from-[#C6A649] to-black' : 'bg-gradient-to-br from-blue-500 to-blue-600'}`}><span className={`text-3xl font-bold ${isVelvet ? 'text-[#C6A649]' : 'text-white'}`}>JD</span></div>
+           <div><h3 className={`text-2xl font-bold ${isVelvet ? 'text-white' : 'text-gray-900'}`}>{data.name}</h3><p className={`text-xs uppercase tracking-widest font-bold mt-1 ${isVelvet ? 'text-[#C6A649]' : 'text-blue-600'}`}>Plan Pro</p></div>
        </div>
        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-           <div className="space-y-2"><label className="text-[10px] uppercase tracking-widest text-white/40">Instagram</label><input value={data.instagram || ''} onChange={e=>setData({...data, instagram:e.target.value})} className={S.input} placeholder="@usuario"/></div>
-           <div className="space-y-2"><label className="text-[10px] uppercase tracking-widest text-white/40">Telegram</label><input value={data.telegram || ''} onChange={e=>setData({...data, telegram:e.target.value})} className={S.input} placeholder="@usuario"/></div>
-           <div className="space-y-2"><label className="text-[10px] uppercase tracking-widest text-white/40">Teléfono</label><input value={data.phone || ''} onChange={e=>setData({...data, phone:e.target.value})} className={S.input} placeholder="+123456789"/></div>
+           <div className="space-y-2"><label className={`text-[10px] uppercase tracking-widest ${isVelvet ? 'text-white/40' : 'text-gray-400'}`}>Instagram</label><input value={data.instagram || ''} onChange={e=>setData({...data, instagram:e.target.value})} className={isVelvet ? S.input : "w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-sm outline-none transition-all focus:border-blue-500"} placeholder="@usuario"/></div>
+           <div className="space-y-2"><label className={`text-[10px] uppercase tracking-widest ${isVelvet ? 'text-white/40' : 'text-gray-400'}`}>Telegram</label><input value={data.telegram || ''} onChange={e=>setData({...data, telegram:e.target.value})} className={isVelvet ? S.input : "w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-sm outline-none transition-all focus:border-blue-500"} placeholder="@usuario"/></div>
+           <div className="space-y-2"><label className={`text-[10px] uppercase tracking-widest ${isVelvet ? 'text-white/40' : 'text-gray-400'}`}>Teléfono</label><input value={data.phone || ''} onChange={e=>setData({...data, phone:e.target.value})} className={isVelvet ? S.input : "w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-sm outline-none transition-all focus:border-blue-500"} placeholder="+123456789"/></div>
        </div>
-       <button onClick={save} className={`w-full py-5 rounded-2xl font-bold uppercase tracking-[0.2em] text-xs ${S.btnGold}`}>Guardar Cambios</button>
+       <button onClick={save} className={`w-full py-5 rounded-2xl font-bold uppercase tracking-[0.2em] text-xs ${isVelvet ? S.btnGold : 'bg-black text-white hover:bg-gray-800'}`}>Guardar Cambios</button>
     </div>
   );
 };
