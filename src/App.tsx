@@ -14,7 +14,7 @@ import { BillingPage } from './pages/BillingPage';
 import { Sidebar } from './components/Sidebar';
 import { MobileHeader } from './components/MobileHeader';
 import { MobileNav } from './components/MobileNav';
-import { Toast } from './components/Toast';
+import { ToastProvider, useToast } from './components/Toast';
 import { CheckoutModal } from './components/CheckoutModal';
 import { ModeProvider, useMode } from './context/ModeContext';
 import './i18n';
@@ -26,8 +26,6 @@ function ProtectedLayout({
     setSelPlan,
     profile,
     mode,
-    toast,
-    setToast,
     selPlan,
     notify
 }: any) {
@@ -35,7 +33,6 @@ function ProtectedLayout({
 
     return (
         <div className={`${mode === 'velvet' ? S.bg : S.bgAgency}`}>
-            {toast && <Toast msg={toast} onClose={()=>setToast(null)}/>}
             {selPlan && <CheckoutModal planKey={selPlan.key} annual={selPlan.annual} onClose={()=>setSelPlan(null)}/>}
 
             <Sidebar
@@ -69,13 +66,13 @@ function AppContent() {
   const [influencers, setInfluencers] = useState<Talent[]>([]);
   const [credits, setCredits] = useState(0);
   const [userPlan, setUserPlan] = useState<'starter' | 'creator' | 'agency'>('starter');
-  const [toast, setToast] = useState<string|null>(null);
   const [selPlan, setSelPlan] = useState<{key: string, annual: boolean} | null>(null);
   const [profile, setProfile] = useState<UserProfile>({ name: "Agencia", email: "" });
 
   const { mode } = useMode();
+  const { toast } = useToast();
 
-  const notify = (msg: string) => setToast(msg);
+  const notify = (msg: string) => toast(msg);
 
   const handleInf = {
       add: async (inf: any) => {
@@ -185,8 +182,6 @@ function AppContent() {
                     setSelPlan={setSelPlan}
                     profile={profile}
                     mode={mode}
-                    toast={toast}
-                    setToast={setToast}
                     selPlan={selPlan}
                     notify={notify}
                 />
@@ -211,7 +206,9 @@ function AppContent() {
 function App() {
   return (
     <ModeProvider>
-      <AppContent />
+      <ToastProvider>
+        <AppContent />
+      </ToastProvider>
     </ModeProvider>
   );
 }
