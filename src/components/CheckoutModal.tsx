@@ -3,8 +3,10 @@ import { CreditCard, Bitcoin, Shield, X } from 'lucide-react';
 import { PRICING } from '../constants';
 import { S } from '../styles';
 import { CONFIG } from '../config';
+import { useMode } from '../context/ModeContext';
 
 export const CheckoutModal = ({ planKey, annual, onClose }: { planKey: string, annual: boolean, onClose: () => void }) => {
+  const { mode } = useMode();
   const p = PRICING[planKey as keyof typeof PRICING];
   const [proc, setProc] = useState(false);
   const [currency, setCurrency] = useState<'USD'|'ARS'>('USD');
@@ -25,16 +27,40 @@ export const CheckoutModal = ({ planKey, annual, onClose }: { planKey: string, a
       } catch(e) { alert("Error de conexión"); setProc(false); }
   };
 
-  return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-md p-4 animate-in fade-in">
-      <div className={`w-full max-w-md p-8 rounded-[40px] text-center relative ${S.panel}`}>
-        <button onClick={onClose} className="absolute top-6 right-6 text-white/30 hover:text-white"><X size={20}/></button>
-        <h3 className="text-white font-bold uppercase tracking-[0.3em] mb-2 text-sm">Checkout</h3>
-        <p className="text-[#C6A649] text-xs font-bold uppercase tracking-widest mb-6">{p.name} {annual ? '(Anual)' : '(Mensual)'}</p>
+  // Adaptive Styles
+  const panelClass = mode === 'velvet'
+    ? S.panel
+    : 'bg-white border border-gray-200 shadow-2xl text-black';
 
-        <div className="bg-white/5 p-4 rounded-xl mb-6 text-left">
-            <p className="text-[10px] text-white/50 uppercase mb-2 font-bold">Resumen:</p>
-            <ul className="text-xs text-white/80 space-y-1">
+  const textPrimary = mode === 'velvet' ? 'text-white' : 'text-gray-900';
+  const textSecondary = mode === 'velvet' ? 'text-white/50' : 'text-gray-500';
+  const textAccent = mode === 'velvet' ? 'text-[#C6A649]' : 'text-blue-600';
+  const closeBtn = mode === 'velvet' ? 'text-white/30 hover:text-white' : 'text-gray-400 hover:text-black';
+  const summaryBox = mode === 'velvet' ? 'bg-white/5' : 'bg-gray-50 border border-gray-100';
+  const summaryText = mode === 'velvet' ? 'text-white/80' : 'text-gray-700';
+  const methodActive = mode === 'velvet' ? 'border-[#C6A649] bg-[#C6A649]/10 text-[#C6A649]' : 'border-blue-600 bg-blue-50 text-blue-700';
+  const methodInactive = mode === 'velvet' ? 'border-white/10 text-white/40' : 'border-gray-200 text-gray-400 hover:border-gray-300';
+  const currencyActive = mode === 'velvet' ? 'bg-[#C6A649] text-black' : 'bg-black text-white';
+  const currencyInactive = mode === 'velvet' ? 'text-gray-500' : 'text-gray-400 hover:bg-white/50';
+  const divider = mode === 'velvet' ? 'border-white/10' : 'border-gray-200';
+  const totalLabel = mode === 'velvet' ? 'text-white/40' : 'text-gray-400';
+  const priceColor = mode === 'velvet' ? 'text-white' : 'text-gray-900';
+
+  // Button Style Override for Agency Mode
+  const actionBtn = mode === 'velvet'
+    ? S.btnGold
+    : 'bg-black text-white font-bold uppercase tracking-[0.2em] shadow-lg hover:bg-gray-800 hover:shadow-xl active:scale-95 transition-all duration-300 rounded-xl cursor-pointer';
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
+      <div className={`w-full max-w-md p-8 rounded-[40px] text-center relative transition-colors duration-300 ${panelClass}`}>
+        <button onClick={onClose} className={`absolute top-6 right-6 ${closeBtn}`}><X size={20}/></button>
+        <h3 className={`${textPrimary} font-bold uppercase tracking-[0.3em] mb-2 text-sm`}>Checkout</h3>
+        <p className={`${textAccent} text-xs font-bold uppercase tracking-widest mb-6`}>{p.name} {annual ? '(Anual)' : '(Mensual)'}</p>
+
+        <div className={`${summaryBox} p-4 rounded-xl mb-6 text-left`}>
+            <p className={`text-[10px] ${textSecondary} uppercase mb-2 font-bold`}>Resumen:</p>
+            <ul className={`text-xs ${summaryText} space-y-1`}>
                 <li>• Acceso inmediato a {p.creds} créditos</li>
                 <li>• Desbloqueo de funciones {p.name === 'Influencer' ? 'Velvet' : 'Pro'}</li>
                 <li>• Cancelación en cualquier momento</li>
@@ -42,32 +68,32 @@ export const CheckoutModal = ({ planKey, annual, onClose }: { planKey: string, a
         </div>
 
         <div className="grid grid-cols-2 gap-3 mb-4">
-            <button onClick={()=>setMethod('card')} className={`flex items-center justify-center gap-2 py-3 rounded-xl border transition-all ${method==='card' ? 'border-[#C6A649] bg-[#C6A649]/10 text-[#C6A649]' : 'border-white/10 text-white/40'}`}>
+            <button onClick={()=>setMethod('card')} className={`flex items-center justify-center gap-2 py-3 rounded-xl border transition-all ${method==='card' ? methodActive : methodInactive}`}>
                 <CreditCard size={14}/><span className="text-[10px] font-bold">Tarjeta</span>
             </button>
-            <button onClick={()=>setMethod('crypto')} className={`flex items-center justify-center gap-2 py-3 rounded-xl border transition-all ${method==='crypto' ? 'border-[#C6A649] bg-[#C6A649]/10 text-[#C6A649]' : 'border-white/10 text-white/40'}`}>
+            <button onClick={()=>setMethod('crypto')} className={`flex items-center justify-center gap-2 py-3 rounded-xl border transition-all ${method==='crypto' ? methodActive : methodInactive}`}>
                 <Bitcoin size={14}/><span className="text-[10px] font-bold">Cripto (USDT)</span>
             </button>
         </div>
 
-        <div className="flex gap-2 mb-6 bg-black/30 p-1 rounded-xl">
-            <button onClick={()=>setCurrency('USD')} className={`flex-1 py-2 rounded-lg text-[10px] font-bold uppercase ${currency==='USD' ? 'bg-[#C6A649] text-black' : 'text-gray-500'}`}>USD / USDT</button>
-            <button onClick={()=>setCurrency('ARS')} className={`flex-1 py-2 rounded-lg text-[10px] font-bold uppercase ${currency==='ARS' ? 'bg-[#C6A649] text-black' : 'text-gray-500'}`}>Pesos ARS</button>
+        <div className={`flex gap-2 mb-6 p-1 rounded-xl ${mode==='velvet'?'bg-black/30':'bg-gray-100'}`}>
+            <button onClick={()=>setCurrency('USD')} className={`flex-1 py-2 rounded-lg text-[10px] font-bold uppercase transition-all ${currency==='USD' ? currencyActive : currencyInactive}`}>USD / USDT</button>
+            <button onClick={()=>setCurrency('ARS')} className={`flex-1 py-2 rounded-lg text-[10px] font-bold uppercase transition-all ${currency==='ARS' ? currencyActive : currencyInactive}`}>Pesos ARS</button>
         </div>
 
-        <div className="flex justify-between items-end py-4 border-t border-white/10 mb-6">
-            <div className="text-left"><span className="block text-white/40 text-[10px] uppercase font-bold tracking-widest">Total</span><span className="text-[9px] text-[#C6A649]">IVA Incluido</span></div>
-            <span className="text-3xl font-bold text-white tracking-tighter">{currency === 'USD' ? '$' : '$'}{displayPrice.toLocaleString()}</span>
+        <div className={`flex justify-between items-end py-4 border-t ${divider} mb-6`}>
+            <div className="text-left"><span className={`block ${totalLabel} text-[10px] uppercase font-bold tracking-widest`}>Total</span><span className={`text-[9px] ${textAccent}`}>IVA Incluido</span></div>
+            <span className={`text-3xl font-bold ${priceColor} tracking-tighter`}>{currency === 'USD' ? '$' : '$'}{displayPrice.toLocaleString()}</span>
         </div>
-        <button onClick={handlePay} disabled={proc} className={`w-full py-4 rounded-2xl text-xs ${S.btnGold}`}>{proc ? "Procesando..." : "Confirmar y Pagar"}</button>
-        <p className="text-[8px] text-white/20 mt-4 flex items-center justify-center gap-1"><Shield size={8}/> Pagos procesados de forma segura. Al continuar aceptas los términos.</p>
+        <button onClick={handlePay} disabled={proc} className={`w-full py-4 rounded-2xl text-xs ${actionBtn}`}>{proc ? "Procesando..." : "Confirmar y Pagar"}</button>
+        <p className={`text-[8px] ${textSecondary} mt-4 flex items-center justify-center gap-1`}><Shield size={8}/> Pagos procesados de forma segura. Al continuar aceptas los términos.</p>
 
-        <div className="mt-6 border-t border-white/5 pt-4">
+        <div className={`mt-6 border-t ${divider} pt-4`}>
            <details className="group">
-              <summary className="list-none text-[8px] text-white/30 uppercase tracking-widest cursor-pointer hover:text-white/50 transition-colors flex items-center justify-center gap-2">
+              <summary className={`list-none text-[8px] ${textSecondary} uppercase tracking-widest cursor-pointer hover:opacity-100 transition-opacity flex items-center justify-center gap-2 opacity-70`}>
                  Terms & Conditions <span className="group-open:rotate-180 transition-transform">▼</span>
               </summary>
-              <p className="text-[9px] text-white/40 mt-3 leading-relaxed px-4">
+              <p className={`text-[9px] ${textSecondary} mt-3 leading-relaxed px-4 opacity-80`}>
                  Terms: Recurring subscription. You can cancel at any time. User-generated content is the property of the user. Commercial use is permitted on Creator/Agency plans.
               </p>
            </details>

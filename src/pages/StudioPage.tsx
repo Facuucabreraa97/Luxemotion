@@ -129,6 +129,13 @@ export const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, pr
     ? S.input
     : "bg-gray-50 border border-gray-200 text-gray-900 p-4 rounded-xl focus:border-blue-500 outline-none transition-all text-xs w-full placeholder:text-gray-400";
 
+  const toggleClass = (isActive: boolean) => {
+    if (mode === 'velvet') {
+        return isActive ? S.activeTab : 'bg-black/40 text-gray-400 border border-white/10 hover:text-white hover:bg-white/5';
+    }
+    return isActive ? 'bg-black text-white shadow-lg' : 'bg-white text-gray-500 hover:text-black border border-gray-200 shadow-sm';
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 p-6 lg:p-12 pb-32 lg:pb-12 animate-in fade-in duration-700 mb-24 lg:mb-0 relative">
       <StudioOnboarding />
@@ -142,8 +149,8 @@ export const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, pr
             <div className="flex justify-between items-center mb-8">
                 <h2 className="text-xs font-bold uppercase tracking-[0.2em] flex gap-3"><span className={mode==='velvet'?"text-[#C6A649]":"text-blue-600"}>01</span> {t('studio.source')} <Tooltip txt="Base asset"/></h2>
                 <div className={`p-1.5 rounded-full border flex ${mode==='velvet'?'bg-black/40 border-white/10':'bg-gray-100 border-gray-200'}`}>
-                    <button onClick={()=>{setType('img'); setVid(null);}} className={`px-6 py-2 rounded-full text-[9px] font-bold uppercase transition-all ${type==='img' ? (mode==='velvet'?S.activeTab:'bg-white shadow text-black') : 'text-gray-400'}`}>Photo</button>
-                    <button onClick={()=>{setType('vid'); setImg(null);}} className={`px-6 py-2 rounded-full text-[9px] font-bold uppercase transition-all ${type==='vid' ? (mode==='velvet'?S.activeTab:'bg-white shadow text-black') : 'text-gray-400'}`}>Remix</button>
+                    <button onClick={()=>{setType('img'); setVid(null);}} className={`px-6 py-2 rounded-full text-[9px] font-bold uppercase transition-all ${toggleClass(type==='img')}`}>Photo</button>
+                    <button onClick={()=>{setType('vid'); setImg(null);}} className={`px-6 py-2 rounded-full text-[9px] font-bold uppercase transition-all ${toggleClass(type==='vid')}`}>Remix</button>
                 </div>
             </div>
 
@@ -181,22 +188,22 @@ export const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, pr
                                 >
                                     <div className={`w-20 h-20 rounded-full overflow-hidden border-2 transition-all duration-300 p-0.5
                                         ${img === t.image_url
-                                            ? (mode==='velvet' ? 'border-[#C6A649] shadow-[0_0_20px_rgba(198,166,73,0.3)] scale-105' : 'border-blue-500 shadow-lg scale-105')
-                                            : (mode==='velvet' ? 'border-white/10 opacity-70 group-hover:opacity-100 group-hover:border-white/30' : 'border-gray-200 opacity-80 group-hover:opacity-100 group-hover:border-blue-300')
+                                            ? (mode==='velvet' ? 'border-[#C6A649] shadow-[0_0_20px_rgba(198,166,73,0.3)] scale-105' : 'border-black shadow-lg scale-105')
+                                            : (mode==='velvet' ? 'border-white/10 opacity-70 group-hover:opacity-100 group-hover:border-white/30' : 'border-gray-200 opacity-80 group-hover:opacity-100 group-hover:border-gray-300')
                                         }`}
                                     >
                                         <div className="w-full h-full rounded-full overflow-hidden relative">
                                             <img src={t.image_url} className="w-full h-full object-cover"/>
                                             {img === t.image_url && (
                                                 <div className="absolute inset-0 bg-black/20 flex items-center justify-center animate-in fade-in zoom-in">
-                                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center shadow-sm ${mode==='velvet'?'bg-[#C6A649] text-black':'bg-blue-500 text-white'}`}>
+                                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center shadow-sm ${mode==='velvet'?'bg-[#C6A649] text-black':'bg-black text-white'}`}>
                                                         <Check size={12} strokeWidth={4}/>
                                                     </div>
                                                 </div>
                                             )}
                                         </div>
                                     </div>
-                                    <p className={`text-[9px] font-bold uppercase truncate max-w-full text-center tracking-wider ${mode==='velvet' ? (img===t.image_url?'text-[#C6A649]':'text-gray-500') : (img===t.image_url?'text-blue-600':'text-gray-500')}`}>
+                                    <p className={`text-[9px] font-bold uppercase truncate max-w-full text-center tracking-wider ${mode==='velvet' ? (img===t.image_url?'text-[#C6A649]':'text-gray-500') : (img===t.image_url?'text-black':'text-gray-500')}`}>
                                         {t.name}
                                     </p>
                                 </button>
@@ -224,8 +231,8 @@ export const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, pr
                 {CAMS.map(m => (
                     <button key={m.id} onClick={()=>setCam(m.id)} className={`relative p-4 rounded-3xl border flex flex-col items-center gap-3 transition-all group overflow-hidden
                         ${cam===m.id
-                            ? (mode==='velvet' ? 'bg-[#C6A649] border-[#C6A649] text-black shadow-lg' : 'bg-blue-600 border-blue-600 text-white shadow-lg')
-                            : (mode==='velvet' ? 'bg-black/40 border-white/5 text-gray-500 hover:bg-white/5' : 'bg-gray-50 border-gray-200 text-gray-400 hover:bg-white hover:border-blue-200')
+                            ? (mode==='velvet' ? 'bg-[#C6A649] border-[#C6A649] text-black shadow-lg' : 'bg-black border-black text-white shadow-lg')
+                            : (mode==='velvet' ? 'bg-black/40 border-white/5 text-gray-500 hover:bg-white/5' : 'bg-gray-50 border-gray-200 text-gray-400 hover:bg-white hover:border-gray-300')
                         }`}>
                         {m.icon}<span className="text-[7px] font-bold uppercase tracking-widest">{m.label}</span>
                     </button>
@@ -257,15 +264,15 @@ export const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, pr
                 <div className="space-y-4">
                     <div className="flex justify-between items-center"><span className="text-[10px] uppercase tracking-widest opacity-40">Duration</span><span className={`font-bold text-xs ${mode==='velvet'?'text-[#C6A649]':'text-blue-600'}`}>{dur}s</span></div>
                     <div className={`flex gap-2 p-1.5 rounded-2xl border ${mode==='velvet'?'bg-black/40 border-white/10':'bg-gray-100 border-gray-200'}`}>
-                        <button onClick={()=>setDur(5)} className={`flex-1 py-3 rounded-xl text-[9px] font-bold uppercase transition-all ${dur===5 ? (mode==='velvet'?S.activeTab:'bg-white shadow text-black') : 'text-gray-400'}`}>5s (10cr)</button>
-                        <button onClick={()=>setDur(10)} className={`flex-1 py-3 rounded-xl text-[9px] font-bold uppercase transition-all ${dur===10 ? (mode==='velvet'?S.activeTab:'bg-white shadow text-black') : 'text-gray-400'}`}>10s (20cr)</button>
+                        <button onClick={()=>setDur(5)} className={`flex-1 py-3 rounded-xl text-[9px] font-bold uppercase transition-all ${toggleClass(dur===5)}`}>5s (10cr)</button>
+                        <button onClick={()=>setDur(10)} className={`flex-1 py-3 rounded-xl text-[9px] font-bold uppercase transition-all ${toggleClass(dur===10)}`}>10s (20cr)</button>
                     </div>
                 </div>
                 <div className="space-y-4">
                     <div className="flex justify-between items-center"><span className="text-[10px] uppercase tracking-widest opacity-40">Ratio</span></div>
                     <div className={`flex gap-2 p-1.5 rounded-2xl border ${mode==='velvet'?'bg-black/40 border-white/10':'bg-gray-100 border-gray-200'}`}>
                         {RATIOS.map(r => (
-                            <button key={r.id} onClick={() => setRatio(r.id)} className={`flex-1 py-3 rounded-xl text-[9px] font-bold uppercase transition-all ${ratio === r.id ? (mode==='velvet'?S.activeTab:'bg-white shadow text-black') : 'text-gray-400'}`}>{r.id}</button>
+                            <button key={r.id} onClick={() => setRatio(r.id)} className={`flex-1 py-3 rounded-xl text-[9px] font-bold uppercase transition-all ${toggleClass(ratio === r.id)}`}>{r.id}</button>
                         ))}
                     </div>
                 </div>
@@ -273,10 +280,10 @@ export const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, pr
         </div>
 
         {/* ACTION BUTTON */}
-        <button id="studio-generate-btn" onClick={generate} disabled={loading || (!img && !vid)} className={`w-full py-7 rounded-[32px] font-bold uppercase tracking-[0.3em] text-xs flex items-center justify-center gap-4 fixed bottom-6 left-4 right-4 lg:static lg:w-full z-50 shadow-2xl
+        <button id="studio-generate-btn" onClick={generate} disabled={loading || (!img && !vid)} className={`w-full py-7 rounded-[32px] font-bold uppercase tracking-[0.3em] text-xs flex items-center justify-center gap-4 fixed bottom-6 left-4 right-4 lg:static lg:w-full z-50 shadow-2xl transition-all duration-300
             ${mode==='velvet'
                 ? (velvetFilter ? S.btnVelvet : S.btnGold)
-                : 'bg-blue-600 text-white shadow-blue-500/20 hover:bg-blue-700 hover:shadow-blue-500/40 transition-all'
+                : 'bg-black text-white shadow-lg hover:bg-gray-800 hover:shadow-xl active:scale-95'
             }`}>
             {loading ? "Processing..." : <><Zap size={18}/> {t('studio.generate')} ({calculateCost()})</>}
         </button>
@@ -285,13 +292,13 @@ export const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, pr
       {/* RIGHT PANEL: PREVIEW */}
       <div className="lg:col-span-3 relative z-10 flex flex-col pt-0 h-[calc(100vh-100px)] sticky top-8">
          <div className={`w-full h-full rounded-[40px] border overflow-hidden shadow-2xl relative transition-all duration-500 flex flex-col
-            ${mode==='velvet' ? 'bg-black border-white/10' : 'bg-gray-900 border-gray-200'}
+            ${mode==='velvet' ? 'bg-black border-white/10' : 'bg-white border-gray-200'}
          `}>
             {/* Aspect Ratio Container within the fixed panel - centered */}
-            <div className="flex-1 flex items-center justify-center bg-black/50 p-8">
+            <div className={`flex-1 flex items-center justify-center p-8 transition-colors ${mode==='velvet' ? 'bg-black/50' : 'bg-gray-50'}`}>
                  <div className={`relative w-full max-h-full transition-all duration-500 shadow-2xl
                     ${ratio==='16:9'?'aspect-video w-full':ratio==='1:1'?'aspect-square h-full':'aspect-[9/16] h-full'}
-                    ${mode==='velvet' ? 'bg-black' : 'bg-gray-900'}
+                    ${mode==='velvet' ? 'bg-black' : 'bg-black'}
                  `}>
                     <div className="absolute top-6 left-6 right-6 flex justify-between items-center z-20 pointer-events-none opacity-60"><div className="text-[10px] text-white font-mono flex items-center gap-2"><span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span> REC</div><div className="text-[10px] text-white font-mono">{dur}s • 4K</div></div>
 
@@ -305,9 +312,9 @@ export const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, pr
                     {loading && (
                         <div className="absolute inset-0 bg-[#050505] z-30 flex flex-col items-center justify-center">
                             <div className={`w-20 h-20 border-t-2 border-r-2 rounded-full animate-spin mb-8 shadow-[0_0_30px_rgba(198,166,73,0.2)]
-                                ${mode==='velvet' ? 'border-[#C6A649]' : 'border-blue-500 shadow-blue-500/20'}
+                                ${mode==='velvet' ? 'border-[#C6A649]' : 'border-black shadow-lg'}
                             `}></div>
-                            <p className={`text-[10px] uppercase tracking-widest animate-pulse font-bold ${mode==='velvet'?'text-[#C6A649]':'text-blue-500'}`}>{t('studio.processing')}</p>
+                            <p className={`text-[10px] uppercase tracking-widest animate-pulse font-bold ${mode==='velvet'?'text-[#C6A649]':'text-black'}`}>{t('studio.processing')}</p>
                         </div>
                     )}
 
@@ -316,11 +323,13 @@ export const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, pr
             </div>
 
             {/* Footer Actions inside the fixed panel */}
-            <div className="p-6 border-t border-white/5 flex justify-center bg-black/40 backdrop-blur-sm">
+            <div className={`p-6 border-t flex justify-center backdrop-blur-sm transition-colors ${mode==='velvet'?'border-white/5 bg-black/40':'border-gray-100 bg-white/40'}`}>
                 {resUrl ? (
-                    <a href={resUrl} download className="px-12 py-4 bg-white text-black rounded-full text-[10px] font-bold uppercase hover:scale-105 transition-transform flex gap-3 shadow-2xl items-center"><Download size={16}/> Download 4K</a>
+                    <a href={resUrl} download className={`px-12 py-4 rounded-full text-[10px] font-bold uppercase hover:scale-105 transition-transform flex gap-3 shadow-2xl items-center
+                        ${mode==='velvet' ? 'bg-white text-black' : 'bg-black text-white'}
+                    `}><Download size={16}/> Download 4K</a>
                 ) : (
-                    <div className="text-[9px] text-white/30 uppercase tracking-widest">Ready to Render</div>
+                    <div className={`text-[9px] uppercase tracking-widest ${mode==='velvet'?'text-white/30':'text-gray-400'}`}>Ready to Render</div>
                 )}
             </div>
          </div>
