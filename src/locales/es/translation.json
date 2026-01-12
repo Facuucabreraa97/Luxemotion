@@ -17,6 +17,15 @@
       "settings": "Ajustes"
     }
   },
+  "velvet": {
+    "enter": "Ingresa al",
+    "side": "Lado Velvet",
+    "uncensored": "Sin Censura",
+    "skin": "Piel Hiperrealista (8K)",
+    "exclusive": "Modelos Exclusivos",
+    "priority": "Generación Prioritaria",
+    "unlock": "Desbloquear Acceso Total"
+  },
   "studio": {
     "generate": "Generar Video",
     "processing": "Creando Magia...",

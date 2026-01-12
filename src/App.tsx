@@ -34,7 +34,7 @@ function ProtectedLayout({
     if (!session) return <Navigate to="/login" replace />;
 
     return (
-        <div className={`${mode === 'velvet' ? S.bg : 'bg-gray-50 min-h-screen text-gray-900 font-sans'}`}>
+        <div className={`${mode === 'velvet' ? S.bg : S.bgAgency}`}>
             {toast && <Toast msg={toast} onClose={()=>setToast(null)}/>}
             {selPlan && <CheckoutModal planKey={selPlan.key} annual={selPlan.annual} onClose={()=>setSelPlan(null)}/>}
 
