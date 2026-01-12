@@ -425,6 +425,7 @@ const MobileHeader = ({ credits, userProfile, onUpgrade }: any) => {
 const MobileNav = () => (
   <div className="lg:hidden fixed bottom-0 w-full bg-[#0a0a0a] border-t border-white/10 flex justify-around p-2 pb-6 z-50">
       <NavLink to="/app" end className={({isActive})=>`p-3 flex flex-col items-center gap-1 ${isActive?'text-[#C6A649]':'text-white/50'}`}><LayoutDashboard size={20}/><span className="text-[8px] uppercase font-bold">Studio</span></NavLink>
+      <NavLink to="/app/explore" className={({isActive})=>`p-3 flex flex-col items-center gap-1 ${isActive?'text-[#C6A649]':'text-white/50'}`}><Globe size={20}/><span className="text-[8px] uppercase font-bold">Explore</span></NavLink>
       <NavLink to="/app/talent" className={({isActive})=>`p-3 flex flex-col items-center gap-1 ${isActive?'text-[#C6A649]':'text-white/50'}`}><Users size={20}/><span className="text-[8px] uppercase font-bold">Casting</span></NavLink>
       <NavLink to="/app/gallery" className={({isActive})=>`p-3 flex flex-col items-center gap-1 ${isActive?'text-[#C6A649]':'text-white/50'}`}><ImageIcon size={20}/><span className="text-[8px] uppercase font-bold">Galeria</span></NavLink>
       <NavLink to="/app/billing" className={({isActive})=>`p-3 flex flex-col items-center gap-1 ${isActive?'text-[#C6A649]':'text-white/50'}`}><CreditCard size={20}/><span className="text-[8px] uppercase font-bold">Plan</span></NavLink>
@@ -651,7 +652,7 @@ const LoginScreen = ({ onLogin }: { onLogin: () => void }) => {
   );
 };
 
-const TalentPage = ({ list, add, del, notify }: any) => {
+const TalentPage = ({ list, add, del, notify, videos }: any) => {
   const { mode } = useMode();
   const { t } = useTranslation();
   const [img, setImg] = useState<string|null>(null);
@@ -661,24 +662,8 @@ const TalentPage = ({ list, add, del, notify }: any) => {
   const [open, setOpen] = useState(false);
   const [sellingId, setSellingId] = useState<string | null>(null);
   const [sellPrice, setSellPrice] = useState<string>('');
+  const [showGallery, setShowGallery] = useState(false);
 
-  const handleFile = async (e:any) => {
-      const f = e.target.files[0];
-      if (!f) return;
-      try {
-          const fileExt = f.name.split('.').pop();
-          const fileName = `${Math.random()}.${fileExt}`;
-          const filePath = `${fileName}`;
-
-          const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, f);
-          if (uploadError) throw uploadError;
-
-          const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
-          setImg(data.publicUrl);
-      } catch (error: any) {
-          notify('Error uploading image: ' + error.message);
-      }
-  };
   const save = () => {
       if(img && name) { add({id:Date.now().toString(), name, image_url:img, role, notes}); setOpen(false); setImg(null); setName(''); setNotes(''); notify("Persona Added"); }
   };
@@ -695,6 +680,7 @@ const TalentPage = ({ list, add, del, notify }: any) => {
       } catch (e) { notify("Error"); }
   };
   const isVelvet = mode === 'velvet';
+  const isVideo = (url: string) => url?.match(/\.(mp4|webm|mov|mkv)$/i);
 
   return (
     <div className="p-6 lg:p-12 pb-32 animate-in fade-in">
@@ -704,9 +690,8 @@ const TalentPage = ({ list, add, del, notify }: any) => {
         </div>
         {open && (
             <div className={`grid grid-cols-1 md:grid-cols-2 gap-12 p-12 rounded-[40px] mb-12 transition-all duration-500 ${isVelvet ? S.panel : 'bg-white shadow-xl border border-gray-100'}`}>
-                <div className={`aspect-[3/4] rounded-[30px] border-2 border-dashed flex items-center justify-center relative overflow-hidden group cursor-pointer transition-all ${isVelvet ? 'bg-black/30 border-white/10 hover:border-[#C6A649]/50' : 'bg-gray-50 border-gray-300 hover:border-blue-500'}`}>
-                    {img ? <img src={img} className="w-full h-full object-cover"/> : (<div className={`text-center ${isVelvet?'opacity-30':'opacity-50 text-gray-500'}`}><Camera className="mx-auto mb-4 w-8 h-8"/><span className="text-[10px] font-bold uppercase tracking-widest">Upload Portrait</span></div>)}
-                    <input type="file" onChange={handleFile} className="absolute inset-0 opacity-0 cursor-pointer"/>
+                <div onClick={()=>setShowGallery(true)} className={`aspect-[3/4] rounded-[30px] border-2 border-dashed flex items-center justify-center relative overflow-hidden group cursor-pointer transition-all ${isVelvet ? 'bg-black/30 border-white/10 hover:border-[#C6A649]/50' : 'bg-gray-50 border-gray-300 hover:border-blue-500'}`}>
+                    {img ? (isVideo(img) ? <video src={img} className="w-full h-full object-cover" autoPlay muted loop/> : <img src={img} className="w-full h-full object-cover"/>) : (<div className={`text-center ${isVelvet?'opacity-30':'opacity-50 text-gray-500'}`}><ImageIcon className="mx-auto mb-4 w-8 h-8"/><span className="text-[10px] font-bold uppercase tracking-widest">Select from Gallery</span></div>)}
                 </div>
                 <div className="flex flex-col justify-center gap-8">
                     <div className="space-y-4"><label className={`text-[10px] uppercase tracking-widest ${isVelvet?'text-white/40':'text-gray-400'}`}>Name</label><input value={name} onChange={e=>setName(e.target.value)} className={isVelvet ? S.input : "w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-sm outline-none transition-all"}/></div>
@@ -716,10 +701,26 @@ const TalentPage = ({ list, add, del, notify }: any) => {
                 </div>
             </div>
         )}
+        {showGallery && (
+            <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-xl flex items-center justify-center p-8">
+                <div className={`w-full max-w-4xl max-h-[80vh] overflow-y-auto p-8 rounded-[40px] ${isVelvet ? 'bg-[#0a0a0a] border border-white/10' : 'bg-white'}`}>
+                    <div className="flex justify-between items-center mb-8"><h3 className={`text-2xl font-bold uppercase tracking-widest ${isVelvet?'text-white':'text-black'}`}>Select Asset</h3><button onClick={()=>setShowGallery(false)}><X size={24} className={isVelvet?'text-white':'text-black'}/></button></div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {videos && videos.map((v:any) => (
+                            <div key={v.id} onClick={()=>{setImg(v.url); setShowGallery(false);}} className="cursor-pointer group relative aspect-[9/16] rounded-xl overflow-hidden border border-transparent hover:border-[#C6A649]">
+                                {isVideo(v.url) ? <video src={v.url} className="w-full h-full object-cover" muted /> : <img src={v.url} className="w-full h-full object-cover" />}
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all"/>
+                            </div>
+                        ))}
+                         {(!videos || videos.length === 0) && <p className="col-span-4 text-center text-gray-500 py-10">No generations found.</p>}
+                    </div>
+                </div>
+            </div>
+        )}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
             {list.map((inf:Talent) => (
                 <div key={inf.id} className={`rounded-[30px] overflow-hidden relative group transition-all duration-500 hover:-translate-y-2 ${isVelvet ? S.panel : 'bg-white shadow-lg border border-gray-100'}`}>
-                    <img src={inf.image_url} className="aspect-[3/4] object-cover w-full group-hover:scale-105 transition-transform duration-700"/>
+                    {isVideo(inf.image_url) ? <video src={inf.image_url} className="aspect-[3/4] object-cover w-full group-hover:scale-105 transition-transform duration-700" muted loop onMouseOver={e=>e.currentTarget.play()} onMouseOut={e=>e.currentTarget.pause()}/> : <img src={inf.image_url} className="aspect-[3/4] object-cover w-full group-hover:scale-105 transition-transform duration-700"/>}
                     <div className="absolute bottom-0 inset-x-0 p-6 pt-20 flex justify-between items-end bg-gradient-to-t from-black/90 via-black/50 to-transparent">
                         <div><span className="text-[10px] font-bold uppercase tracking-widest text-white block">{inf.name}</span>{(inf as any).for_sale && <span className="text-[8px] font-bold uppercase bg-[#C6A649] text-black px-2 py-0.5 rounded-full mt-1 inline-block ml-2">For Sale</span>}</div>
                         <div className="flex gap-2">
@@ -1063,7 +1064,7 @@ function AppContent() {
             <Route path="/app" element={<ProtectedLayout session={session} credits={credits} handleLogout={handleLogout} setSelPlan={setSelPlan} profile={profile} mode={mode} selPlan={selPlan} notify={notify} />}>
                 <Route index element={<StudioPage onGen={handleVideoSaved} influencers={influencers} credits={credits} notify={notify} onUp={()=>setSelPlan({key:'creator', annual:true})} userPlan={userPlan} talents={influencers} profile={profile}/>}/>
                 <Route path="explore" element={<ExplorePage />} />
-                <Route path="talent" element={<TalentPage list={influencers} add={handleInf.add} del={handleInf.del} notify={notify}/>}/>
+                <Route path="talent" element={<TalentPage list={influencers} add={handleInf.add} del={handleInf.del} notify={notify} videos={videos}/>}/>
                 <Route path="gallery" element={<GalleryPage videos={videos}/>}/>
                 <Route path="billing" element={<BillingPage onSelect={(k:string, a:boolean)=>setSelPlan({key:k, annual:a})}/>}/>
                 <Route path="settings" element={<SettingsPage credits={credits} profile={profile} setProfile={handleUpdateProfile} notify={notify}/>}/>
