@@ -541,6 +541,8 @@ const ExplorePage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    const isVideo = (url: string) => url?.match(/\.(mp4|webm|mov|mkv)$/i);
+
     useEffect(() => {
         let active = true;
         setLoading(true);
@@ -550,6 +552,7 @@ const ExplorePage = () => {
         const fetchData = async () => {
             try {
                 if (tab === 'community') {
+                    // Correct query: select public generations (community) without user filter
                     const { data, error } = await supabase
                         .from('generations')
                         .select('*, profiles(name, avatar)')
@@ -563,6 +566,7 @@ const ExplorePage = () => {
                     if (!data || data.length === 0) console.log("ExplorePage: No community items found.");
                     if (active) setItems(data || []);
                 } else {
+                    // Correct query: select talents for sale (marketplace) without user filter
                     const { data, error } = await supabase
                         .from('talents')
                         .select('*, profiles(name, avatar)')
@@ -616,19 +620,22 @@ const ExplorePage = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {loading ? placeholders.map((_, i) => (
                             <div key={i} className={`aspect-[9/16] rounded-[30px] animate-pulse ${mode==='velvet'?'bg-white/5':'bg-gray-200'}`}></div>
-                        )) : items.map((item: any) => (
+                        )) : items.map((item: any) => {
+                             const assetUrl = item.video_url || item.image_url;
+                             const isVid = isVideo(assetUrl);
+                             return (
                              <div key={item.id} className={`rounded-[30px] overflow-hidden group relative hover:-translate-y-2 transition-all ${mode==='velvet'?S.panel:'bg-white shadow-lg border border-gray-100'}`}>
-                            {item.type === 'video' || (item.video_url && item.video_url.endsWith('.mp4')) ? (
-                                    <video src={item.video_url} className="aspect-[9/16] object-cover w-full" controls />
+                                {isVid ? (
+                                    <video src={assetUrl} className="aspect-[9/16] object-cover w-full" controls />
                                 ) : (
-                                    <img src={item.image_url} className="aspect-[3/4] object-cover w-full" />
+                                    <img src={assetUrl} className="aspect-[3/4] object-cover w-full" />
                                 )}
                                 <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/80 to-transparent flex justify-between items-end">
                                     <p className="text-white text-[10px] font-bold uppercase tracking-widest">{item.profiles?.name || 'Unknown'}</p>
                                     {tab === 'marketplace' && <div className="bg-[#C6A649] text-black px-3 py-1 rounded-full text-[9px] font-bold uppercase">{item.price} CR</div>}
                                 </div>
                             </div>
-                        ))}
+                        )})}
                     </div>
                 </>
             )}
@@ -846,7 +853,7 @@ const TalentPage = ({ list, add, del, notify, videos }: any) => {
   );
 };
 
-const GalleryPage = ({ videos }: any) => {
+const GalleryPage = ({ videos, setVideos }: any) => {
   const { mode } = useMode();
   const { showToast } = useToast();
   const [publishing, setPublishing] = useState<string | null>(null);
@@ -862,7 +869,9 @@ const GalleryPage = ({ videos }: any) => {
         if (res.ok) {
             const data = await res.json();
             showToast(data.is_public ? 'Published!' : 'Unpublished', 'success');
-            window.location.reload();
+            if (setVideos) {
+                setVideos((prev: any[]) => prev.map(v => v.id === video.id ? { ...v, is_public: data.is_public } : v));
+            }
         } else { throw new Error("Failed"); }
     } catch (e) { showToast('Error', 'error'); } finally { setPublishing(null); }
   };
@@ -1197,7 +1206,7 @@ function AppContent() {
                 <Route index element={<StudioPage onGen={handleVideoSaved} influencers={influencers} credits={credits} notify={notify} onUp={()=>setSelPlan({key:'creator', annual:true})} userPlan={userPlan} talents={influencers} profile={profile}/>}/>
                 <Route path="explore" element={<ExplorePage />} />
                 <Route path="talent" element={<TalentPage list={influencers} add={handleInf.add} del={handleInf.del} notify={notify} videos={videos}/>}/>
-                <Route path="gallery" element={<GalleryPage videos={videos}/>}/>
+                <Route path="gallery" element={<GalleryPage videos={videos} setVideos={setVideos}/>}/>
                 <Route path="billing" element={<BillingPage onSelect={(k:string, a:boolean)=>setSelPlan({key:k, annual:a})}/>}/>
                 <Route path="settings" element={<SettingsPage credits={credits} profile={profile} setProfile={handleUpdateProfile} notify={notify}/>}/>
                 <Route path="*" element={<Navigate to="/app" replace />} />
