@@ -647,7 +647,7 @@ const ExplorePage = () => {
                                     <img src={assetUrl} className="aspect-[3/4] object-cover w-full" />
                                 )}
                                 <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/80 to-transparent flex justify-between items-end">
-                                    <p className="text-white text-[10px] font-bold uppercase tracking-widest">{item.profiles?.name || 'Anonymous User'}</p>
+                                    <p className="text-white text-[10px] font-bold uppercase tracking-widest">{item.profiles?.name || 'Anonymous Seller'}</p>
                                     {tab === 'marketplace' && <div className="bg-[#C6A649] text-black px-3 py-1 rounded-full text-[9px] font-bold uppercase">{item.price} CR</div>}
                                 </div>
                             </div>
@@ -773,7 +773,7 @@ const TalentPage = ({ list, add, del, notify, videos }: any) => {
       let finalForSale = false;
 
       if (isForSale) {
-          finalPrice = parseInt(createPrice);
+          finalPrice = parseFloat(createPrice);
           if (isNaN(finalPrice) || finalPrice <= 0) {
               setErrorMsg("Price must be greater than 0");
               return;
