@@ -76,13 +76,44 @@ function AppContent() {
   const notify = (msg: string) => setToast(msg);
 
   const handleInf = {
-      add: (inf:any) => { const n=[...influencers,inf]; setInfluencers(n); localStorage.setItem('lux_inf',JSON.stringify(n)); },
-      del: (id:string) => { const n=influencers.filter(i=>i.id!==id); setInfluencers(n); localStorage.setItem('lux_inf',JSON.stringify(n)); }
+      add: async (inf: any) => {
+          const user = session?.user;
+          if(!user) return;
+
+          // Optimistic update
+          const tempId = `temp_${Date.now()}`;
+          const newTalent = { ...inf, id: tempId, user_id: user.id };
+          setInfluencers([newTalent, ...influencers]);
+
+          const { data, error } = await supabase.from('talents').insert({
+              name: inf.name,
+              image_url: inf.image_url,
+              role: inf.role || 'model',
+              dna_prompt: inf.dna_prompt || '',
+              user_id: user.id
+          }).select().single();
+
+          if(error) {
+               console.error("Error adding talent:", error);
+               notify("Error adding talent");
+               setInfluencers(prev => prev.filter(i => i.id !== tempId));
+          } else if (data) {
+               setInfluencers(prev => prev.map(i => i.id === tempId ? data : i));
+          }
+      },
+      del: async (id: string) => {
+          const old = [...influencers];
+          setInfluencers(prev => prev.filter(i => i.id !== id));
+          const { error } = await supabase.from('talents').delete().eq('id', id);
+          if(error) {
+               console.error("Error deleting talent:", error);
+               notify("Error deleting");
+               setInfluencers(old);
+          }
+      }
   };
 
   useEffect(() => {
-    try { const i=localStorage.getItem('lux_inf'); if(i) setInfluencers(JSON.parse(i)); } catch(e){}
-
     supabase.auth.getSession().then(({data:{session}}) => {
       setSession(session);
       if(session) initData(session.user.id);
@@ -113,6 +144,10 @@ function AppContent() {
 
         const { data: v, error: vError } = await supabase.from('generations').select('*').eq('user_id', uid).order('created_at', {ascending:false});
         if(v && !vError) setVideos(v.map((i:any)=>({id:i.id, url:i.video_url, date:new Date(i.created_at).toLocaleDateString(), aspectRatio:i.aspect_ratio, cost:i.cost, prompt: i.prompt})));
+
+        const { data: t, error: tError } = await supabase.from('talents').select('*').eq('user_id', uid).order('created_at', {ascending:false});
+        if(t && !tError) setInfluencers(t);
+
       } catch (err) {
         console.error("Error loading data", err);
       } finally {

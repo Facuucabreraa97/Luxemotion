@@ -8,14 +8,18 @@ export const SettingsPage = ({ profile, setProfile, notify }: any) => {
   const save = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if(user) {
-          // Asumimos que la tabla profiles tiene estos campos
-          // Si no, hay que crearlos en Supabase SQL Editor
-          await supabase.from('profiles').update({
+          const { error } = await supabase.from('profiles').update({
               instagram: data.instagram,
               telegram: data.telegram,
               phone: data.phone
           }).eq('id', user.id);
-          notify("Perfil Actualizado");
+
+          if(error) {
+              console.error("Error saving profile", error);
+              notify("Error al guardar");
+          } else {
+              notify("Perfil Actualizado");
+          }
       }
   };
 

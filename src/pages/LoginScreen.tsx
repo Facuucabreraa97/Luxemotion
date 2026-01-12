@@ -41,9 +41,12 @@ export const LoginScreen = ({ onLogin, initialMode }: LoginScreenProps) => {
             if(error) setErrorMsg(error.message); else alert("Revisa tu email para confirmar.");
         } else if (mode === 'login') {
             const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
-            if(error) setErrorMsg(error.message); else if(onLogin) onLogin();
+            if(error) setErrorMsg(error.message);
+            // Successful login will trigger onAuthStateChange in App.tsx
         } else {
-            const { error } = await supabase.auth.resetPasswordForEmail(email);
+            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: window.location.origin + '/settings?mode=reset',
+            });
             if(error) setErrorMsg(error.message); else alert("Correo de recuperación enviado.");
         }
     } catch(e) { setErrorMsg("Error de conexión"); }
