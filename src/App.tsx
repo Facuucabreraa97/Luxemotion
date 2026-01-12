@@ -7,7 +7,7 @@ import {
   Image as ImageIcon, CreditCard, Settings, LogOut, Crown, Film, Move, ZoomIn,
   Heart, Smartphone, Monitor, Square, Flame, LayoutDashboard, Info
 } from 'lucide-react';
-import { createClient, Session } from '@supabase/supabase-js';
+import { createClient, Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { useTranslation } from 'react-i18next';
 import './i18n';
 
@@ -536,10 +536,13 @@ const Sidebar = ({ credits, onLogout, onUp, userProfile, onUpgrade, notify }: an
 
 const ExplorePage = () => {
     const { mode } = useMode();
-    const [tab, setTab] = useState<'community' | 'marketplace'>('community');
+    const [searchParams] = useSearchParams();
+    const { showToast } = useToast();
+    const [tab, setTab] = useState<'community' | 'marketplace'>(searchParams.get('tab') === 'marketplace' ? 'marketplace' : 'community');
     const [items, setItems] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [purchasing, setPurchasing] = useState<string | null>(null);
 
     const isVideo = (url: string) => url?.match(/\.(mp4|webm|mov|mkv)$/i);
 
@@ -574,7 +577,7 @@ const ExplorePage = () => {
                     if (error) throw error;
                     if (active) setItems(data || []);
                 } else {
-                    // Correct query: select talents for sale (marketplace) without user filter
+                    // Correct query: select talents for sale (marketplace)
                     let { data, error } = await supabase
                         .from('talents')
                         .select('*, profiles(name, avatar)')
@@ -599,7 +602,7 @@ const ExplorePage = () => {
             } catch (err) {
                 console.error("ExplorePage Error:", err);
                 if (active) {
-                     setError(tab === 'community' ? 'No public content available.' : 'There are no models for sale yet. Go to Casting and be the first to sell.');
+                    setError(tab === 'community' ? 'No public content available.' : 'There are no models for sale yet. Go to Casting and be the first to sell.');
                 }
             } finally {
                 if (active) setLoading(false);
@@ -609,6 +612,38 @@ const ExplorePage = () => {
         fetchData();
         return () => { active = false; };
     }, [tab]);
+
+    const handleBuy = async (item: any) => {
+        if (!item.for_sale || !item.price) return;
+        if (!window.confirm(`Buy ${item.name || 'this item'} for ${item.price} credits?`)) return;
+
+        setPurchasing(item.id);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+
+            const res = await fetch(`${CONFIG.API_URL}/buy`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({ talent_id: item.id })
+            });
+
+            const result = await res.json();
+            if (!res.ok) throw new Error(result.error || 'Purchase failed');
+
+            showToast(result.message || 'Purchase successful!', 'success');
+            // Refresh items to remove the bought item
+            setItems(prev => prev.filter(i => i.id !== item.id));
+        } catch (error: any) {
+            console.error("Purchase error:", error);
+            showToast(error.message || 'Error processing purchase', 'error');
+        } finally {
+            setPurchasing(null);
+        }
+    };
 
     const placeholders = Array(9).fill(0);
 
@@ -646,9 +681,24 @@ const ExplorePage = () => {
                                 ) : (
                                     <img src={assetUrl} className="aspect-[3/4] object-cover w-full" />
                                 )}
-                                <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/80 to-transparent flex justify-between items-end">
-                                    <p className="text-white text-[10px] font-bold uppercase tracking-widest">{item.profiles?.name || 'Anonymous Seller'}</p>
-                                    {tab === 'marketplace' && <div className="bg-[#C6A649] text-black px-3 py-1 rounded-full text-[9px] font-bold uppercase">{item.price} CR</div>}
+                                <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex flex-col gap-2">
+                                    <div className="flex justify-between items-end">
+                                        <div>
+                                            <p className="text-white text-[10px] font-bold uppercase tracking-widest">{item.profiles?.name || 'User'}</p>
+                                        </div>
+                                        {tab === 'marketplace' && (
+                                            <div className="flex items-center gap-3">
+                                                 <span className="text-[#C6A649] text-lg font-bold uppercase tracking-tight shadow-black drop-shadow-md">{item.price} CR</span>
+                                                 <button
+                                                    onClick={() => handleBuy(item)}
+                                                    disabled={purchasing === item.id}
+                                                    className="bg-[#C6A649] text-black p-2 rounded-full hover:bg-white hover:scale-105 transition-all shadow-lg disabled:opacity-50"
+                                                 >
+                                                    {purchasing === item.id ? <Loader2 size={16} className="animate-spin"/> : <ShoppingBag size={16}/>}
+                                                 </button>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         )})}
@@ -753,6 +803,7 @@ const LoginScreen = ({ onLogin }: { onLogin: () => void }) => {
 const TalentPage = ({ list, add, del, notify, videos }: any) => {
   const { mode } = useMode();
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [img, setImg] = useState<string|null>(null);
   const [name, setName] = useState('');
   const [notes, setNotes] = useState('');
@@ -800,6 +851,7 @@ const TalentPage = ({ list, add, del, notify, videos }: any) => {
       setIsForSale(false);
       setCreatePrice('');
       notify("Persona Added");
+      navigate('/app/explore?tab=marketplace');
   };
   const handleSell = async (id: string) => {
       if (!sellPrice) return;
@@ -1162,7 +1214,7 @@ function AppContent() {
   const [credits, setCredits] = useState(0);
   const [userPlan, setUserPlan] = useState<'starter' | 'creator' | 'agency'>('starter');
   const [selPlan, setSelPlan] = useState<{key: string, annual: boolean} | null>(null);
-  const [profile, setProfile] = useState<UserProfile>({ name: "Agencia", email: "", plan: 'starter' });
+  const [profile, setProfile] = useState<UserProfile>({ name: "User", email: "", plan: 'starter' });
   const { mode, setMode } = useMode();
   const { showToast } = useToast();
   const notify = (msg: string) => showToast(msg);
@@ -1186,7 +1238,6 @@ function AppContent() {
             price: inf.price || 0,
             is_public: inf.for_sale || false
           };
-          console.log('Payload:', payload);
 
           const { data, error } = await supabase.from('talents').insert(payload).select().single();
           if(error) { console.error("Error adding talent:", error); notify("Error adding talent"); setInfluencers(prev => prev.filter(i => i.id !== tempId)); }
@@ -1201,30 +1252,53 @@ function AppContent() {
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({data:{session}}) => { setSession(session); if(session) initData(session.user.id); else setLoading(false); });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => { setSession(session); if(session) initData(session.user.id); else setLoading(false); });
-    return () => { subscription.unsubscribe(); };
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session?.user) initData(session.user);
+      else setLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (session?.user) initData(session.user);
+      else setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const initData = async (uid:string) => {
-      try {
-        const { data: p, error: pError } = await supabase.from('profiles').select('*').eq('id', uid).single();
-        if(p && !pError) {
-             setCredits(p.credits);
-             setUserPlan(p.plan);
-             setProfile({...p, email: session?.user?.email || "", plan: p.plan || 'starter'});
-
-             if (p.plan === 'starter' && !p.is_admin) {
-                 setMode('agency');
-             }
+  const initData = async (user: SupabaseUser) => {
+    try {
+        const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        if (data) {
+           setProfile(data);
+           setCredits(data.credits || 0);
+           setUserPlan(data.plan || 'starter');
+           if (data.plan === 'starter' && !data.is_admin) {
+              setMode('agency');
+           }
+        } else {
+            // Fallback for email if profile fetch fails or if email is not in profile
+            setProfile(prev => ({ ...prev, email: user.email || "" }));
         }
-        else { setCredits(50); setUserPlan('starter'); setProfile({name: "User", email: session?.user?.email || "", plan: 'starter'}); }
-        const { data: v, error: vError } = await supabase.from('generations').select('*').eq('user_id', uid).order('created_at', {ascending:false});
-        if(v && !vError) setVideos(v.map((i:any)=>({id:i.id, url:i.video_url, date:new Date(i.created_at).toLocaleDateString(), aspectRatio:i.aspect_ratio, cost:i.cost, prompt: i.prompt, is_public: i.is_public})));
-        const { data: t, error: tError } = await supabase.from('talents').select('*').eq('user_id', uid).order('created_at', {ascending:false});
-        if(t && !tError) setInfluencers(t);
-      } catch (err) { console.error("Error loading data", err); } finally { setLoading(false); }
+
+        // Load talents
+        const { data: tal } = await supabase.from('talents').select('*').eq('user_id', user.id).order('created_at', {ascending: false});
+        if(tal) setInfluencers(tal);
+
+        // Load generations
+        const { data: gens } = await supabase.from('generations').select('*').eq('user_id', user.id).order('created_at', {ascending: false});
+        if(gens) setVideos(gens);
+
+    } catch (error) {
+         console.error(error);
+         // Ensure we at least have the email
+         setProfile(prev => ({ ...prev, email: user.email || "" }));
+    } finally {
+         setLoading(false);
+    }
   };
+
   const handleVideoSaved = async (videoData: any) => { setVideos(prev => [videoData, ...prev]); if (!profile.is_admin) setCredits(prev => prev - videoData.cost); };
   const handleUpdateProfile = (p: UserProfile) => { setProfile(p); };
   const handleLogout = async () => { await supabase.auth.signOut(); };
