@@ -80,12 +80,20 @@ app.post('/api/generate', async (req, res) => {
     if (mode === 'velvet') cost += 10; // Plus por calidad Velvet
 
     // 2. Verificar Saldo
-    const { data: profile } = await supabaseAdmin.from('profiles').select('credits').eq('id', user.id).single();
+    const { data: profile } = await supabaseAdmin.from('profiles').select('credits, is_admin').eq('id', user.id).single();
     if (!profile) throw new Error("Perfil no encontrado");
-    if (profile.credits < cost) throw new Error(`Saldo insuficiente (${profile?.credits}cr). Necesitas ${cost}cr.`);
 
-    // 3. Descontar
-    await supabaseAdmin.from('profiles').update({ credits: profile.credits - cost }).eq('id', user.id);
+    // Check if admin
+    const isAdmin = profile.is_admin === true;
+
+    if (!isAdmin && profile.credits < cost) {
+      throw new Error(`Saldo insuficiente (${profile?.credits}cr). Necesitas ${cost}cr.`);
+    }
+
+    // 3. Descontar (Only if not admin)
+    if (!isAdmin) {
+      await supabaseAdmin.from('profiles').update({ credits: profile.credits - cost }).eq('id', user.id);
+    }
 
     // 4. INGENIERÍA DE PROMPTS "ULTRA HOT"
     let stylePrompt = "";
@@ -152,7 +160,7 @@ app.post('/api/generate', async (req, res) => {
         cost: cost
     });
 
-    res.json({ videoUrl: publicUrl, cost, remainingCredits: profile.credits - cost });
+    res.json({ videoUrl: publicUrl, cost, remainingCredits: isAdmin ? profile.credits : profile.credits - cost });
 
   } catch (error) {
     console.error("❌ Error:", error.message);

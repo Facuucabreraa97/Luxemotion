@@ -61,6 +61,7 @@ function AppContent() {
         if(p && !pError) {
             setCredits(p.credits);
             setUserPlan(p.plan);
+            // Ensure we keep existing profile structure but include new fields
             setProfile({...p, email: session?.user?.email});
         } else {
              setCredits(50);
@@ -79,7 +80,9 @@ function AppContent() {
 
   const handleVideoSaved = async (videoData: any) => {
       setVideos(prev => [videoData, ...prev]);
-      setCredits(prev => prev - videoData.cost);
+      if (!profile.is_admin) {
+        setCredits(prev => prev - videoData.cost);
+      }
   };
 
   const handleUpdateProfile = (p: UserProfile) => { setProfile(p); };
@@ -94,13 +97,23 @@ function AppContent() {
         {toast && <Toast msg={toast} onClose={()=>setToast(null)}/>}
         {selPlan && <CheckoutModal planKey={selPlan.key} annual={selPlan.annual} onClose={()=>setSelPlan(null)}/>}
 
-        <Sidebar credits={credits} onLogout={handleLogout} onUp={()=>setSelPlan({key:'creator', annual:true})} />
-        <MobileHeader credits={credits} />
+        <Sidebar
+          credits={credits}
+          onLogout={handleLogout}
+          onUp={()=>setSelPlan({key:'creator', annual:true})}
+          userProfile={profile}
+          onUpgrade={()=>setSelPlan({key:'creator', annual:true})}
+        />
+        <MobileHeader
+          credits={credits}
+          userProfile={profile}
+          onUpgrade={()=>setSelPlan({key:'creator', annual:true})}
+        />
 
         {/* CONTENT */}
         <main className="lg:ml-80 min-h-screen pt-20 lg:pt-0 transition-colors duration-500">
             <Routes>
-                <Route path="/" element={<StudioPage onGen={handleVideoSaved} influencers={influencers} credits={credits} notify={notify} onUp={()=>setSelPlan({key:'creator', annual:true})} userPlan={userPlan} talents={influencers}/>}/>
+                <Route path="/" element={<StudioPage onGen={handleVideoSaved} influencers={influencers} credits={credits} notify={notify} onUp={()=>setSelPlan({key:'creator', annual:true})} userPlan={userPlan} talents={influencers} profile={profile}/>}/>
                 <Route path="/talent" element={<TalentPage list={influencers} add={handleInf.add} del={handleInf.del} notify={notify}/>}/>
                 <Route path="/gallery" element={<GalleryPage videos={videos}/>}/>
                 <Route path="/billing" element={<BillingPage onSelect={(k:string, a:boolean)=>setSelPlan({key:k, annual:a})}/>}/>
