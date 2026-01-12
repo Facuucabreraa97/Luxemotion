@@ -348,15 +348,33 @@ const CheckoutModal = ({ planKey, annual, onClose }: CheckoutModalProps) => {
   const plan = PRICING[planKey];
   const price = annual && plan.yearlyPrice ? plan.yearlyPrice : plan.price;
   const [load, setLoad] = useState(false);
+  const [currency, setCurrency] = useState<'USDT' | 'ARS'>('ARS');
 
   const handleCheckout = async () => {
+      if (currency === 'USDT') {
+          alert("Crypto payments are temporarily unavailable. Please use Mercado Pago.");
+          return;
+      }
       setLoad(true);
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if(!session) return;
+
+        // Calculate price to send.
+        // If ARS, we want to charge exactly what is displayed (price * 1500).
+        // We send currency: 'ARS' so backend skips conversion.
+        const payloadPrice = currency === 'ARS' ? price * 1500 : price;
+        const payloadCurrency = currency;
+
         const res = await fetch(`${CONFIG.API_URL}/create-preference`, {
             method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-            body: JSON.stringify({ title: `LuxeMotion ${plan.name}`, price, quantity: 1, type: planKey })
+            body: JSON.stringify({
+                title: `LuxeMotion ${plan.name}`,
+                price: payloadPrice,
+                quantity: 1,
+                type: planKey,
+                currency: payloadCurrency
+            })
         });
         const data = await res.json();
         if(data.id) {
@@ -367,13 +385,19 @@ const CheckoutModal = ({ planKey, annual, onClose }: CheckoutModalProps) => {
       } catch(e) { console.error(e); } finally { setLoad(false); }
   };
 
+  const displayPrice = currency === 'ARS' ? (price * 1500).toLocaleString('es-AR') : price;
+
   return (
     <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4">
       <div className={`w-full max-w-md rounded-[40px] relative overflow-hidden ${mode==='velvet'?'bg-[#0a0a0a] border border-white/10':'bg-white'}`}>
           <button onClick={onClose} className="absolute top-6 right-6 z-10 p-2 bg-black/10 rounded-full hover:bg-black/20"><X size={18} className={mode==='velvet'?'text-white':'text-black'}/></button>
           <div className="p-10 text-center">
+              <div className="flex justify-center gap-2 mb-8">
+                  <button onClick={() => setCurrency('USDT')} className={`px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${currency === 'USDT' ? (mode === 'velvet' ? 'bg-[#C6A649] text-black' : 'bg-black text-white') : (mode === 'velvet' ? 'bg-white/5 text-gray-500 hover:text-white' : 'bg-gray-100 text-gray-500 hover:text-black')}`}>USDT / Crypto</button>
+                  <button onClick={() => setCurrency('ARS')} className={`px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${currency === 'ARS' ? (mode === 'velvet' ? 'bg-[#C6A649] text-black' : 'bg-black text-white') : (mode === 'velvet' ? 'bg-white/5 text-gray-500 hover:text-white' : 'bg-gray-100 text-gray-500 hover:text-black')}`}>Pesos (ARS)</button>
+              </div>
               <h2 className={`text-2xl font-bold uppercase tracking-widest mb-2 ${mode==='velvet'?'text-white':'text-black'}`}>{plan.name}</h2>
-              <div className={`text-5xl font-bold mb-8 ${mode==='velvet'?'text-[#C6A649]':'text-black'}`}>${price}<span className="text-sm font-normal text-gray-500">/mo</span></div>
+              <div className={`text-5xl font-bold mb-8 ${mode==='velvet'?'text-[#C6A649]':'text-black'}`}>${displayPrice}<span className="text-sm font-normal text-gray-500">/mo</span></div>
               <ul className="space-y-4 mb-8 text-left">
                   {plan.feats.map(f=><li key={f} className={`flex items-center gap-3 text-xs uppercase tracking-widest ${mode==='velvet'?'text-gray-400':'text-gray-600'}`}><Check size={14} className="text-[#C6A649]"/> {f}</li>)}
               </ul>
@@ -383,7 +407,7 @@ const CheckoutModal = ({ planKey, annual, onClose }: CheckoutModalProps) => {
                     <p>Subscription renews automatically. Cancel anytime. Content ownership belongs to you.</p>
                 </details>
               </div>
-              <button onClick={handleCheckout} disabled={load} className={`w-full py-4 rounded-2xl text-xs font-bold uppercase tracking-widest ${S.btnGold}`}>{load ? "Procesando..." : "Confirmar y Pagar"}</button>
+              <button onClick={handleCheckout} disabled={load} className={`w-full py-4 rounded-2xl text-xs font-bold uppercase tracking-widest ${S.btnGold}`}>{load ? "Procesando..." : (currency === 'ARS' ? "Pay with Mercado Pago" : "Pay with Crypto")}</button>
           </div>
       </div>
     </div>
