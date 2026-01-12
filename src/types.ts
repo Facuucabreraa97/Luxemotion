@@ -18,6 +18,7 @@ export interface UserProfile {
   avatar?: string | null;
   credits?: number;
   plan?: 'starter' | 'creator' | 'agency';
+  is_admin?: boolean;
 }
 
 export interface Talent {
