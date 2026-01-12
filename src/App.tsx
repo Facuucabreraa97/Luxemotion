@@ -578,7 +578,7 @@ const ExplorePage = () => {
                     let { data, error } = await supabase
                         .from('talents')
                         .select('*, profiles(name, avatar)')
-                        .eq('is_for_sale', true)
+                        .eq('for_sale', true)
                         .order('created_at', { ascending: false });
 
                     if (error) {
@@ -587,7 +587,7 @@ const ExplorePage = () => {
                          const res = await supabase
                             .from('talents')
                             .select('*')
-                            .eq('is_for_sale', true)
+                            .eq('for_sale', true)
                             .order('created_at', { ascending: false });
                          data = res.data;
                          error = res.error;
@@ -599,7 +599,7 @@ const ExplorePage = () => {
             } catch (err) {
                 console.error("ExplorePage Error:", err);
                 if (active) {
-                     setError(tab === 'community' ? 'No public content available.' : 'No talents for sale yet.');
+                     setError(tab === 'community' ? 'No public content available.' : 'There are no models for sale yet. Go to Casting and be the first to sell.');
                 }
             } finally {
                 if (active) setLoading(false);
@@ -630,7 +630,7 @@ const ExplorePage = () => {
                 <>
                     {items.length === 0 && !loading && tab === 'marketplace' && (
                          <div className={`p-12 rounded-3xl border text-center ${mode === 'velvet' ? 'bg-white/5 border-white/10 text-white/50' : 'bg-gray-100 border-gray-200 text-gray-500'}`}>
-                            <p className="uppercase tracking-widest text-xs font-bold">No talents for sale yet</p>
+                            <p className="uppercase tracking-widest text-xs font-bold">There are no models for sale yet. Go to Casting and be the first to sell.</p>
                         </div>
                     )}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -647,7 +647,7 @@ const ExplorePage = () => {
                                     <img src={assetUrl} className="aspect-[3/4] object-cover w-full" />
                                 )}
                                 <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/80 to-transparent flex justify-between items-end">
-                                    <p className="text-white text-[10px] font-bold uppercase tracking-widest">{item.profiles?.name || 'Unknown'}</p>
+                                    <p className="text-white text-[10px] font-bold uppercase tracking-widest">{item.profiles?.name || 'Anonymous User'}</p>
                                     {tab === 'marketplace' && <div className="bg-[#C6A649] text-black px-3 py-1 rounded-full text-[9px] font-bold uppercase">{item.price} CR</div>}
                                 </div>
                             </div>
@@ -779,6 +779,9 @@ const TalentPage = ({ list, add, del, notify, videos }: any) => {
               return;
           }
           finalForSale = true;
+      } else {
+          finalPrice = 0;
+          finalForSale = false;
       }
 
       add({
@@ -801,7 +804,7 @@ const TalentPage = ({ list, add, del, notify, videos }: any) => {
   const handleSell = async (id: string) => {
       if (!sellPrice) return;
       try {
-          const { error } = await supabase.from('talents').update({ is_for_sale: true, price: parseInt(sellPrice) }).eq('id', id);
+          const { error } = await supabase.from('talents').update({ for_sale: true, price: parseInt(sellPrice) }).eq('id', id);
           if (!error) { notify("Listed on Marketplace"); setSellingId(null); setSellPrice(''); } else { notify("Error listing item"); }
       } catch (e) { notify("Error"); }
   };
