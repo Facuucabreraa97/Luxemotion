@@ -553,31 +553,47 @@ const ExplorePage = () => {
             try {
                 if (tab === 'community') {
                     // Correct query: select public generations (community) without user filter
-                    const { data, error } = await supabase
+                    let { data, error } = await supabase
                         .from('generations')
                         .select('*, profiles(name, avatar)')
                         .eq('is_public', true)
                         .order('created_at', { ascending: false });
 
                     if (error) {
-                        console.error("ExplorePage Community fetch error:", error);
-                        throw error;
+                         console.error("ExplorePage Community join failed, falling back:", error);
+                         // Fallback query without join
+                         const res = await supabase
+                            .from('generations')
+                            .select('*')
+                            .eq('is_public', true)
+                            .order('created_at', { ascending: false });
+                         data = res.data;
+                         error = res.error;
                     }
-                    if (!data || data.length === 0) console.log("ExplorePage: No community items found.");
+
+                    if (error) throw error;
                     if (active) setItems(data || []);
                 } else {
                     // Correct query: select talents for sale (marketplace) without user filter
-                    const { data, error } = await supabase
+                    let { data, error } = await supabase
                         .from('talents')
                         .select('*, profiles(name, avatar)')
                         .eq('is_for_sale', true)
                         .order('created_at', { ascending: false });
 
                     if (error) {
-                        console.error("ExplorePage Marketplace fetch error:", error);
-                        throw error;
+                         console.error("ExplorePage Marketplace join failed, falling back:", error);
+                         // Fallback query without join
+                         const res = await supabase
+                            .from('talents')
+                            .select('*')
+                            .eq('is_for_sale', true)
+                            .order('created_at', { ascending: false });
+                         data = res.data;
+                         error = res.error;
                     }
-                    if (!data || data.length === 0) console.log("ExplorePage: No marketplace items found.");
+
+                    if (error) throw error;
                     if (active) setItems(data || []);
                 }
             } catch (err) {
@@ -597,7 +613,7 @@ const ExplorePage = () => {
     const placeholders = Array(9).fill(0);
 
     return (
-        <div className={`p-6 lg:p-12 animate-in fade-in pb-32`}>
+        <div className={`pt-24 px-6 animate-in fade-in pb-32 min-h-screen ${mode === 'velvet' ? 'bg-black text-white' : 'bg-gray-50 text-black'}`}>
             <div className="flex items-center justify-between mb-12">
                 <h2 className={`text-4xl font-bold uppercase tracking-[0.2em] ${mode==='velvet'?'text-white':'text-gray-900'}`}>Explore</h2>
                 <div className={`p-1 rounded-full border flex ${mode==='velvet'?'bg-black/40 border-white/10':'bg-gray-100 border-gray-200'}`}>
@@ -617,7 +633,7 @@ const ExplorePage = () => {
                             <p className="uppercase tracking-widest text-xs font-bold">No talents for sale yet</p>
                         </div>
                     )}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                         {loading ? placeholders.map((_, i) => (
                             <div key={i} className={`aspect-[9/16] rounded-[30px] animate-pulse ${mode==='velvet'?'bg-white/5':'bg-gray-200'}`}></div>
                         )) : items.map((item: any) => {
@@ -747,26 +763,40 @@ const TalentPage = ({ list, add, del, notify, videos }: any) => {
   const [showGallery, setShowGallery] = useState(false);
   const [isForSale, setIsForSale] = useState(false);
   const [createPrice, setCreatePrice] = useState('');
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const save = () => {
-      if(img && name) {
-        add({
-            id:Date.now().toString(),
-            name,
-            image_url:img,
-            role,
-            notes,
-            for_sale: isForSale,
-            price: isForSale ? parseInt(createPrice) : 0
-        });
-        setOpen(false);
-        setImg(null);
-        setName('');
-        setNotes('');
-        setIsForSale(false);
-        setCreatePrice('');
-        notify("Persona Added");
+      setErrorMsg(null);
+      if(!img || !name) { setErrorMsg("Image and Name are required"); return; }
+
+      let finalPrice = 0;
+      let finalForSale = false;
+
+      if (isForSale) {
+          finalPrice = parseInt(createPrice);
+          if (isNaN(finalPrice) || finalPrice <= 0) {
+              setErrorMsg("Price must be greater than 0");
+              return;
+          }
+          finalForSale = true;
       }
+
+      add({
+        id:Date.now().toString(),
+        name,
+        image_url:img,
+        role,
+        notes,
+        for_sale: finalForSale,
+        price: finalPrice
+      });
+      setOpen(false);
+      setImg(null);
+      setName('');
+      setNotes('');
+      setIsForSale(false);
+      setCreatePrice('');
+      notify("Persona Added");
   };
   const handleSell = async (id: string) => {
       if (!sellPrice) return;
@@ -790,6 +820,7 @@ const TalentPage = ({ list, add, del, notify, videos }: any) => {
                     {img ? (isVideo(img) ? <video src={img} className="w-full h-full object-cover" autoPlay muted loop/> : <img src={img} className="w-full h-full object-cover"/>) : (<div className={`text-center ${isVelvet?'opacity-30':'opacity-50 text-gray-500'}`}><ImageIcon className="mx-auto mb-4 w-8 h-8"/><span className="text-[10px] font-bold uppercase tracking-widest">Select from Gallery</span></div>)}
                 </div>
                 <div className="flex flex-col justify-center gap-8">
+                    {errorMsg && <div className="text-red-500 text-[10px] font-bold uppercase">{errorMsg}</div>}
                     <div className="space-y-4"><label className={`text-[10px] uppercase tracking-widest ${isVelvet?'text-white/40':'text-gray-400'}`}>Name</label><input value={name} onChange={e=>setName(e.target.value)} className={isVelvet ? S.input : "w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-sm outline-none transition-all"}/></div>
                     <div className="space-y-4"><label className={`text-[10px] uppercase tracking-widest ${isVelvet?'text-white/40':'text-gray-400'}`}>Notes</label><textarea value={notes} onChange={e=>setNotes(e.target.value)} className={`${isVelvet ? S.input : "w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-sm outline-none transition-all"} h-24 resize-none`}/></div>
 
@@ -808,7 +839,7 @@ const TalentPage = ({ list, add, del, notify, videos }: any) => {
                     )}
 
                     {!isVelvet && (<div className="space-y-4"><div className="flex gap-4"><button onClick={()=>setRole('model')} className={`flex-1 py-3 border rounded-xl flex items-center justify-center gap-2 text-xs font-bold uppercase transition-all ${role==='model'?'bg-black text-white border-black':'text-gray-400 border-gray-200'}`}><User size={14}/> Model</button><button onClick={()=>setRole('brand')} className={`flex-1 py-3 border rounded-xl flex items-center justify-center gap-2 text-xs font-bold uppercase transition-all ${role==='brand'?'bg-blue-600 text-white border-blue-600':'text-gray-400 border-gray-200'}`}><Briefcase size={14}/> Brand</button></div></div>)}
-                    <button onClick={save} disabled={!img || !name || (isForSale && !createPrice)} className={`w-full py-5 rounded-2xl text-[10px] font-bold uppercase transition-transform hover:scale-[1.02] active:scale-95 ${isVelvet ? S.btnGold : 'bg-black text-white shadow-xl hover:bg-gray-800'}`}>{t('common.save')}</button>
+                    <button onClick={save} className={`w-full py-5 rounded-2xl text-[10px] font-bold uppercase transition-transform hover:scale-[1.02] active:scale-95 ${isVelvet ? S.btnGold : 'bg-black text-white shadow-xl hover:bg-gray-800'}`}>{t('common.save')}</button>
                 </div>
             </div>
         )}
