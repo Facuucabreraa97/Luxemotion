@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Video, Users, Image as ImageIcon, CreditCard, Settings, LogOut, Zap, Crown, ChevronRight } from 'lucide-react';
+import { Video, Users, Image as ImageIcon, CreditCard, Settings, LogOut, Zap, Crown, ChevronRight, Globe } from 'lucide-react';
 import { useMode } from '../context/ModeContext';
 import { useTranslation } from 'react-i18next';
 import { UserProfile } from '../types';
@@ -25,6 +25,7 @@ export const Sidebar = ({ credits, onLogout, onUp, userProfile, onUpgrade, notif
 
   const links = [
     { icon: Video, label: t('common.nav.studio'), path: '/app' },
+    { icon: Globe, label: 'Explore', path: '/app/explore' },
     { icon: Users, label: t('common.nav.talent'), path: '/app/talent' },
     { icon: ImageIcon, label: t('common.nav.gallery'), path: '/app/gallery' },
     { icon: CreditCard, label: t('common.nav.billing'), path: '/app/billing' },
