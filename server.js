@@ -99,32 +99,31 @@ app.post('/api/generate', async (req, res) => {
     let stylePrompt = "";
 
     if (mode === 'velvet') {
-        // Base: Estética "Leaked" / Casera de Alta Gama
-        const baseVelvet = ", shot on iPhone 15 Pro Max, amateur footage aesthetic, raw aesthetic, leaked tape vibe, flash photography, heavy breathing, flushed skin, sweat glisten, ultra-realistic skin pores, goosebumps, imperfect skin texture, 8k uhd, hard flash lighting, bedroom background, intimate atmosphere";
-
         switch (velvetStyle) {
-            case 'cosplay':
-                stylePrompt = baseVelvet + ", wearing detailed latex cosplay, anime character in real life, tight fit, shiny texture, looking at viewer, shy but seductive pose, messy hair, realistic cosplay, hentai aesthetic realism";
+            case 'boudoir': // Glamour/Boudoir
+                stylePrompt = ", cinematic lighting, dim red lights, luxury hotel room, lace texture, wet skin, professional color grading, 8k, vogue spicy editorial";
                 break;
-            case 'pov':
-                stylePrompt = baseVelvet + ", POV shot from boyfriend perspective, extremely close up to face, biting lip, looking down at camera, intimate distance, handheld camera shake, eye contact";
+            case 'cosplay': // Cosplay Realism
+                stylePrompt = ", latex texture, distinct fabric details, anime aesthetic but hyperrealistic proportions, bedroom cosplay";
                 break;
-            case 'hentai': // Nuevo estilo solicitado
-                 stylePrompt = baseVelvet + ", hyperrealistic anime girl, pink aesthetic, soft skin, glowing eyes, fantasy lingerie, unreal proportions but realistic texture, 8k wallpaper";
-                 break;
-            default: // Glamour/Lingerie
-                stylePrompt = baseVelvet + ", wearing sheer lace lingerie, dim red neon lights, luxury hotel room, seductive body language, wet look hair, cinematic shadows, sultry gaze, boudoir photography";
+            default: // Leaked Tape (leaked)
+                 stylePrompt = ", shot on iPhone, flash photography, harsh lighting, amateur aesthetic, grainy, raw footage, motion blur, authentic skin texture";
         }
     } else {
         stylePrompt = ", cinematic lighting, commercial grade, sharp focus, masterpiece, shot on ARRI Alexa, color graded, professional studio, vogue magazine style, 4k, clean composition";
     }
+
+    // Strong negative prompts for Velvet mode to ensure realism
+    const negativePrompt = mode === 'velvet'
+        ? "cartoonish, plastic skin, 3D render, cgi, drawing, illustration, doll-like, deformed, ugly, blur, watermark, text, low quality, distortion, bad anatomy, extra limbs"
+        : "cartoon, drawing, illustration, plastic skin, doll-like, deformed, ugly, blur, watermark, text, low quality, distortion, bad anatomy, extra limbs, cgi, 3d render";
 
     const inputPayload = {
       prompt: (prompt || "Beautiful subject") + stylePrompt,
       aspect_ratio: aspectRatio || "9:16",
       duration: Number(duration),
       cfg_scale: mode === 'velvet' ? 0.45 : 0.6,
-      negative_prompt: "cartoon, drawing, illustration, plastic skin, doll-like, deformed, ugly, blur, watermark, text, low quality, distortion, bad anatomy, extra limbs, cgi, 3d render"
+      negative_prompt: negativePrompt
     };
 
     if (inputVideo) {
