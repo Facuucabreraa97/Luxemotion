@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { supabase } from './lib/supabase';
 import { S } from './styles';
 import { UserProfile, Talent, GeneratedVideo } from './types';
+import { LandingPage } from './pages/LandingPage';
 import { LoginScreen } from './pages/LoginScreen';
 import { StudioPage } from './pages/StudioPage';
 import { TalentPage } from './pages/TalentPage';
@@ -18,6 +19,47 @@ import { CheckoutModal } from './components/CheckoutModal';
 import { ModeProvider, useMode } from './context/ModeContext';
 import './i18n';
 
+function ProtectedLayout({
+    session,
+    credits,
+    handleLogout,
+    setSelPlan,
+    profile,
+    mode,
+    toast,
+    setToast,
+    selPlan
+}: any) {
+    if (!session) return <Navigate to="/login" replace />;
+
+    return (
+        <div className={`${mode === 'velvet' ? S.bg : 'bg-gray-50 min-h-screen text-gray-900 font-sans'}`}>
+            {toast && <Toast msg={toast} onClose={()=>setToast(null)}/>}
+            {selPlan && <CheckoutModal planKey={selPlan.key} annual={selPlan.annual} onClose={()=>setSelPlan(null)}/>}
+
+            <Sidebar
+              credits={credits}
+              onLogout={handleLogout}
+              onUp={()=>setSelPlan({key:'creator', annual:true})}
+              userProfile={profile}
+              onUpgrade={()=>setSelPlan({key:'creator', annual:true})}
+            />
+            <MobileHeader
+              credits={credits}
+              userProfile={profile}
+              onUpgrade={()=>setSelPlan({key:'creator', annual:true})}
+            />
+
+            {/* CONTENT */}
+            <main className="lg:ml-80 min-h-screen pt-20 lg:pt-0 transition-colors duration-500">
+                <Outlet />
+            </main>
+
+            <MobileNav />
+        </div>
+    );
+}
+
 function AppContent() {
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -29,7 +71,7 @@ function AppContent() {
   const [selPlan, setSelPlan] = useState<{key: string, annual: boolean} | null>(null);
   const [profile, setProfile] = useState<UserProfile>({ name: "Agencia", email: "" });
 
-  const { mode, theme } = useMode();
+  const { mode } = useMode();
 
   const notify = (msg: string) => setToast(msg);
 
@@ -89,40 +131,41 @@ function AppContent() {
   const handleLogout = async () => { await supabase.auth.signOut(); };
 
   if(loading) return <div className="min-h-screen bg-[#030303] flex items-center justify-center"><Loader2 className="w-12 h-12 text-[#C6A649] animate-spin"/></div>;
-  if(!session) return <LoginScreen onLogin={() => {}} />;
 
   return (
     <Router>
-      <div className={`${mode === 'velvet' ? S.bg : 'bg-gray-50 min-h-screen text-gray-900 font-sans'}`}>
-        {toast && <Toast msg={toast} onClose={()=>setToast(null)}/>}
-        {selPlan && <CheckoutModal planKey={selPlan.key} annual={selPlan.annual} onClose={()=>setSelPlan(null)}/>}
+        <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={!session ? <LandingPage /> : <Navigate to="/app" replace />} />
+            <Route path="/login" element={!session ? <LoginScreen onLogin={() => {}} /> : <Navigate to="/app" replace />} />
 
-        <Sidebar
-          credits={credits}
-          onLogout={handleLogout}
-          onUp={()=>setSelPlan({key:'creator', annual:true})}
-          userProfile={profile}
-          onUpgrade={()=>setSelPlan({key:'creator', annual:true})}
-        />
-        <MobileHeader
-          credits={credits}
-          userProfile={profile}
-          onUpgrade={()=>setSelPlan({key:'creator', annual:true})}
-        />
+            {/* Protected Routes */}
+            <Route path="/app" element={
+                <ProtectedLayout
+                    session={session}
+                    credits={credits}
+                    handleLogout={handleLogout}
+                    setSelPlan={setSelPlan}
+                    profile={profile}
+                    mode={mode}
+                    toast={toast}
+                    setToast={setToast}
+                    selPlan={selPlan}
+                />
+            }>
+                <Route index element={<StudioPage onGen={handleVideoSaved} influencers={influencers} credits={credits} notify={notify} onUp={()=>setSelPlan({key:'creator', annual:true})} userPlan={userPlan} talents={influencers} profile={profile}/>}/>
+                <Route path="talent" element={<TalentPage list={influencers} add={handleInf.add} del={handleInf.del} notify={notify}/>}/>
+                <Route path="gallery" element={<GalleryPage videos={videos}/>}/>
+                <Route path="billing" element={<BillingPage onSelect={(k:string, a:boolean)=>setSelPlan({key:k, annual:a})}/>}/>
+                <Route path="settings" element={<SettingsPage credits={credits} profile={profile} setProfile={handleUpdateProfile} notify={notify}/>}/>
 
-        {/* CONTENT */}
-        <main className="lg:ml-80 min-h-screen pt-20 lg:pt-0 transition-colors duration-500">
-            <Routes>
-                <Route path="/" element={<StudioPage onGen={handleVideoSaved} influencers={influencers} credits={credits} notify={notify} onUp={()=>setSelPlan({key:'creator', annual:true})} userPlan={userPlan} talents={influencers} profile={profile}/>}/>
-                <Route path="/talent" element={<TalentPage list={influencers} add={handleInf.add} del={handleInf.del} notify={notify}/>}/>
-                <Route path="/gallery" element={<GalleryPage videos={videos}/>}/>
-                <Route path="/billing" element={<BillingPage onSelect={(k:string, a:boolean)=>setSelPlan({key:k, annual:a})}/>}/>
-                <Route path="/settings" element={<SettingsPage credits={credits} profile={profile} setProfile={handleUpdateProfile} notify={notify}/>}/>
-            </Routes>
-        </main>
+                {/* Fallback for /app/* */}
+                <Route path="*" element={<Navigate to="/app" replace />} />
+            </Route>
 
-        <MobileNav />
-      </div>
+            {/* Global Fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
     </Router>
   );
 }

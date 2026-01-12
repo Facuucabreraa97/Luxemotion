@@ -1,16 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Play, Mail, Lock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { S } from '../styles';
+import { useSearchParams } from 'react-router-dom';
 
 const LOGIN_VID = "https://videos.pexels.com/video-files/3205917/3205917-hd_1920_1080_25fps.mp4";
 
-export const LoginScreen = ({ onLogin }: { onLogin: () => void }) => {
+interface LoginScreenProps {
+    onLogin?: () => void;
+    initialMode?: 'login' | 'register' | 'forgot';
+}
+
+export const LoginScreen = ({ onLogin, initialMode }: LoginScreenProps) => {
+  // Try to get search params if inside a router context
+  let searchParamsMode = null;
+  try {
+      const [searchParams] = useSearchParams();
+      const m = searchParams.get('mode');
+      if(m === 'register' || m === 'forgot' || m === 'login') searchParamsMode = m;
+  } catch (e) {
+      // Not in a router
+  }
+
   const [load, setLoad] = useState(false);
-  const [mode, setMode] = useState<'login'|'register'|'forgot'>('login');
+  const [mode, setMode] = useState<'login'|'register'|'forgot'>((searchParamsMode as any) || initialMode || 'login');
   const [email, setEmail] = useState('');
   const [pass, setPass] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+      if(initialMode) setMode(initialMode);
+  }, [initialMode]);
 
   const handleSubmit = async () => {
     setLoad(true);
@@ -21,7 +41,7 @@ export const LoginScreen = ({ onLogin }: { onLogin: () => void }) => {
             if(error) setErrorMsg(error.message); else alert("Revisa tu email para confirmar.");
         } else if (mode === 'login') {
             const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
-            if(error) setErrorMsg(error.message); else onLogin(); // Use callback instead of reload
+            if(error) setErrorMsg(error.message); else if(onLogin) onLogin();
         } else {
             const { error } = await supabase.auth.resetPasswordForEmail(email);
             if(error) setErrorMsg(error.message); else alert("Correo de recuperación enviado.");
