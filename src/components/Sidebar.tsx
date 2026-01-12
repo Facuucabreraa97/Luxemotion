@@ -5,6 +5,7 @@ import { useMode } from '../context/ModeContext';
 import { useTranslation } from 'react-i18next';
 import { UserProfile } from '../types';
 import { CheckoutModal } from './CheckoutModal';
+import { VelvetBenefitsModal } from './VelvetBenefitsModal';
 
 interface SidebarProps {
   credits: number;
@@ -20,6 +21,7 @@ export const Sidebar = ({ credits, onLogout, onUp, userProfile, onUpgrade, notif
   const { mode, toggleMode, setMode } = useMode();
   const { t, i18n } = useTranslation();
   const [showUpgradeModal, setShowUpgradeModal] = React.useState(false);
+  const [showVelvetBenefits, setShowVelvetBenefits] = React.useState(false);
 
   const links = [
     { icon: Video, label: t('common.nav.studio'), path: '/app' },
@@ -45,13 +47,22 @@ export const Sidebar = ({ credits, onLogout, onUp, userProfile, onUpgrade, notif
         setMode('velvet');
         notify('High Fidelity Mode activated. Credit consumption increases due to 8K post-processing.');
       } else {
-        setShowUpgradeModal(true);
+        setShowVelvetBenefits(true);
       }
     }
   };
 
   return (
     <>
+      {showVelvetBenefits && (
+        <VelvetBenefitsModal
+          onClose={() => setShowVelvetBenefits(false)}
+          onUnlock={() => {
+            setShowVelvetBenefits(false);
+            setShowUpgradeModal(true);
+          }}
+        />
+      )}
       {showUpgradeModal && <CheckoutModal planKey="creator" annual={true} onClose={() => setShowUpgradeModal(false)} />}
       <aside className={`fixed left-0 top-0 h-screen w-80 flex flex-col hidden lg:flex border-r transition-all duration-300 z-50
           ${mode === 'velvet' ? 'bg-black/95 border-white/5 backdrop-blur-xl' : 'bg-white border-gray-200'}`}>
