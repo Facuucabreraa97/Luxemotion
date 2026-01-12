@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, createContext, useContext } from 'r
 import { createPortal } from 'react-dom';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useLocation, NavLink, useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  Loader2, Play, Sparkles, ChevronDown, Mail, Lock, Upload, X, Plus, User,
+  Loader2, Play, Sparkles, ChevronDown, ChevronRight, Mail, Lock, Upload, X, Plus, User,
   Briefcase, Camera, ShoppingBag, Globe, Download, Zap, Check, Video, Users,
   Image as ImageIcon, CreditCard, Settings, LogOut, Crown, Film, Move, ZoomIn,
   Heart, Smartphone, Monitor, Square, Flame, LayoutDashboard, Info
