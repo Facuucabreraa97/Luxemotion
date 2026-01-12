@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Upload, X, Plus, User, Briefcase, Camera } from 'lucide-react';
+import { Upload, X, Plus, User, Briefcase, Camera, ShoppingBag, Loader2 } from 'lucide-react';
 import { S } from '../styles';
 import { Talent } from '../types';
 import { useMode } from '../context/ModeContext';
 import { useTranslation } from 'react-i18next';
+import { supabase } from '../lib/supabase';
 
 export const TalentPage = ({ list, add, del, notify }: any) => {
   const { mode } = useMode();
@@ -14,6 +15,8 @@ export const TalentPage = ({ list, add, del, notify }: any) => {
   const [notes, setNotes] = useState('');
   const [role, setRole] = useState('model'); // model | brand_ambassador
   const [open, setOpen] = useState(false);
+  const [sellingId, setSellingId] = useState<string | null>(null);
+  const [sellPrice, setSellPrice] = useState<string>('');
 
   const handleFile = (e:any) => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=()=>setImg(r.result as string); r.readAsDataURL(f);} };
 
@@ -25,6 +28,33 @@ export const TalentPage = ({ list, add, del, notify }: any) => {
           setName('');
           setNotes('');
           notify("Persona Added");
+      }
+  };
+
+  const handleSell = async (id: string) => {
+      if (!sellPrice) return;
+      try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) return;
+
+          const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/marketplace/list`, {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${session.access_token}`
+              },
+              body: JSON.stringify({ talent_id: id, price: parseInt(sellPrice) })
+          });
+
+          if (res.ok) {
+              notify("Listed on Marketplace");
+              setSellingId(null);
+              setSellPrice('');
+          } else {
+              notify("Error listing item");
+          }
+      } catch (e) {
+          notify("Error");
       }
   };
 
@@ -96,11 +126,40 @@ export const TalentPage = ({ list, add, del, notify }: any) => {
                              <span className="text-[10px] font-bold uppercase tracking-widest text-white block">{inf.name}</span>
                              {/* Only show role if exists (legacy compat) */}
                              {(inf as any).role === 'brand' && <span className="text-[8px] font-bold uppercase bg-blue-600 text-white px-2 py-0.5 rounded-full mt-1 inline-block">Brand</span>}
+
+                             {/* Selling Status */}
+                             {(inf as any).for_sale && <span className="text-[8px] font-bold uppercase bg-[#C6A649] text-black px-2 py-0.5 rounded-full mt-1 inline-block ml-2">For Sale: {(inf as any).price} CR</span>}
                         </div>
-                        <button onClick={()=>del(inf.id)} className="bg-white/10 p-2 rounded-full text-white/50 hover:text-red-500 hover:bg-white/20 transition-all backdrop-blur-md">
-                            <X size={12}/>
-                        </button>
+                        <div className="flex gap-2">
+                            {/* Sell Button */}
+                            {!((inf as any).for_sale) && (
+                                <button onClick={()=>setSellingId(sellingId === inf.id ? null : inf.id)} className="bg-white/10 p-2 rounded-full text-white/50 hover:text-[#C6A649] hover:bg-white/20 transition-all backdrop-blur-md">
+                                    <ShoppingBag size={12}/>
+                                </button>
+                            )}
+                            <button onClick={()=>del(inf.id)} className="bg-white/10 p-2 rounded-full text-white/50 hover:text-red-500 hover:bg-white/20 transition-all backdrop-blur-md">
+                                <X size={12}/>
+                            </button>
+                        </div>
                     </div>
+
+                    {/* Sell Input Overlay */}
+                    {sellingId === inf.id && (
+                        <div className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center p-6 text-center animate-in fade-in">
+                            <h3 className="text-white text-xs font-bold uppercase mb-4">Sell {inf.name}</h3>
+                            <input
+                                type="number"
+                                placeholder="Price (Credits)"
+                                value={sellPrice}
+                                onChange={(e)=>setSellPrice(e.target.value)}
+                                className="w-full bg-white/10 border border-white/20 rounded p-2 text-white text-xs mb-4 text-center focus:outline-none focus:border-[#C6A649]"
+                            />
+                            <div className="flex gap-2 w-full">
+                                <button onClick={()=>setSellingId(null)} className="flex-1 py-2 bg-white/10 text-white text-[10px] font-bold uppercase rounded hover:bg-white/20">Cancel</button>
+                                <button onClick={()=>handleSell(inf.id)} className="flex-1 py-2 bg-[#C6A649] text-black text-[10px] font-bold uppercase rounded hover:bg-[#d4b55b]">List</button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             ))}
         </div>

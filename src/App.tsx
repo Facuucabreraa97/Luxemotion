@@ -9,12 +9,13 @@ import { LoginScreen } from './pages/LoginScreen';
 import { StudioPage } from './pages/StudioPage';
 import { TalentPage } from './pages/TalentPage';
 import { GalleryPage } from './pages/GalleryPage';
+import { ExplorePage } from './pages/ExplorePage';
 import { SettingsPage } from './pages/SettingsPage';
 import { BillingPage } from './pages/BillingPage';
 import { Sidebar } from './components/Sidebar';
 import { MobileHeader } from './components/MobileHeader';
 import { MobileNav } from './components/MobileNav';
-import { Toast } from './components/Toast';
+import { ToastProvider, useToast } from './components/Toast';
 import { CheckoutModal } from './components/CheckoutModal';
 import { ModeProvider, useMode } from './context/ModeContext';
 import './i18n';
@@ -26,8 +27,6 @@ function ProtectedLayout({
     setSelPlan,
     profile,
     mode,
-    toast,
-    setToast,
     selPlan,
     notify
 }: any) {
@@ -35,7 +34,6 @@ function ProtectedLayout({
 
     return (
         <div className={`${mode === 'velvet' ? S.bg : 'bg-gray-50 min-h-screen text-gray-900 font-sans'}`}>
-            {toast && <Toast msg={toast} onClose={()=>setToast(null)}/>}
             {selPlan && <CheckoutModal planKey={selPlan.key} annual={selPlan.annual} onClose={()=>setSelPlan(null)}/>}
 
             <Sidebar
@@ -69,13 +67,13 @@ function AppContent() {
   const [influencers, setInfluencers] = useState<Talent[]>([]);
   const [credits, setCredits] = useState(0);
   const [userPlan, setUserPlan] = useState<'starter' | 'creator' | 'agency'>('starter');
-  const [toast, setToast] = useState<string|null>(null);
   const [selPlan, setSelPlan] = useState<{key: string, annual: boolean} | null>(null);
   const [profile, setProfile] = useState<UserProfile>({ name: "Agencia", email: "" });
 
   const { mode } = useMode();
+  const { showToast } = useToast();
 
-  const notify = (msg: string) => setToast(msg);
+  const notify = (msg: string) => showToast(msg);
 
   const handleInf = {
       add: async (inf: any) => {
@@ -145,7 +143,7 @@ function AppContent() {
         }
 
         const { data: v, error: vError } = await supabase.from('generations').select('*').eq('user_id', uid).order('created_at', {ascending:false});
-        if(v && !vError) setVideos(v.map((i:any)=>({id:i.id, url:i.video_url, date:new Date(i.created_at).toLocaleDateString(), aspectRatio:i.aspect_ratio, cost:i.cost, prompt: i.prompt})));
+        if(v && !vError) setVideos(v.map((i:any)=>({id:i.id, url:i.video_url, date:new Date(i.created_at).toLocaleDateString(), aspectRatio:i.aspect_ratio, cost:i.cost, prompt: i.prompt, is_public: i.is_public})));
 
         const { data: t, error: tError } = await supabase.from('talents').select('*').eq('user_id', uid).order('created_at', {ascending:false});
         if(t && !tError) setInfluencers(t);
@@ -185,13 +183,12 @@ function AppContent() {
                     setSelPlan={setSelPlan}
                     profile={profile}
                     mode={mode}
-                    toast={toast}
-                    setToast={setToast}
                     selPlan={selPlan}
                     notify={notify}
                 />
             }>
                 <Route index element={<StudioPage onGen={handleVideoSaved} influencers={influencers} credits={credits} notify={notify} onUp={()=>setSelPlan({key:'creator', annual:true})} userPlan={userPlan} talents={influencers} profile={profile}/>}/>
+                <Route path="explore" element={<ExplorePage />} />
                 <Route path="talent" element={<TalentPage list={influencers} add={handleInf.add} del={handleInf.del} notify={notify}/>}/>
                 <Route path="gallery" element={<GalleryPage videos={videos}/>}/>
                 <Route path="billing" element={<BillingPage onSelect={(k:string, a:boolean)=>setSelPlan({key:k, annual:a})}/>}/>
@@ -211,7 +208,9 @@ function AppContent() {
 function App() {
   return (
     <ModeProvider>
-      <AppContent />
+      <ToastProvider>
+        <AppContent />
+      </ToastProvider>
     </ModeProvider>
   );
 }

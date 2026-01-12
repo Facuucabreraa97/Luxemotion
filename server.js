@@ -196,4 +196,157 @@ app.post('/api/create-preference', async (req, res) => {
   }
 });
 
+// --- API EXPLORE (COMMUNITY FEED) ---
+app.get('/api/explore', async (req, res) => {
+  try {
+    const { type = 'all', page = 1, limit = 20 } = req.query;
+    const offset = (page - 1) * limit;
+
+    let results = [];
+
+    if (type === 'all' || type === 'videos') {
+      const { data: videos, error: vidError } = await supabaseAdmin
+        .from('generations')
+        .select('*, profiles(name, avatar)')
+        .eq('is_public', true)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      if (!vidError && videos) results.push(...videos.map(v => ({ ...v, type: 'video' })));
+    }
+
+    if (type === 'all' || type === 'models') {
+       const { data: models, error: modError } = await supabaseAdmin
+        .from('talents')
+        .select('*, profiles(name, avatar)')
+        .or('is_public.eq.true,for_sale.eq.true')
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+       if (!modError && models) results.push(...models.map(m => ({ ...m, type: 'model' })));
+    }
+
+    // Sort combined results by date if 'all'
+    if (type === 'all') {
+      results.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      results = results.slice(0, limit);
+    }
+
+    res.json(results);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// --- API PUBLISH (TOGGLE VISIBILITY) ---
+app.post('/api/publish', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) throw new Error("Falta Token");
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    if (authError || !user) throw new Error("Usuario inválido");
+
+    const { id, type, is_public } = req.body;
+    const table = type === 'video' ? 'generations' : 'talents';
+
+    // Verify ownership
+    const { data: item } = await supabaseAdmin.from(table).select('user_id').eq('id', id).single();
+    if (!item || item.user_id !== user.id) throw new Error("No tienes permiso");
+
+    const { error } = await supabaseAdmin.from(table).update({ is_public }).eq('id', id);
+    if (error) throw error;
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// --- API MARKETPLACE LIST ---
+app.post('/api/marketplace/list', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) throw new Error("Falta Token");
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    if (authError || !user) throw new Error("Usuario inválido");
+
+    const { talent_id, price } = req.body;
+
+    // Verify ownership
+    const { data: talent } = await supabaseAdmin.from('talents').select('user_id').eq('id', talent_id).single();
+    if (!talent || talent.user_id !== user.id) throw new Error("No tienes permiso");
+
+    const { error } = await supabaseAdmin.from('talents').update({
+      for_sale: true,
+      price: price,
+      is_public: true // Automatically make public when listing
+    }).eq('id', talent_id);
+
+    if (error) throw error;
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// --- API MARKETPLACE BUY ---
+app.post('/api/marketplace/buy', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) throw new Error("Falta Token");
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user: buyer }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    if (authError || !buyer) throw new Error("Usuario inválido");
+
+    const { talent_id } = req.body;
+
+    // Get Talent info
+    const { data: talent } = await supabaseAdmin.from('talents').select('*').eq('id', talent_id).single();
+    if (!talent) throw new Error("Modelo no encontrado");
+    if (!talent.for_sale) throw new Error("Este modelo no está a la venta");
+    if (talent.user_id === buyer.id) throw new Error("No puedes comprar tu propio modelo");
+
+    const price = talent.price;
+    const sellerId = talent.user_id;
+
+    // Check Buyer Balance
+    const { data: buyerProfile } = await supabaseAdmin.from('profiles').select('credits').eq('id', buyer.id).single();
+    if (buyerProfile.credits < price) throw new Error("Créditos insuficientes");
+
+    // Perform Transaction (Ideal to wrap in DB function, but doing in code for now)
+
+    // 1. Deduct from Buyer
+    const { error: deductError } = await supabaseAdmin.from('profiles').update({
+      credits: buyerProfile.credits - price
+    }).eq('id', buyer.id);
+    if (deductError) throw new Error("Error procesando pago");
+
+    // 2. Add to Seller (90% - 10% Commission)
+    const commission = Math.floor(price * 0.1);
+    const sellerEarnings = price - commission;
+
+    const { data: sellerProfile } = await supabaseAdmin.from('profiles').select('credits').eq('id', sellerId).single();
+    await supabaseAdmin.from('profiles').update({
+      credits: sellerProfile.credits + sellerEarnings
+    }).eq('id', sellerId);
+
+    // 3. Transfer Ownership
+    await supabaseAdmin.from('talents').update({
+      user_id: buyer.id,
+      for_sale: false,
+      is_public: false, // Remove from public list
+      price: null
+    }).eq('id', talent_id);
+
+    res.json({ success: true, message: `Has comprado ${talent.name} por ${price} créditos` });
+
+  } catch (error) {
+    console.error("Purchase Error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.listen(port, () => console.log(`🛡️ SERVER LUXE (ULTRA HOT) EN PUERTO ${port}`));
