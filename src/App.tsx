@@ -550,25 +550,36 @@ const ExplorePage = () => {
         const fetchData = async () => {
             try {
                 if (tab === 'community') {
-                    const res = await fetch(`${CONFIG.API_URL}/explore`);
-                    if (!res.ok) throw new Error('Network response was not ok');
-                    const data = await res.json();
-                    if (active) setItems(data);
+                    const { data, error } = await supabase
+                        .from('generations')
+                        .select('*, profiles(name, avatar)')
+                        .eq('is_public', true)
+                        .order('created_at', { ascending: false });
+
+                    if (error) {
+                        console.error("ExplorePage Community fetch error:", error);
+                        throw error;
+                    }
+                    if (!data || data.length === 0) console.log("ExplorePage: No community items found.");
+                    if (active) setItems(data || []);
                 } else {
-                    const { data: { user } } = await supabase.auth.getUser();
                     const { data, error } = await supabase
                         .from('talents')
                         .select('*, profiles(name, avatar)')
                         .eq('is_for_sale', true)
-                        .neq('user_id', user?.id || ''); // Verify not filtering by user_id (showing others)
+                        .order('created_at', { ascending: false });
 
-                    if (error) throw error;
+                    if (error) {
+                        console.error("ExplorePage Marketplace fetch error:", error);
+                        throw error;
+                    }
+                    if (!data || data.length === 0) console.log("ExplorePage: No marketplace items found.");
                     if (active) setItems(data || []);
                 }
             } catch (err) {
-                console.error(err);
-                if (active && tab === 'community') {
-                     setError('The marketplace is closed for maintenance / No public content yet.');
+                console.error("ExplorePage Error:", err);
+                if (active) {
+                     setError(tab === 'community' ? 'No public content available.' : 'No talents for sale yet.');
                 }
             } finally {
                 if (active) setLoading(false);
