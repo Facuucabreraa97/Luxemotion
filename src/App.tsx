@@ -544,7 +544,7 @@ const ExplorePage = () => {
                         <div key={i} className={`aspect-[9/16] rounded-[30px] animate-pulse ${mode==='velvet'?'bg-white/5':'bg-gray-200'}`}></div>
                     )) : items.map((item: any) => (
                          <div key={item.id} className={`rounded-[30px] overflow-hidden group relative hover:-translate-y-2 transition-all ${mode==='velvet'?S.panel:'bg-white shadow-lg border border-gray-100'}`}>
-                            {item.type === 'video' ? (
+                        {item.type === 'video' || (item.video_url && item.video_url.endsWith('.mp4')) ? (
                                 <video src={item.video_url} className="aspect-[9/16] object-cover w-full" controls />
                             ) : (
                                 <img src={item.image_url} className="aspect-[3/4] object-cover w-full" />
@@ -749,13 +749,16 @@ const GalleryPage = ({ videos }: any) => {
   const togglePublish = async (video: any) => {
     setPublishing(video.id);
     try {
-        const isPublic = !video.is_public;
         const { data: { session } } = await supabase.auth.getSession();
         const res = await fetch(`${CONFIG.API_URL}/publish`, {
             method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
-            body: JSON.stringify({ id: video.id, type: 'video', is_public: isPublic })
+            body: JSON.stringify({ video_id: video.id, type: 'video' })
         });
-        if (res.ok) { showToast(isPublic ? 'Published!' : 'Unpublished', 'success'); window.location.reload(); } else { throw new Error("Failed"); }
+        if (res.ok) {
+            const data = await res.json();
+            showToast(data.is_public ? 'Published!' : 'Unpublished', 'success');
+            window.location.reload();
+        } else { throw new Error("Failed"); }
     } catch (e) { showToast('Error', 'error'); } finally { setPublishing(null); }
   };
 
