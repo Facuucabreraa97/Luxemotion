@@ -207,25 +207,33 @@ app.get('/api/explore', async (req, res) => {
     let results = [];
 
     if (type === 'all' || type === 'videos') {
-      const { data: videos, error: vidError } = await supabaseAdmin
-        .from('generations')
-        .select('*, profiles(name, avatar)')
-        .eq('is_public', true)
-        .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1);
+      try {
+        const { data: videos, error: vidError } = await supabaseAdmin
+          .from('generations')
+          .select('*, profiles(name, avatar)')
+          .eq('is_public', true)
+          .order('created_at', { ascending: false })
+          .range(offset, offset + limit - 1);
 
-      if (!vidError && videos) results.push(...videos.map(v => ({ ...v, type: 'video' })));
+        if (!vidError && videos) results.push(...videos.map(v => ({ ...v, type: 'video' })));
+      } catch (err) {
+        console.error("Error fetching videos:", err);
+      }
     }
 
     if (type === 'all' || type === 'models') {
-       const { data: models, error: modError } = await supabaseAdmin
-        .from('talents')
-        .select('*, profiles(name, avatar)')
-        .or('is_public.eq.true,for_sale.eq.true')
-        .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1);
+       try {
+         const { data: models, error: modError } = await supabaseAdmin
+          .from('talents')
+          .select('*, profiles(name, avatar)')
+          .or('is_public.eq.true,for_sale.eq.true')
+          .order('created_at', { ascending: false })
+          .range(offset, offset + limit - 1);
 
-       if (!modError && models) results.push(...models.map(m => ({ ...m, type: 'model' })));
+         if (!modError && models) results.push(...models.map(m => ({ ...m, type: 'model' })));
+       } catch (err) {
+         console.error("Error fetching models:", err);
+       }
     }
 
     // Sort combined results by date if 'all'
@@ -234,9 +242,10 @@ app.get('/api/explore', async (req, res) => {
       results = results.slice(0, limit);
     }
 
-    res.json(results);
+    res.json(results || []);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("Explore API Error:", error);
+    res.json([]); // Return empty array instead of crashing
   }
 });
 
@@ -249,17 +258,23 @@ app.post('/api/publish', async (req, res) => {
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
     if (authError || !user) throw new Error("Usuario inválido");
 
-    const { id, type, is_public } = req.body;
-    const table = type === 'video' ? 'generations' : 'talents';
+    const { video_id, id, type } = req.body;
+    const targetId = video_id || id;
+    const table = (type === 'model' || type === 'talent') ? 'talents' : 'generations';
 
-    // Verify ownership
-    const { data: item } = await supabaseAdmin.from(table).select('user_id').eq('id', id).single();
+    if (!targetId) throw new Error("ID missing");
+
+    // Verify ownership and get current state
+    const { data: item } = await supabaseAdmin.from(table).select('user_id, is_public').eq('id', targetId).single();
     if (!item || item.user_id !== user.id) throw new Error("No tienes permiso");
 
-    const { error } = await supabaseAdmin.from(table).update({ is_public }).eq('id', id);
+    // Toggle logic
+    const newStatus = !item.is_public;
+
+    const { error } = await supabaseAdmin.from(table).update({ is_public: newStatus }).eq('id', targetId);
     if (error) throw error;
 
-    res.json({ success: true });
+    res.json({ success: true, is_public: newStatus });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
