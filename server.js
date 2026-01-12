@@ -271,11 +271,19 @@ app.post('/api/publish', async (req, res) => {
     // Toggle logic
     const newStatus = !item.is_public;
 
-    const { error } = await supabaseAdmin.from(table).update({ is_public: newStatus }).eq('id', targetId);
+    // Update is_public AND created_at to bump to top of feed if publishing
+    const updateData = { is_public: newStatus };
+    if (newStatus) {
+        updateData.created_at = new Date().toISOString();
+    }
+
+    const { error } = await supabaseAdmin.from(table).update(updateData).eq('id', targetId);
     if (error) throw error;
 
+    console.log(`Publish toggled: ${targetId} (${table}) -> ${newStatus}`);
     res.json({ success: true, is_public: newStatus });
   } catch (error) {
+    console.error("Publish Error:", error);
     res.status(500).json({ error: error.message });
   }
 });
