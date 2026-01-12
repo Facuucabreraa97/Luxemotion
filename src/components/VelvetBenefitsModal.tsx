@@ -1,5 +1,6 @@
 import React from 'react';
 import { LockOpen, Check, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { S } from '../styles';
 
 interface VelvetBenefitsModalProps {
@@ -8,11 +9,13 @@ interface VelvetBenefitsModalProps {
 }
 
 export const VelvetBenefitsModal: React.FC<VelvetBenefitsModalProps> = ({ onClose, onUnlock }) => {
+  const { t } = useTranslation();
+
   const benefits = [
-    'Uncensored',
-    'Hyperrealistic Skin (8K)',
-    'Exclusive Models',
-    'Priority Generation'
+    t('velvet.uncensored'),
+    t('velvet.skin'),
+    t('velvet.exclusive'),
+    t('velvet.priority')
   ];
 
   return (
@@ -36,9 +39,9 @@ export const VelvetBenefitsModal: React.FC<VelvetBenefitsModalProps> = ({ onClos
           </div>
 
           {/* Titles */}
-          <h2 className="text-sm font-bold text-white/70 uppercase tracking-[0.2em] mb-1 relative z-10">Enter the</h2>
+          <h2 className="text-sm font-bold text-white/70 uppercase tracking-[0.2em] mb-1 relative z-10">{t('velvet.enter')}</h2>
           <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-indigo-400 uppercase tracking-[0.2em] mb-8 relative z-10 drop-shadow-sm">
-            Velvet Side
+            {t('velvet.side')}
           </h2>
 
           {/* Benefits List */}
@@ -58,7 +61,7 @@ export const VelvetBenefitsModal: React.FC<VelvetBenefitsModalProps> = ({ onClos
             onClick={onUnlock}
             className={`w-full py-4 text-sm ${S.btnVelvet} relative z-10 shadow-[0_0_20px_rgba(236,72,153,0.5)]`}
           >
-            UNLOCK FULL ACCESS
+            {t('velvet.unlock')}
           </button>
         </div>
       </div>

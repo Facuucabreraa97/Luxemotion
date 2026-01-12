@@ -17,6 +17,15 @@
       "settings": "Settings"
     }
   },
+  "velvet": {
+    "enter": "Enter the",
+    "side": "Velvet Side",
+    "uncensored": "Uncensored",
+    "skin": "Hyperrealistic Skin (8K)",
+    "exclusive": "Exclusive Models",
+    "priority": "Priority Generation",
+    "unlock": "Unlock Full Access"
+  },
   "studio": {
     "generate": "Generate Video",
     "processing": "Creating Magic...",

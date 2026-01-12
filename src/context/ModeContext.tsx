@@ -19,7 +19,7 @@ interface ModeContextType {
 const ModeContext = createContext<ModeContextType | undefined>(undefined);
 
 export const ModeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [mode, setModeState] = useState<Mode>('velvet');
+  const [mode, setModeState] = useState<Mode>('agency');
 
   const toggleMode = () => {
     setModeState(prev => prev === 'velvet' ? 'agency' : 'velvet');

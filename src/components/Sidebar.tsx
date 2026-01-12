@@ -40,6 +40,7 @@ export const Sidebar = ({ credits, onLogout, onUp, userProfile, onUpgrade, notif
     if (mode === 'velvet') {
       setMode('agency');
     } else {
+      // Security Gatekeeping: Only allow Creator/Agency plans or Admins
       const canAccess = userProfile?.is_admin || userProfile?.plan === 'creator' || userProfile?.plan === 'agency';
       if (canAccess) {
         setMode('velvet');
@@ -63,7 +64,7 @@ export const Sidebar = ({ credits, onLogout, onUp, userProfile, onUpgrade, notif
       )}
       {showUpgradeModal && <CheckoutModal planKey="creator" annual={true} onClose={() => setShowUpgradeModal(false)} />}
       <aside className={`fixed left-0 top-0 h-screen w-80 flex flex-col hidden lg:flex border-r transition-all duration-500 z-50
-          ${mode === 'velvet' ? 'bg-black/95 border-white/5 backdrop-blur-xl' : 'bg-[#F8F9FA] border-gray-200'}`}>
+          ${mode === 'velvet' ? 'bg-black/95 border-white/5 backdrop-blur-xl' : 'bg-white border-gray-200'}`}>
 
         {/* HEADER */}
         <div className="p-8 pb-4">
@@ -71,12 +72,12 @@ export const Sidebar = ({ credits, onLogout, onUp, userProfile, onUpgrade, notif
           {mode === 'velvet' ? (
              <h1 className="text-2xl font-bold tracking-[0.2em] uppercase mb-1 text-white">Luxe<span className="text-[#C6A649]">Motion</span></h1>
           ) : (
-             <h1 className="text-2xl font-bold tracking-[0.2em] uppercase mb-1 text-black">LuxeMotion</h1>
+             <h1 className="text-2xl font-bold tracking-[0.2em] uppercase mb-1 text-black" style={{ filter: 'invert(0)' }}>LUXEMOTION</h1>
           )}
 
           <div className="flex items-center justify-between">
              <p className="text-[9px] text-gray-500 uppercase tracking-[0.4em] font-bold">AI Video Generator</p>
-             <button onClick={handleLang} className={`text-[9px] font-bold uppercase px-2 py-1 rounded border transition-colors ${mode==='velvet'?'border-white/10 text-gray-400 hover:text-white':'border-gray-300 text-gray-500 hover:text-black hover:border-gray-400'}`}>
+             <button onClick={handleLang} className={`text-[9px] font-bold uppercase px-2 py-1 rounded border transition-colors ${mode==='velvet'?'border-white/10 text-gray-400 hover:text-white':'border-gray-200 text-gray-500 hover:text-black hover:border-black'}`}>
                {i18n.language.toUpperCase()}
              </button>
           </div>
@@ -85,11 +86,11 @@ export const Sidebar = ({ credits, onLogout, onUp, userProfile, onUpgrade, notif
         {/* MODE SWITCHER */}
         <div className="px-8 mb-6">
           <button id="sidebar-mode-toggle" onClick={handleModeToggle} className={`w-full p-1 rounded-full border flex items-center relative overflow-hidden group transition-all duration-500
-              ${mode==='velvet' ? 'bg-black border-white/10' : 'bg-gray-200 border-gray-300'}`}>
+              ${mode==='velvet' ? 'bg-black border-white/10' : 'bg-gray-100 border-gray-200'}`}>
               <div className={`w-1/2 text-[9px] font-bold uppercase text-center py-2 rounded-full relative z-10 transition-colors ${mode==='velvet'?'text-white':'text-gray-500'}`}>Velvet</div>
-              <div className={`w-1/2 text-[9px] font-bold uppercase text-center py-2 rounded-full relative z-10 transition-colors ${mode==='agency'?'text-black':'text-gray-500'}`}>Agency</div>
+              <div className={`w-1/2 text-[9px] font-bold uppercase text-center py-2 rounded-full relative z-10 transition-colors ${mode==='agency'?'text-white':'text-gray-500'}`}>Agency</div>
               <div className={`absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-full transition-transform duration-500 ease-out shadow-lg
-                  ${mode==='velvet' ? 'translate-x-1 bg-[#C6A649]' : 'translate-x-[calc(100%+4px)] bg-white'}`}></div>
+                  ${mode==='velvet' ? 'translate-x-1 bg-[#C6A649]' : 'translate-x-[calc(100%+4px)] bg-black'}`}></div>
           </button>
         </div>
 
@@ -102,7 +103,7 @@ export const Sidebar = ({ credits, onLogout, onUp, userProfile, onUpgrade, notif
 
              const containerClass = active
                 ? (mode === 'velvet' ? 'bg-white/5 border-white/10' : 'bg-white border-gray-200 shadow-sm')
-                : 'border-transparent hover:bg-black/5 dark:hover:bg-white/5'; // using dark: just in case, but manual control is better
+                : (mode === 'velvet' ? 'border-transparent hover:bg-white/5' : 'border-transparent hover:bg-gray-100');
 
              const iconColor = active
                 ? (mode === 'velvet' ? 'text-[#C6A649]' : 'text-black')
