@@ -1123,7 +1123,7 @@ function AppContent() {
 
           const payload = {
             name: inf.name,
-            image_url: inf.image_url,
+            image_url: typeof inf.image_url === 'string' ? inf.image_url : '',
             role: inf.role || 'model',
             dna_prompt: inf.dna_prompt || '',
             user_id: user.id,
@@ -1132,6 +1132,7 @@ function AppContent() {
             price: inf.price || 0,
             is_public: inf.for_sale || false
           };
+          console.log('Payload:', payload);
 
           const { data, error } = await supabase.from('talents').insert(payload).select().single();
           if(error) { console.error("Error adding talent:", error); notify("Error adding talent"); setInfluencers(prev => prev.filter(i => i.id !== tempId)); }
