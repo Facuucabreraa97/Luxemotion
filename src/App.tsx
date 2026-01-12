@@ -663,9 +663,28 @@ const TalentPage = ({ list, add, del, notify, videos }: any) => {
   const [sellingId, setSellingId] = useState<string | null>(null);
   const [sellPrice, setSellPrice] = useState<string>('');
   const [showGallery, setShowGallery] = useState(false);
+  const [isForSale, setIsForSale] = useState(false);
+  const [createPrice, setCreatePrice] = useState('');
 
   const save = () => {
-      if(img && name) { add({id:Date.now().toString(), name, image_url:img, role, notes}); setOpen(false); setImg(null); setName(''); setNotes(''); notify("Persona Added"); }
+      if(img && name) {
+        add({
+            id:Date.now().toString(),
+            name,
+            image_url:img,
+            role,
+            notes,
+            for_sale: isForSale,
+            price: isForSale ? parseInt(createPrice) : 0
+        });
+        setOpen(false);
+        setImg(null);
+        setName('');
+        setNotes('');
+        setIsForSale(false);
+        setCreatePrice('');
+        notify("Persona Added");
+      }
   };
   const handleSell = async (id: string) => {
       if (!sellPrice) return;
@@ -696,8 +715,23 @@ const TalentPage = ({ list, add, del, notify, videos }: any) => {
                 <div className="flex flex-col justify-center gap-8">
                     <div className="space-y-4"><label className={`text-[10px] uppercase tracking-widest ${isVelvet?'text-white/40':'text-gray-400'}`}>Name</label><input value={name} onChange={e=>setName(e.target.value)} className={isVelvet ? S.input : "w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-sm outline-none transition-all"}/></div>
                     <div className="space-y-4"><label className={`text-[10px] uppercase tracking-widest ${isVelvet?'text-white/40':'text-gray-400'}`}>Notes</label><textarea value={notes} onChange={e=>setNotes(e.target.value)} className={`${isVelvet ? S.input : "w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-sm outline-none transition-all"} h-24 resize-none`}/></div>
+
+                    <div className="flex items-center justify-between">
+                        <label className={`text-[10px] uppercase tracking-widest ${isVelvet?'text-white/40':'text-gray-400'}`}>Sell on Marketplace?</label>
+                        <button onClick={()=>setIsForSale(!isForSale)} className={`w-12 h-6 rounded-full border relative transition-all ${isForSale ? 'bg-[#C6A649] border-[#C6A649]' : 'bg-gray-200 border-gray-300'}`}>
+                            <div className={`absolute top-0.5 bottom-0.5 w-5 rounded-full bg-white shadow-sm transition-transform duration-300 ${isForSale ? 'translate-x-6' : 'translate-x-0.5'}`}></div>
+                        </button>
+                    </div>
+
+                    {isForSale && (
+                        <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                            <label className={`text-[10px] uppercase tracking-widest ${isVelvet?'text-white/40':'text-gray-400'}`}>Price (Credits)</label>
+                            <input type="number" value={createPrice} onChange={e=>setCreatePrice(e.target.value)} className={isVelvet ? S.input : "w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-sm outline-none transition-all"} placeholder="100"/>
+                        </div>
+                    )}
+
                     {!isVelvet && (<div className="space-y-4"><div className="flex gap-4"><button onClick={()=>setRole('model')} className={`flex-1 py-3 border rounded-xl flex items-center justify-center gap-2 text-xs font-bold uppercase transition-all ${role==='model'?'bg-black text-white border-black':'text-gray-400 border-gray-200'}`}><User size={14}/> Model</button><button onClick={()=>setRole('brand')} className={`flex-1 py-3 border rounded-xl flex items-center justify-center gap-2 text-xs font-bold uppercase transition-all ${role==='brand'?'bg-blue-600 text-white border-blue-600':'text-gray-400 border-gray-200'}`}><Briefcase size={14}/> Brand</button></div></div>)}
-                    <button onClick={save} disabled={!img || !name} className={`w-full py-5 rounded-2xl text-[10px] font-bold uppercase transition-transform hover:scale-[1.02] active:scale-95 ${isVelvet ? S.btnGold : 'bg-black text-white shadow-xl hover:bg-gray-800'}`}>{t('common.save')}</button>
+                    <button onClick={save} disabled={!img || !name || (isForSale && !createPrice)} className={`w-full py-5 rounded-2xl text-[10px] font-bold uppercase transition-transform hover:scale-[1.02] active:scale-95 ${isVelvet ? S.btnGold : 'bg-black text-white shadow-xl hover:bg-gray-800'}`}>{t('common.save')}</button>
                 </div>
             </div>
         )}
@@ -1027,7 +1061,20 @@ function AppContent() {
           const tempId = `temp_${Date.now()}`;
           const newTalent = { ...inf, id: tempId, user_id: user.id };
           setInfluencers([newTalent, ...influencers]);
-          const { data, error } = await supabase.from('talents').insert({ name: inf.name, image_url: inf.image_url, role: inf.role || 'model', dna_prompt: inf.dna_prompt || '', user_id: user.id }).select().single();
+
+          const payload = {
+            name: inf.name,
+            image_url: inf.image_url,
+            role: inf.role || 'model',
+            dna_prompt: inf.dna_prompt || '',
+            user_id: user.id,
+            // User requested 'is_for_sale' but DB column is 'for_sale' per schema. Keeping 'for_sale' to avoid SQL error.
+            for_sale: inf.for_sale || false,
+            price: inf.price || 0,
+            is_public: inf.for_sale || false
+          };
+
+          const { data, error } = await supabase.from('talents').insert(payload).select().single();
           if(error) { console.error("Error adding talent:", error); notify("Error adding talent"); setInfluencers(prev => prev.filter(i => i.id !== tempId)); }
           else if (data) { setInfluencers(prev => prev.map(i => i.id === tempId ? data : i)); }
       },
