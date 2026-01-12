@@ -100,14 +100,14 @@ app.post('/api/generate', async (req, res) => {
 
     if (mode === 'velvet') {
         switch (velvetStyle) {
-            case 'boudoir': // Glamour/Boudoir
-                stylePrompt = ", cinematic lighting, dim red lights, luxury hotel room, lace texture, wet skin, professional color grading, 8k, vogue spicy editorial";
+            case 'boudoir': // Mapped to 'Hentai/Anime' as per expert prompt engineering request
+                stylePrompt = ", hyperrealistic anime adaptation, unreal proportions but realistic skin texture, subsurface scattering, fantasy lingerie, neon ambient light";
                 break;
             case 'cosplay': // Cosplay Realism
-                stylePrompt = ", latex texture, distinct fabric details, anime aesthetic but hyperrealistic proportions, bedroom cosplay";
+                stylePrompt = ", detailed fabric texture, latex reflections, messy hair, heavy breathing, bedroom cosplay, amateur flash photography, 8k skin pores";
                 break;
-            default: // Leaked Tape (leaked)
-                 stylePrompt = ", shot on iPhone, flash photography, harsh lighting, amateur aesthetic, grainy, raw footage, motion blur, authentic skin texture";
+            default: // Leaked Tape (leaked) / Leaked/Homemade
+                 stylePrompt = ", shot on iPhone, grainy footage, motion blur, poor lighting, authentic amateur vibe, intense eye contact, pov style";
         }
     } else {
         stylePrompt = ", cinematic lighting, commercial grade, sharp focus, masterpiece, shot on ARRI Alexa, color graded, professional studio, vogue magazine style, 4k, clean composition";
@@ -115,7 +115,7 @@ app.post('/api/generate', async (req, res) => {
 
     // Strong negative prompts for Velvet mode to ensure realism
     const negativePrompt = mode === 'velvet'
-        ? "cartoonish, plastic skin, 3D render, cgi, drawing, illustration, doll-like, deformed, ugly, blur, watermark, text, low quality, distortion, bad anatomy, extra limbs"
+        ? "3d render, plastic, doll, smooth skin, airbrushed, cartoon, illustration, symmetry, cgi, drawing, doll-like, deformed, ugly, blur, watermark, text, low quality, distortion, bad anatomy, extra limbs"
         : "cartoon, drawing, illustration, plastic skin, doll-like, deformed, ugly, blur, watermark, text, low quality, distortion, bad anatomy, extra limbs, cgi, 3d render";
 
     const inputPayload = {
