@@ -507,15 +507,55 @@ const Sidebar = ({ credits, onLogout, onUp, userProfile, onUpgrade, notify }: an
 
 const ExplorePage = () => {
     const { mode } = useMode();
+    const [items, setItems] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        fetch(`${CONFIG.API_URL}/explore`)
+            .then(res => {
+                if (!res.ok) throw new Error('Network response was not ok');
+                return res.json();
+            })
+            .then(data => {
+                setItems(data);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error(err);
+                setError('The marketplace is closed for maintenance / No public content yet.');
+                setLoading(false);
+            });
+    }, []);
+
     const placeholders = Array(9).fill(0);
+
     return (
         <div className={`p-6 lg:p-12 animate-in fade-in pb-32`}>
             <h2 className={`text-4xl font-bold uppercase tracking-[0.2em] mb-12 ${mode==='velvet'?'text-white':'text-gray-900'}`}>Explore</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {placeholders.map((_, i) => (
-                    <div key={i} className={`aspect-[9/16] rounded-[30px] animate-pulse ${mode==='velvet'?'bg-white/5':'bg-gray-200'}`}></div>
-                ))}
-            </div>
+
+            {error ? (
+                <div className={`p-12 rounded-3xl border text-center ${mode === 'velvet' ? 'bg-white/5 border-white/10 text-white/50' : 'bg-gray-100 border-gray-200 text-gray-500'}`}>
+                    <p className="uppercase tracking-widest text-xs font-bold">{error}</p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {loading ? placeholders.map((_, i) => (
+                        <div key={i} className={`aspect-[9/16] rounded-[30px] animate-pulse ${mode==='velvet'?'bg-white/5':'bg-gray-200'}`}></div>
+                    )) : items.map((item: any) => (
+                         <div key={item.id} className={`rounded-[30px] overflow-hidden group relative hover:-translate-y-2 transition-all ${mode==='velvet'?S.panel:'bg-white shadow-lg border border-gray-100'}`}>
+                            {item.type === 'video' ? (
+                                <video src={item.video_url} className="aspect-[9/16] object-cover w-full" controls />
+                            ) : (
+                                <img src={item.image_url} className="aspect-[3/4] object-cover w-full" />
+                            )}
+                            <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+                                <p className="text-white text-[10px] font-bold uppercase tracking-widest">{item.profiles?.name || 'Unknown'}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 };
@@ -622,7 +662,23 @@ const TalentPage = ({ list, add, del, notify }: any) => {
   const [sellingId, setSellingId] = useState<string | null>(null);
   const [sellPrice, setSellPrice] = useState<string>('');
 
-  const handleFile = (e:any) => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=()=>setImg(r.result as string); r.readAsDataURL(f);} };
+  const handleFile = async (e:any) => {
+      const f = e.target.files[0];
+      if (!f) return;
+      try {
+          const fileExt = f.name.split('.').pop();
+          const fileName = `${Math.random()}.${fileExt}`;
+          const filePath = `${fileName}`;
+
+          const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, f);
+          if (uploadError) throw uploadError;
+
+          const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
+          setImg(data.publicUrl);
+      } catch (error: any) {
+          notify('Error uploading image: ' + error.message);
+      }
+  };
   const save = () => {
       if(img && name) { add({id:Date.now().toString(), name, image_url:img, role, notes}); setOpen(false); setImg(null); setName(''); setNotes(''); notify("Persona Added"); }
   };
