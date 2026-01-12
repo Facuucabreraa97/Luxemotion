@@ -61,6 +61,17 @@ export const CheckoutModal = ({ planKey, annual, onClose }: { planKey: string, a
         </div>
         <button onClick={handlePay} disabled={proc} className={`w-full py-4 rounded-2xl text-xs ${S.btnGold}`}>{proc ? "Procesando..." : "Confirmar y Pagar"}</button>
         <p className="text-[8px] text-white/20 mt-4 flex items-center justify-center gap-1"><Shield size={8}/> Pagos procesados de forma segura. Al continuar aceptas los términos.</p>
+
+        <div className="mt-6 border-t border-white/5 pt-4">
+           <details className="group">
+              <summary className="list-none text-[8px] text-white/30 uppercase tracking-widest cursor-pointer hover:text-white/50 transition-colors flex items-center justify-center gap-2">
+                 Terms & Conditions <span className="group-open:rotate-180 transition-transform">▼</span>
+              </summary>
+              <p className="text-[9px] text-white/40 mt-3 leading-relaxed px-4">
+                 Terms: Recurring subscription. You can cancel at any time. User-generated content is the property of the user. Commercial use is permitted on Creator/Agency plans.
+              </p>
+           </details>
+        </div>
       </div>
     </div>
   );

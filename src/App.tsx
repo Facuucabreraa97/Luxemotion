@@ -28,7 +28,8 @@ function ProtectedLayout({
     mode,
     toast,
     setToast,
-    selPlan
+    selPlan,
+    notify
 }: any) {
     if (!session) return <Navigate to="/login" replace />;
 
@@ -43,6 +44,7 @@ function ProtectedLayout({
               onUp={()=>setSelPlan({key:'creator', annual:true})}
               userProfile={profile}
               onUpgrade={()=>setSelPlan({key:'creator', annual:true})}
+              notify={notify}
             />
             <MobileHeader
               credits={credits}
@@ -186,6 +188,7 @@ function AppContent() {
                     toast={toast}
                     setToast={setToast}
                     selPlan={selPlan}
+                    notify={notify}
                 />
             }>
                 <Route index element={<StudioPage onGen={handleVideoSaved} influencers={influencers} credits={credits} notify={notify} onUp={()=>setSelPlan({key:'creator', annual:true})} userPlan={userPlan} talents={influencers} profile={profile}/>}/>
