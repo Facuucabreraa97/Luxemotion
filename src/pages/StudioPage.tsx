@@ -130,12 +130,12 @@ export const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, pr
     : "bg-gray-50 border border-gray-200 text-gray-900 p-4 rounded-xl focus:border-blue-500 outline-none transition-all text-xs w-full placeholder:text-gray-400";
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 p-6 lg:p-12 pb-32 lg:pb-12 animate-in fade-in duration-700 mb-24 lg:mb-0">
+    <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 p-6 lg:p-12 pb-32 lg:pb-12 animate-in fade-in duration-700 mb-24 lg:mb-0 relative">
       <StudioOnboarding />
       {modal && <VelvetModal onClose={()=>setModal(false)} onOk={()=>{setModal(false); setVelvetFilter(true); notify("Modo Velvet Activado 🔥");}}/>}
 
       {/* LEFT & CENTER: INPUTS & SETTINGS */}
-      <div className="lg:col-span-7 space-y-6">
+      <div className="lg:col-span-2 space-y-6">
 
         {/* PANEL 1: SOURCE */}
         <div className={`p-8 rounded-[40px] border transition-all duration-300 ${panelClass}`}>
@@ -161,37 +161,42 @@ export const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, pr
                 </div>
             </div>
 
-            {/* QUICK CAST (AVATARS) - Moved below boxes for better layout */}
+            {/* QUICK CAST (AVATARS) - Elegant Horizontal Carousel */}
             {talents && talents.length > 0 && (
-                <div className={`mt-6 rounded-3xl p-4 border ${mode==='velvet'?'bg-black/40 border-white/10':'bg-gray-50 border-gray-200'}`}>
-                    <div className="flex items-center justify-between mb-3 px-2">
-                        <p className="text-[9px] opacity-50 uppercase tracking-widest flex items-center gap-2"><Users size={10}/> Quick Cast</p>
+                <div className={`mt-6 rounded-3xl p-6 border transition-all ${mode==='velvet'?'bg-black/40 border-white/10':'bg-gray-50 border-gray-200'}`}>
+                    <div className="flex items-center justify-between mb-4 px-2">
+                        <p className="text-[9px] opacity-50 uppercase tracking-widest flex items-center gap-2"><Sparkles size={10}/> Quick Cast</p>
                     </div>
 
-                    <div className="overflow-x-auto pb-2 scrollbar-hide">
-                        <div className="flex gap-4 min-w-min">
+                    <div className="overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2">
+                        <div className="flex gap-4">
                             {talents.map((t:Talent) => (
                                 <button
                                     key={t.id}
-                                    onClick={()=>setImg(t.image_url)}
-                                    className={`relative flex-shrink-0 w-16 group`}
+                                    onClick={()=>{
+                                        setImg(t.image_url);
+                                        if (t.notes) handlePromptInjection(t.notes);
+                                    }}
+                                    className="group relative flex-shrink-0 w-20 flex flex-col items-center gap-2"
                                 >
-                                    <div className={`w-16 h-16 rounded-2xl overflow-hidden border-2 transition-all duration-300 mb-2
+                                    <div className={`w-20 h-20 rounded-full overflow-hidden border-2 transition-all duration-300 p-0.5
                                         ${img === t.image_url
-                                            ? (mode==='velvet' ? 'border-[#C6A649] shadow-[0_0_15px_rgba(198,166,73,0.3)]' : 'border-blue-500 shadow-lg scale-105')
+                                            ? (mode==='velvet' ? 'border-[#C6A649] shadow-[0_0_20px_rgba(198,166,73,0.3)] scale-105' : 'border-blue-500 shadow-lg scale-105')
                                             : (mode==='velvet' ? 'border-white/10 opacity-70 group-hover:opacity-100 group-hover:border-white/30' : 'border-gray-200 opacity-80 group-hover:opacity-100 group-hover:border-blue-300')
                                         }`}
                                     >
-                                        <img src={t.image_url} className="w-full h-full object-cover"/>
-                                        {img === t.image_url && (
-                                            <div className={`absolute inset-0 bg-black/20 flex items-center justify-center`}>
-                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center ${mode==='velvet'?'bg-[#C6A649] text-black':'bg-blue-500 text-white'}`}>
-                                                    <Check size={10} strokeWidth={4}/>
+                                        <div className="w-full h-full rounded-full overflow-hidden relative">
+                                            <img src={t.image_url} className="w-full h-full object-cover"/>
+                                            {img === t.image_url && (
+                                                <div className="absolute inset-0 bg-black/20 flex items-center justify-center animate-in fade-in zoom-in">
+                                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center shadow-sm ${mode==='velvet'?'bg-[#C6A649] text-black':'bg-blue-500 text-white'}`}>
+                                                        <Check size={12} strokeWidth={4}/>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        )}
+                                            )}
+                                        </div>
                                     </div>
-                                    <p className={`text-[8px] font-bold uppercase truncate text-center ${mode==='velvet' ? (img===t.image_url?'text-[#C6A649]':'text-gray-500') : (img===t.image_url?'text-blue-600':'text-gray-500')}`}>
+                                    <p className={`text-[9px] font-bold uppercase truncate max-w-full text-center tracking-wider ${mode==='velvet' ? (img===t.image_url?'text-[#C6A649]':'text-gray-500') : (img===t.image_url?'text-blue-600':'text-gray-500')}`}>
                                         {t.name}
                                     </p>
                                 </button>
@@ -278,32 +283,47 @@ export const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, pr
       </div>
 
       {/* RIGHT PANEL: PREVIEW */}
-      <div className="lg:col-span-5 relative z-10 flex flex-col items-center pt-8">
-         <div className={`sticky top-8 w-full max-w-[420px] rounded-[40px] border overflow-hidden shadow-2xl relative transition-all duration-500
-            ${ratio==='16:9'?'aspect-video':ratio==='1:1'?'aspect-square':'aspect-[9/16]'}
+      <div className="lg:col-span-3 relative z-10 flex flex-col pt-0 h-[calc(100vh-100px)] sticky top-8">
+         <div className={`w-full h-full rounded-[40px] border overflow-hidden shadow-2xl relative transition-all duration-500 flex flex-col
             ${mode==='velvet' ? 'bg-black border-white/10' : 'bg-gray-900 border-gray-200'}
          `}>
-            <div className="absolute top-8 left-8 right-8 flex justify-between items-center z-20 pointer-events-none opacity-60"><div className="text-[10px] text-white font-mono flex items-center gap-2"><span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span> REC</div><div className="text-[10px] text-white font-mono">{dur}s • 4K</div></div>
+            {/* Aspect Ratio Container within the fixed panel - centered */}
+            <div className="flex-1 flex items-center justify-center bg-black/50 p-8">
+                 <div className={`relative w-full max-h-full transition-all duration-500 shadow-2xl
+                    ${ratio==='16:9'?'aspect-video w-full':ratio==='1:1'?'aspect-square h-full':'aspect-[9/16] h-full'}
+                    ${mode==='velvet' ? 'bg-black' : 'bg-gray-900'}
+                 `}>
+                    <div className="absolute top-6 left-6 right-6 flex justify-between items-center z-20 pointer-events-none opacity-60"><div className="text-[10px] text-white font-mono flex items-center gap-2"><span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span> REC</div><div className="text-[10px] text-white font-mono">{dur}s • 4K</div></div>
 
-            {!resUrl && !loading && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-white/10 gap-6">
-                    <div className="w-24 h-24 rounded-full border border-white/5 flex items-center justify-center"><Video size={40} strokeWidth={1}/></div>
-                    <span className="text-[9px] uppercase tracking-[0.4em] font-light">Preview</span>
-                </div>
-            )}
+                    {!resUrl && !loading && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-white/10 gap-6 border border-white/5">
+                            <div className="w-24 h-24 rounded-full border border-white/5 flex items-center justify-center"><Video size={40} strokeWidth={1}/></div>
+                            <span className="text-[9px] uppercase tracking-[0.4em] font-light">Preview</span>
+                        </div>
+                    )}
 
-            {loading && (
-                <div className="absolute inset-0 bg-[#050505] z-30 flex flex-col items-center justify-center">
-                    <div className={`w-20 h-20 border-t-2 border-r-2 rounded-full animate-spin mb-8 shadow-[0_0_30px_rgba(198,166,73,0.2)]
-                        ${mode==='velvet' ? 'border-[#C6A649]' : 'border-blue-500 shadow-blue-500/20'}
-                    `}></div>
-                    <p className={`text-[10px] uppercase tracking-widest animate-pulse font-bold ${mode==='velvet'?'text-[#C6A649]':'text-blue-500'}`}>{t('studio.processing')}</p>
-                </div>
-            )}
+                    {loading && (
+                        <div className="absolute inset-0 bg-[#050505] z-30 flex flex-col items-center justify-center">
+                            <div className={`w-20 h-20 border-t-2 border-r-2 rounded-full animate-spin mb-8 shadow-[0_0_30px_rgba(198,166,73,0.2)]
+                                ${mode==='velvet' ? 'border-[#C6A649]' : 'border-blue-500 shadow-blue-500/20'}
+                            `}></div>
+                            <p className={`text-[10px] uppercase tracking-widest animate-pulse font-bold ${mode==='velvet'?'text-[#C6A649]':'text-blue-500'}`}>{t('studio.processing')}</p>
+                        </div>
+                    )}
 
-            {resUrl && <video src={resUrl} controls autoPlay loop className="w-full h-full object-cover"/>}
+                    {resUrl && <video src={resUrl} controls autoPlay loop className="w-full h-full object-cover"/>}
+                 </div>
+            </div>
+
+            {/* Footer Actions inside the fixed panel */}
+            <div className="p-6 border-t border-white/5 flex justify-center bg-black/40 backdrop-blur-sm">
+                {resUrl ? (
+                    <a href={resUrl} download className="px-12 py-4 bg-white text-black rounded-full text-[10px] font-bold uppercase hover:scale-105 transition-transform flex gap-3 shadow-2xl items-center"><Download size={16}/> Download 4K</a>
+                ) : (
+                    <div className="text-[9px] text-white/30 uppercase tracking-widest">Ready to Render</div>
+                )}
+            </div>
          </div>
-         {resUrl && <a href={resUrl} download className="mt-8 px-12 py-5 bg-white text-black rounded-full text-[10px] font-bold uppercase hover:scale-105 transition-transform flex gap-3 shadow-2xl"><Download size={16}/> Download 4K</a>}
       </div>
     </div>
   );

@@ -12,20 +12,21 @@ interface SidebarProps {
   onUp: () => void;
   userProfile?: UserProfile;
   onUpgrade: () => void;
+  notify: (msg: string) => void;
 }
 
-export const Sidebar = ({ credits, onLogout, onUp, userProfile, onUpgrade }: SidebarProps) => {
+export const Sidebar = ({ credits, onLogout, onUp, userProfile, onUpgrade, notify }: SidebarProps) => {
   const { pathname } = useLocation();
   const { mode, toggleMode, setMode } = useMode();
   const { t, i18n } = useTranslation();
   const [showUpgradeModal, setShowUpgradeModal] = React.useState(false);
 
   const links = [
-    { icon: Video, label: t('common.nav.studio'), path: '/' },
-    { icon: Users, label: t('common.nav.talent'), path: '/talent' },
-    { icon: ImageIcon, label: t('common.nav.gallery'), path: '/gallery' },
-    { icon: CreditCard, label: t('common.nav.billing'), path: '/billing' },
-    { icon: Settings, label: t('common.nav.settings'), path: '/settings' },
+    { icon: Video, label: t('common.nav.studio'), path: '/app' },
+    { icon: Users, label: t('common.nav.talent'), path: '/app/talent' },
+    { icon: ImageIcon, label: t('common.nav.gallery'), path: '/app/gallery' },
+    { icon: CreditCard, label: t('common.nav.billing'), path: '/app/billing' },
+    { icon: Settings, label: t('common.nav.settings'), path: '/app/settings' },
   ];
 
   const handleLang = () => {
@@ -42,6 +43,7 @@ export const Sidebar = ({ credits, onLogout, onUp, userProfile, onUpgrade }: Sid
       const canAccess = userProfile?.is_admin || userProfile?.plan === 'creator' || userProfile?.plan === 'agency';
       if (canAccess) {
         setMode('velvet');
+        notify('High Fidelity Mode activated. Credit consumption increases due to 8K post-processing.');
       } else {
         setShowUpgradeModal(true);
       }

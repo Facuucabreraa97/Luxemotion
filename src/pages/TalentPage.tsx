@@ -11,6 +11,7 @@ export const TalentPage = ({ list, add, del, notify }: any) => {
 
   const [img, setImg] = useState<string|null>(null);
   const [name, setName] = useState('');
+  const [notes, setNotes] = useState('');
   const [role, setRole] = useState('model'); // model | brand_ambassador
   const [open, setOpen] = useState(false);
 
@@ -18,10 +19,11 @@ export const TalentPage = ({ list, add, del, notify }: any) => {
 
   const save = () => {
       if(img && name) {
-          add({id:Date.now().toString(), name, image_url:img, role});
+          add({id:Date.now().toString(), name, image_url:img, role, notes});
           setOpen(false);
           setImg(null);
           setName('');
+          setNotes('');
           notify("Persona Added");
       }
   };
@@ -59,6 +61,11 @@ export const TalentPage = ({ list, add, del, notify }: any) => {
                     <div className="space-y-4">
                         <label className={`text-[10px] uppercase tracking-widest ${isVelvet?'text-white/40':'text-gray-400'}`}>Persona Name</label>
                         <input value={name} onChange={e=>setName(e.target.value)} placeholder="Ex: Sofia / Nike Air" className={isVelvet ? S.input : "w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-sm outline-none focus:border-blue-500 transition-all"}/>
+                    </div>
+
+                    <div className="space-y-4">
+                        <label className={`text-[10px] uppercase tracking-widest ${isVelvet?'text-white/40':'text-gray-400'}`}>DNA / Notes</label>
+                        <textarea value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Ex: Pale skin, neck tattoo, blue eyes..." className={`${isVelvet ? S.input : "w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-sm outline-none focus:border-blue-500 transition-all"} h-24 resize-none`}/>
                     </div>
 
                     {/* AGENCY MODE EXTRA: ROLE SELECTOR */}

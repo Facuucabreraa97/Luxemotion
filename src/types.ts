@@ -25,6 +25,7 @@ export interface Talent {
   id: string;
   name: string;
   image_url: string;
+  notes?: string;
 }
 
 export interface GeneratedVideo {
