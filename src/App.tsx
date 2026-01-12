@@ -139,7 +139,7 @@ interface ModeContextType {
 const ModeContext = createContext<ModeContextType | undefined>(undefined);
 
 const ModeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [mode, setModeState] = useState<Mode>('velvet');
+  const [mode, setModeState] = useState<Mode>('agency');
 
   const toggleMode = () => {
     setModeState(prev => prev === 'velvet' ? 'agency' : 'velvet');
@@ -437,7 +437,6 @@ const Sidebar = ({ credits, onLogout, onUp, userProfile, onUpgrade, notify }: an
   const { pathname } = useLocation();
   const { mode, toggleMode, setMode } = useMode();
   const { t, i18n } = useTranslation();
-  const [showUpgradeModal, setShowUpgradeModal] = React.useState(false);
   const [showVelvetBenefits, setShowVelvetBenefits] = React.useState(false);
 
   const links = [
@@ -451,16 +450,21 @@ const Sidebar = ({ credits, onLogout, onUp, userProfile, onUpgrade, notify }: an
 
   const handleLang = () => { i18n.changeLanguage(i18n.language === 'es' ? 'en' : 'es'); };
   const handleModeToggle = () => {
-    if (mode === 'velvet') { setMode('agency'); } else {
-      const canAccess = userProfile?.is_admin || userProfile?.plan === 'creator' || userProfile?.plan === 'agency';
-      if (canAccess) { setMode('velvet'); notify('High Fidelity Mode activated.'); } else { setShowVelvetBenefits(true); }
+    if (mode === 'velvet') {
+        setMode('agency');
+    } else {
+      if (userProfile?.plan === 'starter' && !userProfile?.is_admin) {
+          onUpgrade();
+          return;
+      }
+      setMode('velvet');
+      notify('High Fidelity Mode activated.');
     }
   };
 
   return (
     <>
-      {showVelvetBenefits && <VelvetBenefitsModal onClose={() => setShowVelvetBenefits(false)} onUnlock={() => { setShowVelvetBenefits(false); setShowUpgradeModal(true); }} />}
-      {showUpgradeModal && <CheckoutModal planKey="creator" annual={true} onClose={() => setShowUpgradeModal(false)} />}
+      {showVelvetBenefits && <VelvetBenefitsModal onClose={() => setShowVelvetBenefits(false)} onUnlock={() => { setShowVelvetBenefits(false); onUpgrade(); }} />}
       <aside className={`fixed left-0 top-0 h-screen w-80 flex flex-col hidden lg:flex border-r transition-all duration-500 z-50 ${mode === 'velvet' ? 'bg-black/95 border-white/5 backdrop-blur-xl' : 'bg-[#F8F9FA] border-gray-200'}`}>
         <div className="p-8 pb-4">
           {mode === 'velvet' ? <h1 className="text-2xl font-bold tracking-[0.2em] uppercase mb-1 text-white">Luxe<span className="text-[#C6A649]">Motion</span></h1> : <h1 className="text-2xl font-bold tracking-[0.2em] uppercase mb-1 text-black">LuxeMotion</h1>}
@@ -1049,8 +1053,8 @@ function AppContent() {
   const [credits, setCredits] = useState(0);
   const [userPlan, setUserPlan] = useState<'starter' | 'creator' | 'agency'>('starter');
   const [selPlan, setSelPlan] = useState<{key: string, annual: boolean} | null>(null);
-  const [profile, setProfile] = useState<UserProfile>({ name: "Agencia", email: "" });
-  const { mode } = useMode();
+  const [profile, setProfile] = useState<UserProfile>({ name: "Agencia", email: "", plan: 'starter' });
+  const { mode, setMode } = useMode();
   const { showToast } = useToast();
   const notify = (msg: string) => showToast(msg);
 
@@ -1095,8 +1099,16 @@ function AppContent() {
   const initData = async (uid:string) => {
       try {
         const { data: p, error: pError } = await supabase.from('profiles').select('*').eq('id', uid).single();
-        if(p && !pError) { setCredits(p.credits); setUserPlan(p.plan); setProfile({...p, email: session?.user?.email || ""}); }
-        else { setCredits(50); setUserPlan('starter'); setProfile({name: "User", email: session?.user?.email || ""}); }
+        if(p && !pError) {
+             setCredits(p.credits);
+             setUserPlan(p.plan);
+             setProfile({...p, email: session?.user?.email || "", plan: p.plan || 'starter'});
+
+             if (p.plan === 'starter' && !p.is_admin) {
+                 setMode('agency');
+             }
+        }
+        else { setCredits(50); setUserPlan('starter'); setProfile({name: "User", email: session?.user?.email || "", plan: 'starter'}); }
         const { data: v, error: vError } = await supabase.from('generations').select('*').eq('user_id', uid).order('created_at', {ascending:false});
         if(v && !vError) setVideos(v.map((i:any)=>({id:i.id, url:i.video_url, date:new Date(i.created_at).toLocaleDateString(), aspectRatio:i.aspect_ratio, cost:i.cost, prompt: i.prompt, is_public: i.is_public})));
         const { data: t, error: tError } = await supabase.from('talents').select('*').eq('user_id', uid).order('created_at', {ascending:false});
