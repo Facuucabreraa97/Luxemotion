@@ -99,23 +99,25 @@ app.post('/api/generate', async (req, res) => {
     let stylePrompt = "";
 
     if (mode === 'velvet') {
+        const skinOptimizer = ", (skin texture:1.4), (visible pores:1.3)";
         switch (velvetStyle) {
             case 'boudoir': // Mapped to 'Hentai/Anime' as per expert prompt engineering request
                 stylePrompt = ", hyperrealistic anime adaptation, unreal proportions but realistic skin texture, subsurface scattering, fantasy lingerie, neon ambient light";
                 break;
             case 'cosplay': // Cosplay Realism
-                stylePrompt = ", detailed fabric texture, latex reflections, messy hair, heavy breathing, bedroom cosplay, amateur flash photography, 8k skin pores";
+                stylePrompt = ", bedroom cosplay, (fabric texture:1.3), (stitching details:1.2), realistic latex reflection";
                 break;
             default: // Leaked Tape (leaked) / Leaked/Homemade
-                 stylePrompt = ", shot on iPhone, grainy footage, motion blur, poor lighting, authentic amateur vibe, intense eye contact, pov style";
+                 stylePrompt = ", (camera noise:1.2), (motion blur:1.1), flash photography, poor lighting, authentic look, authentic amateur vibe";
         }
+        stylePrompt += skinOptimizer;
     } else {
         stylePrompt = ", cinematic lighting, commercial grade, sharp focus, masterpiece, shot on ARRI Alexa, color graded, professional studio, vogue magazine style, 4k, clean composition";
     }
 
     // Strong negative prompts for Velvet mode to ensure realism
     const negativePrompt = mode === 'velvet'
-        ? "3d render, plastic, doll, smooth skin, airbrushed, cartoon, illustration, symmetry, cgi, drawing, doll-like, deformed, ugly, blur, watermark, text, low quality, distortion, bad anatomy, extra limbs"
+        ? "censor bars, mosaic, blur, cartoonish skin, airbrushed, plastic look, 3d render, plastic, doll, smooth skin, cartoon, illustration, symmetry, cgi, drawing, doll-like, deformed, ugly, watermark, text, low quality, distortion, bad anatomy, extra limbs"
         : "cartoon, drawing, illustration, plastic skin, doll-like, deformed, ugly, blur, watermark, text, low quality, distortion, bad anatomy, extra limbs, cgi, 3d render";
 
     const inputPayload = {
