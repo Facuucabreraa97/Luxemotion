@@ -29,10 +29,9 @@ const RATIOS = [
 ];
 
 const VELVET_STYLES = [
-  { id: 'glam', name: 'Lingerie', desc: 'Boudoir' },
-  { id: 'pov', name: 'POV Date', desc: 'Girlfriend Exp.' },
-  { id: 'cosplay', name: 'Cosplay', desc: 'Spicy & Realistic' },
-  { id: 'hentai', name: 'H-Style', desc: 'Anime Realism' },
+  { id: 'leaked', name: 'Leaked Tape', desc: 'Raw & Amateur' },
+  { id: 'boudoir', name: 'Glamour', desc: 'Cinematic & Spicy' },
+  { id: 'cosplay', name: 'Cosplay', desc: 'Anime Realism' },
 ];
 
 interface StudioPageProps {
@@ -61,7 +60,7 @@ export const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, pr
   // Or we keep the toggle inside the studio? Let's respect global mode as the "Theme" and the velvet toggle as the "Content Filter".
   // Actually, the prompt says Velvet Mode is for Model Managers. So if ModeContext is Velvet, the UI should be optimized for that.
   const [velvetFilter, setVelvetFilter] = useState(false);
-  const [velvetStyle, setVelvetStyle] = useState('glam');
+  const [velvetStyle, setVelvetStyle] = useState('leaked');
   const [loading, setLoading] = useState(false);
   const [resUrl, setResUrl] = useState<string|null>(null);
   const [modal, setModal] = useState(false);
