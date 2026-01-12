@@ -265,6 +265,78 @@ app.post('/api/publish', async (req, res) => {
   }
 });
 
+// --- API MARKETPLACE (GET ITEMS FOR SALE) ---
+app.get('/api/marketplace', async (req, res) => {
+  try {
+    const { data: talents, error } = await supabaseAdmin
+      .from('talents')
+      .select('*, profiles(name, avatar)')
+      .eq('for_sale', true)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    res.json(talents);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// --- API BUY (TRANSACTION) ---
+app.post('/api/buy', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) throw new Error("Falta Token");
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user: buyer }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    if (authError || !buyer) throw new Error("Usuario inválido");
+
+    const { talent_id } = req.body;
+
+    // Get Talent info
+    const { data: talent } = await supabaseAdmin.from('talents').select('*').eq('id', talent_id).single();
+    if (!talent) throw new Error("Modelo no encontrado");
+    if (!talent.for_sale) throw new Error("Este modelo no está a la venta");
+    if (talent.user_id === buyer.id) throw new Error("No puedes comprar tu propio modelo");
+
+    const price = talent.price;
+    const sellerId = talent.user_id;
+
+    // Check Buyer Balance
+    const { data: buyerProfile } = await supabaseAdmin.from('profiles').select('credits').eq('id', buyer.id).single();
+    if (buyerProfile.credits < price) throw new Error("Créditos insuficientes");
+
+    // Perform Transaction
+    // 1. Deduct from Buyer
+    const { error: deductError } = await supabaseAdmin.from('profiles').update({
+      credits: buyerProfile.credits - price
+    }).eq('id', buyer.id);
+    if (deductError) throw new Error("Error procesando pago");
+
+    // 2. Add to Seller (90% - 10% Commission)
+    const commission = Math.floor(price * 0.1);
+    const sellerEarnings = price - commission;
+
+    const { data: sellerProfile } = await supabaseAdmin.from('profiles').select('credits').eq('id', sellerId).single();
+    await supabaseAdmin.from('profiles').update({
+      credits: sellerProfile.credits + sellerEarnings
+    }).eq('id', sellerId);
+
+    // 3. Transfer Ownership
+    await supabaseAdmin.from('talents').update({
+      user_id: buyer.id,
+      for_sale: false,
+      is_public: false,
+      price: null
+    }).eq('id', talent_id);
+
+    res.json({ success: true, message: `Has comprado ${talent.name} por ${price} créditos` });
+
+  } catch (error) {
+    console.error("Purchase Error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // --- API MARKETPLACE LIST ---
 app.post('/api/marketplace/list', async (req, res) => {
   try {
@@ -294,61 +366,62 @@ app.post('/api/marketplace/list', async (req, res) => {
   }
 });
 
-// --- API MARKETPLACE BUY ---
+// --- API MARKETPLACE BUY (Original - kept for compatibility) ---
 app.post('/api/marketplace/buy', async (req, res) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) throw new Error("Falta Token");
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user: buyer }, error: authError } = await supabaseAdmin.auth.getUser(token);
-    if (authError || !buyer) throw new Error("Usuario inválido");
+    // Redirect to main buy logic or duplicate
+    // For simplicity, I'll just reuse the buy logic handler if I extracted it, but here I'll just duplicate safe logic since it's the same
+    // Actually, I can just call the same logic. But I'll leave the one I wrote above as the primary /api/buy.
+    // The previous implementation was identical.
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader) throw new Error("Falta Token");
+        const token = authHeader.replace('Bearer ', '');
+        const { data: { user: buyer }, error: authError } = await supabaseAdmin.auth.getUser(token);
+        if (authError || !buyer) throw new Error("Usuario inválido");
 
-    const { talent_id } = req.body;
+        const { talent_id } = req.body;
 
-    // Get Talent info
-    const { data: talent } = await supabaseAdmin.from('talents').select('*').eq('id', talent_id).single();
-    if (!talent) throw new Error("Modelo no encontrado");
-    if (!talent.for_sale) throw new Error("Este modelo no está a la venta");
-    if (talent.user_id === buyer.id) throw new Error("No puedes comprar tu propio modelo");
+        // Get Talent info
+        const { data: talent } = await supabaseAdmin.from('talents').select('*').eq('id', talent_id).single();
+        if (!talent) throw new Error("Modelo no encontrado");
+        if (!talent.for_sale) throw new Error("Este modelo no está a la venta");
+        if (talent.user_id === buyer.id) throw new Error("No puedes comprar tu propio modelo");
 
-    const price = talent.price;
-    const sellerId = talent.user_id;
+        const price = talent.price;
+        const sellerId = talent.user_id;
 
-    // Check Buyer Balance
-    const { data: buyerProfile } = await supabaseAdmin.from('profiles').select('credits').eq('id', buyer.id).single();
-    if (buyerProfile.credits < price) throw new Error("Créditos insuficientes");
+        // Check Buyer Balance
+        const { data: buyerProfile } = await supabaseAdmin.from('profiles').select('credits').eq('id', buyer.id).single();
+        if (buyerProfile.credits < price) throw new Error("Créditos insuficientes");
 
-    // Perform Transaction (Ideal to wrap in DB function, but doing in code for now)
+        // Perform Transaction
+        const { error: deductError } = await supabaseAdmin.from('profiles').update({
+          credits: buyerProfile.credits - price
+        }).eq('id', buyer.id);
+        if (deductError) throw new Error("Error procesando pago");
 
-    // 1. Deduct from Buyer
-    const { error: deductError } = await supabaseAdmin.from('profiles').update({
-      credits: buyerProfile.credits - price
-    }).eq('id', buyer.id);
-    if (deductError) throw new Error("Error procesando pago");
+        const commission = Math.floor(price * 0.1);
+        const sellerEarnings = price - commission;
 
-    // 2. Add to Seller (90% - 10% Commission)
-    const commission = Math.floor(price * 0.1);
-    const sellerEarnings = price - commission;
+        const { data: sellerProfile } = await supabaseAdmin.from('profiles').select('credits').eq('id', sellerId).single();
+        await supabaseAdmin.from('profiles').update({
+          credits: sellerProfile.credits + sellerEarnings
+        }).eq('id', sellerId);
 
-    const { data: sellerProfile } = await supabaseAdmin.from('profiles').select('credits').eq('id', sellerId).single();
-    await supabaseAdmin.from('profiles').update({
-      credits: sellerProfile.credits + sellerEarnings
-    }).eq('id', sellerId);
+        // Transfer Ownership
+        await supabaseAdmin.from('talents').update({
+          user_id: buyer.id,
+          for_sale: false,
+          is_public: false,
+          price: null
+        }).eq('id', talent_id);
 
-    // 3. Transfer Ownership
-    await supabaseAdmin.from('talents').update({
-      user_id: buyer.id,
-      for_sale: false,
-      is_public: false, // Remove from public list
-      price: null
-    }).eq('id', talent_id);
+        res.json({ success: true, message: `Has comprado ${talent.name} por ${price} créditos` });
 
-    res.json({ success: true, message: `Has comprado ${talent.name} por ${price} créditos` });
-
-  } catch (error) {
-    console.error("Purchase Error:", error);
-    res.status(500).json({ error: error.message });
-  }
+      } catch (error) {
+        console.error("Purchase Error:", error);
+        res.status(500).json({ error: error.message });
+      }
 });
 
 app.listen(port, () => console.log(`🛡️ SERVER LUXE (ULTRA HOT) EN PUERTO ${port}`));
