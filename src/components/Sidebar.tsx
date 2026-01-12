@@ -67,7 +67,7 @@ export const Sidebar = ({ credits, onLogout, onUp, userProfile, onUpgrade }: Sid
 
         {/* MODE SWITCHER */}
         <div className="px-8 mb-6">
-          <button onClick={handleModeToggle} className={`w-full p-1 rounded-full border flex items-center relative overflow-hidden group transition-all duration-500
+          <button id="sidebar-mode-toggle" onClick={handleModeToggle} className={`w-full p-1 rounded-full border flex items-center relative overflow-hidden group transition-all duration-500
               ${mode==='velvet' ? 'bg-black border-white/10' : 'bg-gray-100 border-gray-200'}`}>
               <div className={`w-1/2 text-[9px] font-bold uppercase text-center py-2 rounded-full relative z-10 transition-colors ${mode==='velvet'?'text-white':'text-gray-400'}`}>Velvet</div>
               <div className={`w-1/2 text-[9px] font-bold uppercase text-center py-2 rounded-full relative z-10 transition-colors ${mode==='agency'?'text-black':'text-gray-500'}`}>Agency</div>
