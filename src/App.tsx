@@ -512,54 +512,90 @@ const Sidebar = ({ credits, onLogout, onUp, userProfile, onUpgrade, notify }: an
 
 const ExplorePage = () => {
     const { mode } = useMode();
+    const [tab, setTab] = useState<'community' | 'marketplace'>('community');
     const [items, setItems] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        fetch(`${CONFIG.API_URL}/explore`)
-            .then(res => {
-                if (!res.ok) throw new Error('Network response was not ok');
-                return res.json();
-            })
-            .then(data => {
-                setItems(data);
-                setLoading(false);
-            })
-            .catch(err => {
+        let active = true;
+        setLoading(true);
+        setItems([]);
+        setError(null);
+
+        const fetchData = async () => {
+            try {
+                if (tab === 'community') {
+                    const res = await fetch(`${CONFIG.API_URL}/explore`);
+                    if (!res.ok) throw new Error('Network response was not ok');
+                    const data = await res.json();
+                    if (active) setItems(data);
+                } else {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    const { data, error } = await supabase
+                        .from('talents')
+                        .select('*, profiles(name, avatar)')
+                        .eq('is_for_sale', true)
+                        .neq('user_id', user?.id || ''); // Verify not filtering by user_id (showing others)
+
+                    if (error) throw error;
+                    if (active) setItems(data || []);
+                }
+            } catch (err) {
                 console.error(err);
-                setError('The marketplace is closed for maintenance / No public content yet.');
-                setLoading(false);
-            });
-    }, []);
+                if (active && tab === 'community') {
+                     setError('The marketplace is closed for maintenance / No public content yet.');
+                }
+            } finally {
+                if (active) setLoading(false);
+            }
+        };
+
+        fetchData();
+        return () => { active = false; };
+    }, [tab]);
 
     const placeholders = Array(9).fill(0);
 
     return (
         <div className={`p-6 lg:p-12 animate-in fade-in pb-32`}>
-            <h2 className={`text-4xl font-bold uppercase tracking-[0.2em] mb-12 ${mode==='velvet'?'text-white':'text-gray-900'}`}>Explore</h2>
+            <div className="flex items-center justify-between mb-12">
+                <h2 className={`text-4xl font-bold uppercase tracking-[0.2em] ${mode==='velvet'?'text-white':'text-gray-900'}`}>Explore</h2>
+                <div className={`p-1 rounded-full border flex ${mode==='velvet'?'bg-black/40 border-white/10':'bg-gray-100 border-gray-200'}`}>
+                    <button onClick={()=>setTab('community')} className={`px-6 py-2 rounded-full text-[9px] font-bold uppercase transition-all ${tab==='community' ? (mode==='velvet'?'bg-[#C6A649] text-black shadow-lg':'bg-black text-white shadow-lg') : 'text-gray-400 hover:text-white'}`}>Community</button>
+                    <button onClick={()=>setTab('marketplace')} className={`px-6 py-2 rounded-full text-[9px] font-bold uppercase transition-all ${tab==='marketplace' ? (mode==='velvet'?'bg-[#C6A649] text-black shadow-lg':'bg-black text-white shadow-lg') : 'text-gray-400 hover:text-white'}`}>Marketplace</button>
+                </div>
+            </div>
 
             {error ? (
                 <div className={`p-12 rounded-3xl border text-center ${mode === 'velvet' ? 'bg-white/5 border-white/10 text-white/50' : 'bg-gray-100 border-gray-200 text-gray-500'}`}>
                     <p className="uppercase tracking-widest text-xs font-bold">{error}</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {loading ? placeholders.map((_, i) => (
-                        <div key={i} className={`aspect-[9/16] rounded-[30px] animate-pulse ${mode==='velvet'?'bg-white/5':'bg-gray-200'}`}></div>
-                    )) : items.map((item: any) => (
-                         <div key={item.id} className={`rounded-[30px] overflow-hidden group relative hover:-translate-y-2 transition-all ${mode==='velvet'?S.panel:'bg-white shadow-lg border border-gray-100'}`}>
-                        {item.type === 'video' || (item.video_url && item.video_url.endsWith('.mp4')) ? (
-                                <video src={item.video_url} className="aspect-[9/16] object-cover w-full" controls />
-                            ) : (
-                                <img src={item.image_url} className="aspect-[3/4] object-cover w-full" />
-                            )}
-                            <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
-                                <p className="text-white text-[10px] font-bold uppercase tracking-widest">{item.profiles?.name || 'Unknown'}</p>
-                            </div>
+                <>
+                    {items.length === 0 && !loading && tab === 'marketplace' && (
+                         <div className={`p-12 rounded-3xl border text-center ${mode === 'velvet' ? 'bg-white/5 border-white/10 text-white/50' : 'bg-gray-100 border-gray-200 text-gray-500'}`}>
+                            <p className="uppercase tracking-widest text-xs font-bold">No talents for sale yet</p>
                         </div>
-                    ))}
-                </div>
+                    )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {loading ? placeholders.map((_, i) => (
+                            <div key={i} className={`aspect-[9/16] rounded-[30px] animate-pulse ${mode==='velvet'?'bg-white/5':'bg-gray-200'}`}></div>
+                        )) : items.map((item: any) => (
+                             <div key={item.id} className={`rounded-[30px] overflow-hidden group relative hover:-translate-y-2 transition-all ${mode==='velvet'?S.panel:'bg-white shadow-lg border border-gray-100'}`}>
+                            {item.type === 'video' || (item.video_url && item.video_url.endsWith('.mp4')) ? (
+                                    <video src={item.video_url} className="aspect-[9/16] object-cover w-full" controls />
+                                ) : (
+                                    <img src={item.image_url} className="aspect-[3/4] object-cover w-full" />
+                                )}
+                                <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/80 to-transparent flex justify-between items-end">
+                                    <p className="text-white text-[10px] font-bold uppercase tracking-widest">{item.profiles?.name || 'Unknown'}</p>
+                                    {tab === 'marketplace' && <div className="bg-[#C6A649] text-black px-3 py-1 rounded-full text-[9px] font-bold uppercase">{item.price} CR</div>}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </>
             )}
         </div>
     );
@@ -693,13 +729,8 @@ const TalentPage = ({ list, add, del, notify, videos }: any) => {
   const handleSell = async (id: string) => {
       if (!sellPrice) return;
       try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session) return;
-          const res = await fetch(`${CONFIG.API_URL}/marketplace/list`, {
-              method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-              body: JSON.stringify({ talent_id: id, price: parseInt(sellPrice) })
-          });
-          if (res.ok) { notify("Listed on Marketplace"); setSellingId(null); setSellPrice(''); } else { notify("Error listing item"); }
+          const { error } = await supabase.from('talents').update({ is_for_sale: true, price: parseInt(sellPrice) }).eq('id', id);
+          if (!error) { notify("Listed on Marketplace"); setSellingId(null); setSellPrice(''); } else { notify("Error listing item"); }
       } catch (e) { notify("Error"); }
   };
   const isVelvet = mode === 'velvet';
