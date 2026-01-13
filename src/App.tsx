@@ -230,7 +230,7 @@ const VelvetModal = ({ onClose, onOk }: { onClose: () => void, onOk: () => void 
 );
 
 const VelvetBenefitsModal: React.FC<{ onClose: () => void; onUnlock: () => void }> = ({ onClose, onUnlock }) => {
-  const benefits = ['Uncensored', 'Hyperrealistic Skin (8K)', 'Exclusive Models', 'Priority Generation'];
+  const benefits = ['Adult Content', 'Uncensored', '5 Extra Models', 'Hyperrealistic Skin (8K)'];
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-2xl p-4 animate-in zoom-in duration-300">
       <div className="w-full max-w-sm relative group">
@@ -240,8 +240,7 @@ const VelvetBenefitsModal: React.FC<{ onClose: () => void; onUnlock: () => void 
           <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-tr from-pink-600 to-purple-900 rounded-full flex items-center justify-center border border-pink-500/50 shadow-[0_0_30px_rgba(236,72,153,0.3)] animate-pulse relative z-10">
             <Lock size={32} className="text-white fill-white/20" />
           </div>
-          <h2 className="text-sm font-bold text-white/70 uppercase tracking-[0.2em] mb-1 relative z-10">Enter the</h2>
-          <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-indigo-400 uppercase tracking-[0.2em] mb-8 relative z-10 drop-shadow-sm">Velvet Side</h2>
+          <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-indigo-400 uppercase tracking-[0.2em] mb-8 relative z-10 drop-shadow-sm">Unlock Velvet Mode</h2>
           <div className="space-y-4 mb-8 text-left pl-6 relative z-10">
             {benefits.map((benefit, index) => (
               <div key={index} className="flex items-center gap-4 group/item">
@@ -250,7 +249,7 @@ const VelvetBenefitsModal: React.FC<{ onClose: () => void; onUnlock: () => void 
               </div>
             ))}
           </div>
-          <button onClick={onUnlock} className={`w-full py-4 text-sm ${S.btnVelvet} relative z-10 shadow-[0_0_20px_rgba(236,72,153,0.5)]`}>UNLOCK FULL ACCESS</button>
+          <button onClick={onUnlock} className={`w-full py-4 text-sm ${S.btnVelvet} relative z-10 shadow-[0_0_20px_rgba(236,72,153,0.5)]`}>Unlock Access</button>
         </div>
       </div>
     </div>
@@ -343,12 +342,14 @@ const StudioOnboarding = () => {
 };
 
 interface CheckoutModalProps { planKey: string; annual: boolean; onClose: () => void; }
-const CheckoutModal = ({ planKey, annual, onClose }: CheckoutModalProps) => {
+const CheckoutModal = ({ planKey, annual: initialAnnual, onClose }: CheckoutModalProps) => {
   const { mode } = useMode();
+  const [isAnnual, setIsAnnual] = useState(initialAnnual);
   const plan = PRICING[planKey];
-  const price = annual && plan.yearlyPrice ? plan.yearlyPrice : plan.price;
+  const price = isAnnual && plan.yearlyPrice ? plan.yearlyPrice : plan.price;
   const [load, setLoad] = useState(false);
   const [currency, setCurrency] = useState<'USDT' | 'ARS'>('ARS');
+  const isVelvet = mode === 'velvet';
 
   const handleCheckout = async () => {
       if (currency === 'USDT') {
@@ -396,6 +397,13 @@ const CheckoutModal = ({ planKey, annual, onClose }: CheckoutModalProps) => {
                   <button onClick={() => setCurrency('USDT')} className={`px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${currency === 'USDT' ? (mode === 'velvet' ? 'bg-[#C6A649] text-black' : 'bg-black text-white') : (mode === 'velvet' ? 'bg-white/5 text-gray-500 hover:text-white' : 'bg-gray-100 text-gray-500 hover:text-black')}`}>USDT / Crypto</button>
                   <button onClick={() => setCurrency('ARS')} className={`px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${currency === 'ARS' ? (mode === 'velvet' ? 'bg-[#C6A649] text-black' : 'bg-black text-white') : (mode === 'velvet' ? 'bg-white/5 text-gray-500 hover:text-white' : 'bg-gray-100 text-gray-500 hover:text-black')}`}>Pesos (ARS)</button>
               </div>
+
+              <div className="flex items-center justify-center gap-4 mb-6">
+                  <span className={`text-[10px] font-bold uppercase tracking-widest ${!isAnnual ? (isVelvet ? 'text-[#C6A649]' : 'text-blue-600') : (isVelvet ? 'text-white/40' : 'text-gray-400')}`}>Monthly</span>
+                  <button onClick={()=>setIsAnnual(!isAnnual)} className={`w-12 h-6 rounded-full relative p-1 transition-colors ${isVelvet ? 'bg-white/10 hover:bg-white/20' : 'bg-gray-200 hover:bg-gray-300'}`}><div className={`w-4 h-4 rounded-full shadow-lg transition-transform duration-300 ${isAnnual ? 'translate-x-6' : ''} ${isVelvet ? 'bg-[#C6A649]' : 'bg-white'}`}></div></button>
+                  <span className={`text-[10px] font-bold uppercase tracking-widest ${isAnnual ? (isVelvet ? 'text-[#C6A649]' : 'text-blue-600') : (isVelvet ? 'text-white/40' : 'text-gray-400')}`}>Annual <span className={`${isVelvet ? 'bg-[#C6A649] text-black' : 'bg-blue-600 text-white'} px-2 py-0.5 rounded text-[8px] ml-1`}>-20%</span></span>
+              </div>
+
               <h2 className={`text-2xl font-bold uppercase tracking-widest mb-2 ${mode==='velvet'?'text-white':'text-black'}`}>{plan.name}</h2>
               <div className={`text-5xl font-bold mb-8 ${mode==='velvet'?'text-[#C6A649]':'text-black'}`}>${displayPrice}<span className="text-sm font-normal text-gray-500">/mo</span></div>
               <ul className="space-y-4 mb-8 text-left">
@@ -407,7 +415,7 @@ const CheckoutModal = ({ planKey, annual, onClose }: CheckoutModalProps) => {
                     <p>Subscription renews automatically. Cancel anytime. Content ownership belongs to you.</p>
                 </details>
               </div>
-              <button onClick={handleCheckout} disabled={load} className={`w-full py-4 rounded-2xl text-xs font-bold uppercase tracking-widest ${S.btnGold}`}>{load ? "Procesando..." : (currency === 'ARS' ? "Pay with Mercado Pago" : "Pay with Crypto")}</button>
+              <button onClick={handleCheckout} disabled={load} className={`w-full py-4 rounded-2xl text-xs font-bold uppercase tracking-widest ${S.btnGold}`}>{load ? "Processing..." : (currency === 'ARS' ? "Pay with Mercado Pago" : "Pay with Crypto")}</button>
           </div>
       </div>
     </div>
@@ -417,15 +425,18 @@ const CheckoutModal = ({ planKey, annual, onClose }: CheckoutModalProps) => {
 const MobileHeader = ({ credits, userProfile, onUpgrade }: any) => {
   const { mode, setMode } = useMode();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showVelvetBenefits, setShowVelvetBenefits] = useState(false);
+
   const handleModeToggle = () => {
     if (mode === 'velvet') { setMode('agency'); } else {
       const canAccess = userProfile?.is_admin || userProfile?.plan === 'creator' || userProfile?.plan === 'agency';
-      if (canAccess) { setMode('velvet'); } else { setShowUpgradeModal(true); }
+      if (canAccess) { setMode('velvet'); } else { setShowVelvetBenefits(true); }
     }
   };
 
   return (
     <>
+      {showVelvetBenefits && <VelvetBenefitsModal onClose={() => setShowVelvetBenefits(false)} onUnlock={() => { setShowVelvetBenefits(false); setShowUpgradeModal(true); }} />}
       {showUpgradeModal && <CheckoutModal planKey="creator" annual={true} onClose={() => setShowUpgradeModal(false)} />}
       <div className={`lg:hidden fixed top-0 w-full p-4 border-b z-50 flex justify-between items-center transition-colors ${mode === 'velvet' ? 'bg-[#0a0a0a]/90 backdrop-blur-md border-white/5' : 'bg-white/90 backdrop-blur-md border-gray-200'}`}>
           <div className="flex items-center gap-3">
@@ -478,7 +489,7 @@ const Sidebar = ({ credits, onLogout, onUp, userProfile, onUpgrade, notify }: an
         setMode('agency');
     } else {
       if (userProfile?.plan === 'starter' && !userProfile?.is_admin) {
-          onUpgrade();
+          setShowVelvetBenefits(true);
           return;
       }
       setMode('velvet');
