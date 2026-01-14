@@ -704,9 +704,9 @@ const ExplorePage = () => {
     const placeholders = Array(9).fill(0);
 
     return (
-        <div className={`pt-24 px-6 animate-in fade-in pb-32 min-h-screen ${mode === 'velvet' ? 'bg-black text-white' : 'bg-gray-50 text-black'}`}>
-            <div className="flex items-center justify-between mb-12">
-                <h2 className={`text-4xl font-bold uppercase tracking-[0.2em] ${mode==='velvet'?'text-white':'text-gray-900'}`}>{t('explore.title')}</h2>
+        <div className={`pt-24 px-4 md:px-6 animate-in fade-in pb-32 min-h-screen ${mode === 'velvet' ? 'bg-black text-white' : 'bg-gray-50 text-black'}`}>
+            <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-6 md:mb-12">
+                <h2 className={`text-3xl md:text-4xl font-bold uppercase tracking-[0.2em] ${mode==='velvet'?'text-white':'text-gray-900'}`}>{t('explore.title')}</h2>
                 <div className={`p-1 rounded-full border flex ${mode==='velvet'?'bg-black/40 border-white/10':'bg-gray-100 border-gray-200'}`}>
                     <button onClick={()=>setTab('community')} className={`px-6 py-2 rounded-full text-[9px] font-bold uppercase transition-all ${tab==='community' ? (mode==='velvet'?'bg-[#C6A649] text-black shadow-lg':'bg-black text-white shadow-lg') : 'text-gray-400 hover:text-white'}`}>{t('explore.tabs.community')}</button>
                     <button onClick={()=>setTab('marketplace')} className={`px-6 py-2 rounded-full text-[9px] font-bold uppercase transition-all ${tab==='marketplace' ? (mode==='velvet'?'bg-[#C6A649] text-black shadow-lg':'bg-black text-white shadow-lg') : 'text-gray-400 hover:text-white'}`}>{t('explore.tabs.marketplace')}</button>
@@ -737,25 +737,23 @@ const ExplorePage = () => {
                                 ) : (
                                     <img src={assetUrl} className="aspect-[3/4] object-cover w-full" />
                                 )}
-                                <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex flex-col gap-2">
-                                    <div className="flex justify-between items-end">
-                                        <div>
-                                            <p className="text-white text-[10px] font-bold uppercase tracking-widest">{item.profiles?.name || 'User'}</p>
-                                        </div>
-                                        {tab === 'marketplace' && (
-                                            <div className="flex items-center gap-3">
-                                                 <span className="text-[#C6A649] text-lg font-bold uppercase tracking-tight shadow-black drop-shadow-md">{item.price} CR</span>
-                                                 <button
-                                                    onClick={() => handleBuyClick(item)}
-                                                    disabled={purchasing === item.id}
-                                                    className="bg-[#C6A649] text-black p-2 rounded-full hover:bg-white hover:scale-105 transition-all shadow-lg disabled:opacity-50"
-                                                 >
-                                                    {purchasing === item.id ? <Loader2 size={16} className="animate-spin"/> : <ShoppingBag size={16}/>}
-                                                 </button>
-                                            </div>
-                                        )}
-                                    </div>
+                                <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none">
+                                    <p className="text-white text-[10px] font-bold uppercase tracking-widest">{item.profiles?.name || 'User'}</p>
                                 </div>
+                                {tab === 'marketplace' && (
+                                    <>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleBuyClick(item); }}
+                                            disabled={purchasing === item.id}
+                                            className="absolute top-2 right-2 bg-black/60 backdrop-blur-md text-white p-2 rounded-full hover:bg-[#C6A649] hover:text-black transition-all disabled:opacity-50 z-10"
+                                        >
+                                            {purchasing === item.id ? <Loader2 size={14} className="animate-spin"/> : <ShoppingBag size={14}/>}
+                                        </button>
+                                        <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full z-10">
+                                            <span className="text-[#C6A649] text-xs font-bold uppercase tracking-widest">{item.price} CR</span>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         )})}
                     </div>
