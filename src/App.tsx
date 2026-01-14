@@ -660,13 +660,19 @@ const ExplorePage = () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
 
+            console.log("Payload sent:", { userId: session.user.id, assetId: item.id });
+
             const res = await fetch(`${CONFIG.API_URL}/buy`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${session.access_token}`
                 },
-                body: JSON.stringify({ talent_id: item.id })
+                body: JSON.stringify({
+                    userId: session.user.id,
+                    assetId: item.id,
+                    talent_id: item.id
+                })
             });
 
             const result = await res.json();
