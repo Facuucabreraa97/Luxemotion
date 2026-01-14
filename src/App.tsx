@@ -72,6 +72,10 @@ export interface Talent {
   role?: string;
   dna_prompt?: string;
   user_id?: string;
+  original_creator_id?: string;
+  sales_count?: number;
+  for_sale?: boolean;
+  price?: number;
 }
 
 export interface GeneratedVideo {
@@ -651,8 +655,6 @@ const ExplorePage = () => {
 
     const handleBuy = async (item: any) => {
         if (!item.for_sale || !item.price) return;
-        if (!window.confirm(t('explore.buy.confirm', { name: item.name || 'this talent', price: item.price }))) return;
-
         setPurchasing(item.id);
         try {
             const { data: { session } } = await supabase.auth.getSession();
@@ -679,6 +681,18 @@ const ExplorePage = () => {
         } finally {
             setPurchasing(null);
         }
+    };
+
+    const [purchaseItem, setPurchaseItem] = useState<any>(null);
+
+    const handleBuyClick = (item: any) => {
+        setPurchaseItem(item);
+    };
+
+    const confirmPurchase = async () => {
+        if (!purchaseItem) return;
+        await handleBuy(purchaseItem);
+        setPurchaseItem(null);
     };
 
     const placeholders = Array(9).fill(0);
@@ -726,7 +740,7 @@ const ExplorePage = () => {
                                             <div className="flex items-center gap-3">
                                                  <span className="text-[#C6A649] text-lg font-bold uppercase tracking-tight shadow-black drop-shadow-md">{item.price} CR</span>
                                                  <button
-                                                    onClick={() => handleBuy(item)}
+                                                    onClick={() => handleBuyClick(item)}
                                                     disabled={purchasing === item.id}
                                                     className="bg-[#C6A649] text-black p-2 rounded-full hover:bg-white hover:scale-105 transition-all shadow-lg disabled:opacity-50"
                                                  >
@@ -740,6 +754,26 @@ const ExplorePage = () => {
                         )})}
                     </div>
                 </>
+            )}
+
+            {purchaseItem && (
+                <div className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center p-4 animate-in fade-in">
+                    <div className={`w-full max-w-sm p-6 rounded-[30px] ${mode==='velvet' ? S.panel : 'bg-white'}`}>
+                        <h3 className={`text-xl font-bold uppercase mb-6 ${mode==='velvet'?'text-white':'text-black'}`}>{t('explore.buy.confirm_title')}</h3>
+                        <div className="space-y-3 mb-6 text-sm">
+                            <div className="flex justify-between"><span className="opacity-60">{t('explore.buy.item_price')}</span> <span>{purchaseItem.price}</span></div>
+                            <div className="flex justify-between"><span className="opacity-60">{t('explore.buy.service_fee')} (2.5%)</span> <span>{(purchaseItem.price * 0.025).toFixed(2)}</span></div>
+                            <div className={`flex justify-between font-bold text-lg border-t pt-3 ${mode==='velvet'?'border-white/10':'border-gray-200'}`}>
+                                <span>{t('explore.buy.total')}</span>
+                                <span className="text-[#C6A649]">{(purchaseItem.price * 1.025).toFixed(2)}</span>
+                            </div>
+                        </div>
+                        <div className="flex gap-3">
+                            <button onClick={()=>setPurchaseItem(null)} className="flex-1 py-3 rounded-xl border border-white/10 text-xs font-bold uppercase">{t('common.cancel')}</button>
+                            <button onClick={confirmPurchase} className={`flex-1 py-3 rounded-xl text-xs font-bold uppercase ${S.btnGold}`}>{t('explore.buy.confirm_btn')}</button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
@@ -842,7 +876,7 @@ const LoginScreen = ({ onLogin }: { onLogin: () => void }) => {
   );
 };
 
-const TalentPage = ({ list, add, del, notify, videos }: any) => {
+const TalentPage = ({ list, add, del, notify, videos, profile }: any) => {
   const { mode } = useMode();
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -988,8 +1022,24 @@ const TalentPage = ({ list, add, del, notify, videos }: any) => {
                     </div>
                     {sellingId === inf.id && (
                         <div className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center p-6 text-center animate-in fade-in">
-                            <h3 className="text-white text-xs font-bold uppercase mb-4">Sell {inf.name}</h3>
-                            <input type="number" placeholder={t('talent.list_price')} value={sellPrice} onChange={(e)=>setSellPrice(e.target.value)} className="w-full bg-white/10 border border-white/20 rounded p-2 text-white text-xs mb-4 text-center outline-none"/>
+                            <h3 className="text-white text-xs font-bold uppercase mb-4">{t('talent.sell_modal.title', {name: inf.name})}</h3>
+                            <input type="number" placeholder={t('talent.sell_modal.price_placeholder')} value={sellPrice} onChange={(e)=>setSellPrice(e.target.value)} className="w-full bg-white/10 border border-white/20 rounded p-2 text-white text-xs mb-4 text-center outline-none"/>
+
+                            {sellPrice && !isNaN(parseFloat(sellPrice)) && (
+                                <div className="text-[10px] text-white/70 mb-4 w-full text-left space-y-1 bg-white/5 p-3 rounded">
+                                    <div className="flex justify-between"><span>{t('talent.sell_modal.selling_price')}:</span> <span className="text-white">{sellPrice}</span></div>
+                                    {(inf.original_creator_id && profile?.id && inf.original_creator_id !== profile.id && (inf.sales_count || 0) < 5) && (
+                                        <div className="flex justify-between text-red-400"><span>{t('talent.sell_modal.royalty')}:</span> <span>-{(parseFloat(sellPrice) * 0.10).toFixed(1)}</span></div>
+                                    )}
+                                    <div className="flex justify-between font-bold border-t border-white/10 pt-1 mt-1">
+                                        <span>{t('talent.sell_modal.you_receive')}:</span>
+                                        <span className="text-[#C6A649]">
+                                            { (parseFloat(sellPrice) - ((inf.original_creator_id && profile?.id && inf.original_creator_id !== profile.id && (inf.sales_count || 0) < 5) ? parseFloat(sellPrice) * 0.10 : 0)).toFixed(1) }
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="flex gap-2 w-full"><button onClick={()=>setSellingId(null)} className="flex-1 py-2 bg-white/10 text-white text-[10px] font-bold uppercase rounded">{t('common.cancel')}</button><button onClick={()=>handleSell(inf.id)} className="flex-1 py-2 bg-[#C6A649] text-black text-[10px] font-bold uppercase rounded">{t('talent.list_btn')}</button></div>
                         </div>
                     )}
@@ -1298,6 +1348,7 @@ function AppContent() {
             role: inf.role || 'model',
             dna_prompt: inf.dna_prompt || '',
             user_id: user.id,
+            original_creator_id: user.id,
             // User requested 'is_for_sale' but DB column is 'for_sale' per schema. Keeping 'for_sale' to avoid SQL error.
             for_sale: inf.for_sale || false,
             price: inf.price || 0,
@@ -1378,7 +1429,7 @@ function AppContent() {
             <Route path="/app" element={<ProtectedLayout session={session} credits={credits} handleLogout={handleLogout} setSelPlan={setSelPlan} profile={profile} mode={mode} selPlan={selPlan} notify={notify} />}>
                 <Route index element={<StudioPage onGen={handleVideoSaved} influencers={influencers} credits={credits} notify={notify} onUp={()=>setSelPlan({key:'creator', annual:true})} userPlan={userPlan} talents={influencers} profile={profile}/>}/>
                 <Route path="explore" element={<ExplorePage />} />
-                <Route path="talent" element={<TalentPage list={influencers} add={handleInf.add} del={handleInf.del} notify={notify} videos={videos}/>}/>
+                <Route path="talent" element={<TalentPage list={influencers} add={handleInf.add} del={handleInf.del} notify={notify} videos={videos} profile={profile}/>}/>
                 <Route path="gallery" element={<GalleryPage videos={videos} setVideos={setVideos}/>}/>
                 <Route path="billing" element={<BillingPage onSelect={(k:string, a:boolean)=>setSelPlan({key:k, annual:a})}/>}/>
                 <Route path="settings" element={<SettingsPage credits={credits} profile={profile} setProfile={handleUpdateProfile} notify={notify}/>}/>
