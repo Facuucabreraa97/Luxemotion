@@ -83,10 +83,10 @@ app.use(express.json({ limit: '50mb' }));
 // --- UTILS ---
 const getUser = async (req) => {
     const authHeader = req.headers.authorization;
-    if (!authHeader) throw new Error("Falta Token");
+    if (!authHeader) throw new Error("Missing Token");
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-    if (authError || !user) throw new Error("Usuario inválido");
+    if (authError || !user) throw new Error("Invalid User");
     return user;
 };
 
@@ -124,7 +124,7 @@ app.post('/api/generate', async (req, res) => {
   try {
     const user = await getUser(req);
 
-    if (!replicateToken) throw new Error("Falta configurar Replicate API Token");
+    if (!replicateToken) throw new Error("Missing Replicate API Token");
 
     // 1. Calculate Costs
     const {
@@ -145,18 +145,18 @@ app.post('/api/generate', async (req, res) => {
 
     // 2. Verify Balance
     const { data: profile } = await supabaseAdmin.from('profiles').select('credits, is_admin').eq('id', user.id).single();
-    if (!profile) throw new Error("Perfil no encontrado");
+    if (!profile) throw new Error("Profile not found");
 
     const isAdmin = profile.is_admin === true;
 
     if (!isAdmin && profile.credits < cost) {
-      throw new Error(`Saldo insuficiente (${profile?.credits}cr). Necesitas ${cost}cr.`);
+      throw new Error(`Insufficient credits (${profile?.credits}cr). Needed ${cost}cr.`);
     }
 
     // 3. Deduct Credits (if not admin)
     if (!isAdmin) {
       const { error: deductError } = await supabaseAdmin.from('profiles').update({ credits: profile.credits - cost }).eq('id', user.id);
-      if (deductError) throw new Error("Error actualizando saldo");
+      if (deductError) throw new Error("Error updating balance");
     }
 
     // 4. Prompt Engineering (Vision & Logic)
@@ -303,7 +303,7 @@ app.post('/api/buy', async (req, res) => {
     const user = await getUser(req);
     const { talent_id } = req.body;
 
-    if (!talent_id) throw new Error("ID de talento requerido");
+    if (!talent_id) throw new Error("Talent ID required");
 
     // Attempt Atomic RPC Call
     const { data: result, error: rpcError } = await supabaseAdmin.rpc('buy_talent', {
@@ -314,7 +314,11 @@ app.post('/api/buy', async (req, res) => {
     if (rpcError) {
         // Log detailed error for debugging
         console.error("RPC Error:", rpcError);
-        throw new Error("Transaction failed at database level");
+        throw new Error("Transaction failed. Please contact support.");
+    }
+
+    if (!result) {
+        throw new Error("No response from transaction processor.");
     }
 
     if (!result.success) {
@@ -325,7 +329,7 @@ app.post('/api/buy', async (req, res) => {
 
   } catch (error) {
     console.error("Purchase Error:", error.message);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message, code: 'TRANSACTION_FAILED' });
   }
 });
 
@@ -334,7 +338,7 @@ app.post('/api/marketplace/buy', async (req, res) => {
     try {
         const user = await getUser(req);
         const { talent_id } = req.body;
-        if (!talent_id) throw new Error("ID de talento requerido");
+        if (!talent_id) throw new Error("Talent ID required");
 
         const { data: result, error: rpcError } = await supabaseAdmin.rpc('buy_talent', {
             p_talent_id: talent_id,
@@ -364,7 +368,7 @@ app.post('/api/publish', async (req, res) => {
     if (!targetId) throw new Error("ID missing");
 
     const { data: item } = await supabaseAdmin.from(table).select('user_id, is_public').eq('id', targetId).single();
-    if (!item || item.user_id !== user.id) throw new Error("No tienes permiso");
+    if (!item || item.user_id !== user.id) throw new Error("Permission denied");
 
     const newStatus = !item.is_public;
     const updateData = { is_public: newStatus };

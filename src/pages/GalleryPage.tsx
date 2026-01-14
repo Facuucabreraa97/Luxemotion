@@ -34,7 +34,7 @@ export const GalleryPage = ({ videos }: any) => {
         });
 
         if (res.ok) {
-            showToast(isPublic ? 'Published to Explore!' : 'Unpublished from Explore', 'success');
+            showToast(isPublic ? t('gallery.published') : t('gallery.unpublished'), 'success');
             // Optimistically update the UI by reloading the page or ideally updating state from parent.
             // For now, we force a reload to reflect state if we don't have a state setter passed down.
             // A better approach in a larger app would be to use a callback prop "onUpdate".
@@ -49,10 +49,12 @@ export const GalleryPage = ({ videos }: any) => {
     }
   };
 
+  const { t } = useTranslation();
+
   return (
   <div className={`p-6 lg:p-12 pb-32 animate-in fade-in ${mode==='velvet'?'':'bg-gray-50'}`}>
-    <h2 className={`text-4xl font-bold uppercase tracking-[0.2em] mb-12 border-b pb-8 ${mode==='velvet'?'text-white border-white/10':'text-gray-900 border-gray-200'}`}>Portfolio</h2>
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+    <h2 className={`text-4xl font-bold uppercase tracking-[0.2em] mb-12 border-b pb-8 ${mode==='velvet'?'text-white border-white/10':'text-gray-900 border-gray-200'}`}>{t('gallery.title')}</h2>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
         {videos.map((v:any) => (
             <div key={v.id} className={`rounded-[30px] overflow-hidden group relative hover:-translate-y-2 transition-all ${mode==='velvet'?S.panel:'bg-white shadow-lg border border-gray-100'}`}>
                 <video src={v.url} className="aspect-[9/16] object-cover w-full" controls/>
@@ -66,7 +68,7 @@ export const GalleryPage = ({ videos }: any) => {
                                 ${mode==='velvet'
                                     ? (v.is_public ? 'bg-[#C6A649] text-black hover:bg-white hover:text-black' : 'bg-white/5 text-gray-400 hover:text-[#C6A649]')
                                     : (v.is_public ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-gray-100 text-gray-500 hover:text-black')}`}
-                            title={v.is_public ? "Unpublish from Explore" : "Publish to Explore"}
+                            title={v.is_public ? t('gallery.unpublish_from_explore') : t('gallery.publish_to_explore')}
                          >
                             {publishing === v.id ? <Loader2 size={14} className="animate-spin"/> : <Globe size={14}/>}
                          </button>
@@ -77,7 +79,7 @@ export const GalleryPage = ({ videos }: any) => {
                 </div>
             </div>
         ))}
-        {videos.length===0 && <div className={`col-span-full text-center py-32 uppercase text-xs tracking-[0.4em] ${mode==='velvet'?'text-white/20':'text-gray-400'}`}>Sin producciones aún</div>}
+        {videos.length===0 && <div className={`col-span-full text-center py-32 uppercase text-xs tracking-[0.4em] ${mode==='velvet'?'text-white/20':'text-gray-400'}`}>{t('gallery.empty')}</div>}
     </div>
   </div>
   );

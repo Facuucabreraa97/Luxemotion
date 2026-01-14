@@ -6,6 +6,8 @@
     "cancel": "Cancelar",
     "delete": "Eliminar",
     "back": "Volver",
+    "confirm": "Confirmar",
+    "processing": "Procesando...",
     "mode": {
       "velvet": "Modo Velvet",
       "agency": "Modo Agencia"
@@ -58,6 +60,9 @@
     "processing": "Creando Magia...",
     "source": "Fuente",
     "settings": "Configuración",
+    "preview": "Vista Previa",
+    "ready_render": "Listo para Renderizar",
+    "download": "Descargar 4K",
     "tabs": {
       "photo": "Foto",
       "remix": "Remix"
@@ -72,8 +77,6 @@
     "prompt_placeholder": "Describe tu visión...",
     "duration": "Duración",
     "ratio": "Formato",
-    "download": "Descargar 4K",
-    "ready": "Listo para Renderizar",
     "credits_cost": "{{cost}}cr",
     "insufficient_credits": "Faltan Créditos",
     "generated_success": "¡Video Generado!",
@@ -81,18 +84,31 @@
   },
   "explore": {
     "title": "Explorar",
+    "subtitle": "Descubre y Colecciona",
+    "suffix": "Comunidad",
     "tabs": {
+      "all": "Todo",
+      "videos": "Videos",
+      "models": "Modelos",
       "community": "Comunidad",
       "marketplace": "Mercado"
     },
     "empty": {
       "community": "No hay contenido público disponible.",
-      "marketplace": "Aún no hay modelos a la venta. Ve a Casting y sé el primero en vender."
+      "marketplace": "Aún no hay modelos a la venta. Ve a Casting y sé el primero en vender.",
+      "all": "No se encontró contenido.",
+      "videos": "No se encontraron videos.",
+      "models": "No se encontraron modelos."
     },
     "buy": {
       "confirm": "¿Confirma compra de {{name}} por {{price}} créditos?",
       "success": "¡Compra exitosa! Talento añadido a tu casting.",
-      "error": "Error procesando la compra"
+      "error": "Error procesando la compra",
+      "button": "Comprar por {{price}} CR",
+      "login_required": "Inicia sesión para comprar."
+    },
+    "card": {
+        "by": "por"
     }
   },
   "talent": {
@@ -100,16 +116,24 @@
     "subtitle_agency": "Activos de Marca",
     "subtitle_velvet": "Base de Datos",
     "new_btn": "Nueva Persona",
+    "upload_portrait": "Subir Retrato",
     "select_gallery": "Seleccionar de Galería",
     "form": {
-      "name": "Nombre",
-      "notes": "Notas",
+      "name": "Nombre Persona",
+      "notes": "ADN / Notas",
+      "notes_placeholder": "Ej: Piel pálida, tatuaje en el cuello, ojos azules...",
       "sell": "¿Vender en Mercado?",
       "price": "Precio (Créditos)",
-      "model": "Modelo",
-      "brand": "Marca",
+      "model": "Modelo Virtual",
+      "brand": "Producto / Logo",
+      "asset_type": "Tipo de Activo",
       "error_required": "Imagen y Nombre son requeridos",
       "error_price": "El precio debe ser mayor a 0"
+    },
+    "sell_modal": {
+        "title": "Vender {{name}}",
+        "price_placeholder": "Precio (Créditos)",
+        "list": "Listar"
     },
     "list_price": "Precio (Créditos)",
     "list_btn": "Listar",
@@ -120,7 +144,10 @@
   "gallery": {
     "title": "Portafolio",
     "published": "¡Publicado!",
-    "unpublished": "Despublicado"
+    "unpublished": "Despublicado",
+    "publish_to_explore": "Publicar en Explorar",
+    "unpublish_from_explore": "Despublicar de Explorar",
+    "empty": "Sin producciones aún"
   },
   "billing": {
     "title": "Membresía",
@@ -132,9 +159,21 @@
     "select_plan": "Elegir Plan",
     "terms_title": "Términos y Condiciones",
     "terms_text": "La suscripción se renueva automáticamente. Cancela cuando quieras. La propiedad del contenido te pertenece.",
-    "pay_crypto": "Pagar con Cripto",
+    "pay_crypto": "Pagar con Cripto (USDT)",
+    "pay_card": "Pagar con Tarjeta",
     "pay_mp": "Pagar con Mercado Pago",
-    "crypto_disabled": "Pagos Cripto temporalmente deshabilitados. Usa Mercado Pago."
+    "crypto_disabled": "Pagos Cripto temporalmente deshabilitados. Usa Mercado Pago.",
+    "checkout": {
+        "title": "Checkout",
+        "summary_title": "Resumen:",
+        "access": "Acceso inmediato a {{credits}} créditos",
+        "unlock": "Desbloqueo de funciones {{plan}}",
+        "cancel": "Cancela en cualquier momento",
+        "total": "Total",
+        "vat_included": "IVA Incluido",
+        "confirm_pay": "Confirmar y Pagar",
+        "secure": "Pagos procesados de forma segura. Al continuar aceptas los términos."
+    }
   },
   "settings": {
     "title": "Ajustes",

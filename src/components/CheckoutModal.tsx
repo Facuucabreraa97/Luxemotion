@@ -4,9 +4,11 @@ import { PRICING } from '../constants';
 import { S } from '../styles';
 import { CONFIG } from '../config';
 import { useMode } from '../context/ModeContext';
+import { useTranslation } from 'react-i18next';
 
 export const CheckoutModal = ({ planKey, annual, onClose }: { planKey: string, annual: boolean, onClose: () => void }) => {
   const { mode } = useMode();
+  const { t } = useTranslation();
   const p = PRICING[planKey as keyof typeof PRICING];
   const [proc, setProc] = useState(false);
   const [currency, setCurrency] = useState<'USD'|'ARS'>('USD');
@@ -23,8 +25,8 @@ export const CheckoutModal = ({ planKey, annual, onClose }: { planKey: string, a
           });
           const d = await r.json();
           if (d.url) window.location.href = d.url;
-          else throw new Error("Error en pago");
-      } catch(e) { alert("Error de conexión"); setProc(false); }
+          else throw new Error(t('common.error'));
+      } catch(e) { alert(t('auth.connection_error')); setProc(false); }
   };
 
   // Adaptive Styles
@@ -55,24 +57,24 @@ export const CheckoutModal = ({ planKey, annual, onClose }: { planKey: string, a
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
       <div className={`w-full max-w-md p-8 rounded-[40px] text-center relative transition-colors duration-300 ${panelClass}`}>
         <button onClick={onClose} className={`absolute top-6 right-6 ${closeBtn}`}><X size={20}/></button>
-        <h3 className={`${textPrimary} font-bold uppercase tracking-[0.3em] mb-2 text-sm`}>Checkout</h3>
-        <p className={`${textAccent} text-xs font-bold uppercase tracking-widest mb-6`}>{p.name} {annual ? '(Anual)' : '(Mensual)'}</p>
+        <h3 className={`${textPrimary} font-bold uppercase tracking-[0.3em] mb-2 text-sm`}>{t('billing.checkout.title')}</h3>
+        <p className={`${textAccent} text-xs font-bold uppercase tracking-widest mb-6`}>{p.name} {annual ? `(${t('billing.annual')})` : `(${t('billing.monthly')})`}</p>
 
         <div className={`${summaryBox} p-4 rounded-xl mb-6 text-left`}>
-            <p className={`text-[10px] ${textSecondary} uppercase mb-2 font-bold`}>Resumen:</p>
+            <p className={`text-[10px] ${textSecondary} uppercase mb-2 font-bold`}>{t('billing.checkout.summary_title')}</p>
             <ul className={`text-xs ${summaryText} space-y-1`}>
-                <li>• Acceso inmediato a {p.creds} créditos</li>
-                <li>• Desbloqueo de funciones {p.name === 'Influencer' ? 'Velvet' : 'Pro'}</li>
-                <li>• Cancelación en cualquier momento</li>
+                <li>• {t('billing.checkout.access', { credits: p.creds })}</li>
+                <li>• {t('billing.checkout.unlock', { plan: p.name === 'Influencer' ? 'Velvet' : 'Pro' })}</li>
+                <li>• {t('billing.checkout.cancel')}</li>
             </ul>
         </div>
 
         <div className="grid grid-cols-2 gap-3 mb-4">
             <button onClick={()=>setMethod('card')} className={`flex items-center justify-center gap-2 py-3 rounded-xl border transition-all ${method==='card' ? methodActive : methodInactive}`}>
-                <CreditCard size={14}/><span className="text-[10px] font-bold">Tarjeta</span>
+                <CreditCard size={14}/><span className="text-[10px] font-bold">{t('billing.pay_card')}</span>
             </button>
             <button onClick={()=>setMethod('crypto')} className={`flex items-center justify-center gap-2 py-3 rounded-xl border transition-all ${method==='crypto' ? methodActive : methodInactive}`}>
-                <Bitcoin size={14}/><span className="text-[10px] font-bold">Cripto (USDT)</span>
+                <Bitcoin size={14}/><span className="text-[10px] font-bold">USDT</span>
             </button>
         </div>
 
@@ -82,19 +84,19 @@ export const CheckoutModal = ({ planKey, annual, onClose }: { planKey: string, a
         </div>
 
         <div className={`flex justify-between items-end py-4 border-t ${divider} mb-6`}>
-            <div className="text-left"><span className={`block ${totalLabel} text-[10px] uppercase font-bold tracking-widest`}>Total</span><span className={`text-[9px] ${textAccent}`}>IVA Incluido</span></div>
+            <div className="text-left"><span className={`block ${totalLabel} text-[10px] uppercase font-bold tracking-widest`}>{t('billing.checkout.total')}</span><span className={`text-[9px] ${textAccent}`}>{t('billing.checkout.vat_included')}</span></div>
             <span className={`text-3xl font-bold ${priceColor} tracking-tighter`}>{currency === 'USD' ? '$' : '$'}{displayPrice.toLocaleString()}</span>
         </div>
-        <button onClick={handlePay} disabled={proc} className={`w-full py-4 rounded-2xl text-xs ${actionBtn}`}>{proc ? "Procesando..." : "Confirmar y Pagar"}</button>
-        <p className={`text-[8px] ${textSecondary} mt-4 flex items-center justify-center gap-1`}><Shield size={8}/> Pagos procesados de forma segura. Al continuar aceptas los términos.</p>
+        <button onClick={handlePay} disabled={proc} className={`w-full py-4 rounded-2xl text-xs ${actionBtn}`}>{proc ? t('common.processing') : t('billing.checkout.confirm_pay')}</button>
+        <p className={`text-[8px] ${textSecondary} mt-4 flex items-center justify-center gap-1`}><Shield size={8}/> {t('billing.checkout.secure')}</p>
 
         <div className={`mt-6 border-t ${divider} pt-4`}>
            <details className="group">
               <summary className={`list-none text-[8px] ${textSecondary} uppercase tracking-widest cursor-pointer hover:opacity-100 transition-opacity flex items-center justify-center gap-2 opacity-70`}>
-                 Terms & Conditions <span className="group-open:rotate-180 transition-transform">▼</span>
+                 {t('billing.terms_title')} <span className="group-open:rotate-180 transition-transform">▼</span>
               </summary>
               <p className={`text-[9px] ${textSecondary} mt-3 leading-relaxed px-4 opacity-80`}>
-                 Terms: Recurring subscription. You can cancel at any time. User-generated content is the property of the user. Commercial use is permitted on Creator/Agency plans.
+                 {t('billing.terms_text')}
               </p>
            </details>
         </div>

@@ -6,6 +6,8 @@
     "cancel": "Cancel",
     "delete": "Delete",
     "back": "Back",
+    "confirm": "Confirm",
+    "processing": "Processing...",
     "mode": {
       "velvet": "Velvet Mode",
       "agency": "Agency Mode"
@@ -58,6 +60,9 @@
     "processing": "Creating Magic...",
     "source": "Source",
     "settings": "Settings",
+    "preview": "Preview",
+    "ready_render": "Ready to Render",
+    "download": "Download 4K",
     "tabs": {
       "photo": "Photo",
       "remix": "Remix"
@@ -72,8 +77,6 @@
     "prompt_placeholder": "Describe your vision...",
     "duration": "Duration",
     "ratio": "Ratio",
-    "download": "Download 4K",
-    "ready": "Ready to Render",
     "credits_cost": "{{cost}}cr",
     "insufficient_credits": "Insufficient Credits",
     "generated_success": "Video Generated!",
@@ -81,18 +84,31 @@
   },
   "explore": {
     "title": "Explore",
+    "subtitle": "Discover & Collect",
+    "suffix": "Community",
     "tabs": {
+      "all": "All",
+      "videos": "Videos",
+      "models": "Models",
       "community": "Community",
       "marketplace": "Marketplace"
     },
     "empty": {
       "community": "No public content available.",
-      "marketplace": "There are no models for sale yet. Go to Casting and be the first to sell."
+      "marketplace": "There are no models for sale yet. Go to Casting and be the first to sell.",
+      "all": "No content found.",
+      "videos": "No videos found.",
+      "models": "No models found."
     },
     "buy": {
       "confirm": "Confirm purchase of {{name}} for {{price}} credits?",
       "success": "Purchase successful! Talent added to your casting.",
-      "error": "Error processing purchase"
+      "error": "Error processing purchase",
+      "button": "Buy for {{price}} CR",
+      "login_required": "Please log in to purchase."
+    },
+    "card": {
+        "by": "by"
     }
   },
   "talent": {
@@ -100,16 +116,24 @@
     "subtitle_agency": "Brand Assets",
     "subtitle_velvet": "Database",
     "new_btn": "New Persona",
+    "upload_portrait": "Upload Portrait",
     "select_gallery": "Select from Gallery",
     "form": {
-      "name": "Name",
-      "notes": "Notes",
+      "name": "Persona Name",
+      "notes": "DNA / Notes",
+      "notes_placeholder": "Ex: Pale skin, neck tattoo, blue eyes...",
       "sell": "Sell on Marketplace?",
       "price": "Price (Credits)",
-      "model": "Model",
-      "brand": "Brand",
+      "model": "Virtual Model",
+      "brand": "Product / Logo",
+      "asset_type": "Asset Type",
       "error_required": "Image and Name are required",
       "error_price": "Price must be greater than 0"
+    },
+    "sell_modal": {
+        "title": "Sell {{name}}",
+        "price_placeholder": "Price (Credits)",
+        "list": "List"
     },
     "list_price": "Price (Credits)",
     "list_btn": "List",
@@ -120,7 +144,10 @@
   "gallery": {
     "title": "Portfolio",
     "published": "Published!",
-    "unpublished": "Unpublished"
+    "unpublished": "Unpublished",
+    "publish_to_explore": "Publish to Explore",
+    "unpublish_from_explore": "Unpublish from Explore",
+    "empty": "No productions yet"
   },
   "billing": {
     "title": "Membership",
@@ -132,9 +159,21 @@
     "select_plan": "Select Plan",
     "terms_title": "Terms & Conditions",
     "terms_text": "Subscription renews automatically. Cancel anytime. Content ownership belongs to you.",
-    "pay_crypto": "Pay with Crypto",
+    "pay_crypto": "Pay with Crypto (USDT)",
+    "pay_card": "Pay with Card",
     "pay_mp": "Pay with Mercado Pago",
-    "crypto_disabled": "Crypto payments temporarily disabled. Use Mercado Pago."
+    "crypto_disabled": "Crypto payments temporarily disabled. Use Mercado Pago.",
+    "checkout": {
+        "title": "Checkout",
+        "summary_title": "Summary:",
+        "access": "Immediate access to {{credits}} credits",
+        "unlock": "Unlock {{plan}} features",
+        "cancel": "Cancel anytime",
+        "total": "Total",
+        "vat_included": "VAT Included",
+        "confirm_pay": "Confirm & Pay",
+        "secure": "Payments processed securely. By continuing you accept the terms."
+    }
   },
   "settings": {
     "title": "Settings",
