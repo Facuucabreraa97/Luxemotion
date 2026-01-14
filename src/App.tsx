@@ -811,6 +811,24 @@ const TalentPage = ({ list, add, del, notify, videos }: any) => {
   const [isForSale, setIsForSale] = useState(false);
   const [createPrice, setCreatePrice] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [localVideos, setLocalVideos] = useState<any[]>(videos || []);
+
+  useEffect(() => {
+    let active = true;
+    if (videos && videos.length > 0) {
+        setLocalVideos(videos);
+    } else if (showGallery && (!localVideos || localVideos.length === 0)) {
+        const fetchGens = async () => {
+             const { data: { session } } = await supabase.auth.getSession();
+             if(session) {
+                 const { data } = await supabase.from('generations').select('*').eq('user_id', session.user.id).order('created_at', {ascending: false});
+                 if(active && data) setLocalVideos(data);
+             }
+        };
+        fetchGens();
+    }
+    return () => { active = false; };
+  }, [videos, showGallery]);
 
   const save = () => {
       setErrorMsg(null);
@@ -856,6 +874,7 @@ const TalentPage = ({ list, add, del, notify, videos }: any) => {
   const isVelvet = mode === 'velvet';
   const isVideo = (url: string) => url?.match(/\.(mp4|webm|mov|mkv)$/i);
 
+
   return (
     <div className="p-6 lg:p-12 pb-32 animate-in fade-in">
         <div className={`flex justify-between items-end border-b pb-8 mb-12 ${isVelvet?'border-white/10':'border-gray-200'}`}>
@@ -896,13 +915,16 @@ const TalentPage = ({ list, add, del, notify, videos }: any) => {
                 <div className={`w-full max-w-4xl max-h-[80vh] overflow-y-auto p-8 rounded-[40px] ${isVelvet ? 'bg-[#0a0a0a] border border-white/10' : 'bg-white'}`}>
                     <div className="flex justify-between items-center mb-8"><h3 className={`text-2xl font-bold uppercase tracking-widest ${isVelvet?'text-white':'text-black'}`}>Select Asset</h3><button onClick={()=>setShowGallery(false)}><X size={24} className={isVelvet?'text-white':'text-black'}/></button></div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {videos && videos.map((v:any) => (
-                            <div key={v.id} onClick={()=>{setImg(v.url); setShowGallery(false);}} className="cursor-pointer group relative aspect-[9/16] rounded-xl overflow-hidden border border-transparent hover:border-[#C6A649]">
-                                {isVideo(v.url) ? <video src={v.url} className="w-full h-full object-cover" controls preload="metadata" playsInline crossOrigin="anonymous"/> : <img src={v.url} className="w-full h-full object-cover" />}
-                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all"/>
-                            </div>
-                        ))}
-                         {(!videos || videos.length === 0) && <p className="col-span-4 text-center text-gray-500 py-10">No generations found.</p>}
+                        {localVideos && localVideos.map((v:any) => {
+                             const assetUrl = v.video_url || v.url;
+                             return (
+                                <div key={v.id} onClick={()=>{setImg(assetUrl); setShowGallery(false);}} className="cursor-pointer group relative aspect-[9/16] rounded-xl overflow-hidden border border-transparent hover:border-[#C6A649]">
+                                    {isVideo(assetUrl) ? <video src={assetUrl} className="w-full h-full object-cover" controls preload="metadata" playsInline crossOrigin="anonymous"/> : <img src={assetUrl} className="w-full h-full object-cover" />}
+                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all"/>
+                                </div>
+                             );
+                        })}
+                         {(!localVideos || localVideos.length === 0) && <p className="col-span-4 text-center text-gray-500 py-10">No generations found.</p>}
                     </div>
                 </div>
             </div>
