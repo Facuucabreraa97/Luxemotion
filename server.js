@@ -370,7 +370,7 @@ app.post('/api/publish', async (req, res) => {
 
     res.json({ success: true, is_public: newStatus });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: true, message: error.message, stack: error.stack });
   }
 });
 

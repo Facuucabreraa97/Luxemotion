@@ -417,7 +417,7 @@ const CheckoutModal = ({ planKey, annual: initialAnnual, onClose }: CheckoutModa
     <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-300">
       <div className={`w-full max-w-md rounded-[40px] relative overflow-hidden transition-all duration-300 ${mode==='velvet'?'bg-[#0a0a0a] border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)]':'bg-white shadow-2xl'}`}>
           <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-[#C6A649]/20 to-transparent opacity-50 pointer-events-none"></div>
-          <button onClick={onClose} className="absolute top-6 right-6 z-10 p-2 rounded-full transition-colors hover:bg-black/10 text-white/50 hover:text-white"><X size={20}/></button>
+          <button onClick={onClose} className={`absolute top-4 right-4 cursor-pointer z-50 ${mode === 'velvet' ? 'text-white' : 'text-gray-800'}`}><X size={20}/></button>
 
           <div className="p-8 md:p-10 text-center relative z-10">
               <div className="w-16 h-16 mx-auto mb-6 rounded-2xl flex items-center justify-center bg-gradient-to-br from-[#C6A649] to-[#FBF5B7] shadow-lg shadow-[#C6A649]/20">
@@ -1030,7 +1030,7 @@ const GalleryPage = ({ videos, setVideos }: any) => {
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
         {videos.map((v:any) => (
             <div key={v.id} className={`rounded-[30px] overflow-hidden group relative hover:-translate-y-2 transition-all ${mode==='velvet'?S.panel:'bg-white shadow-lg border border-gray-100'}`}>
-                <video src={v.url} className="aspect-[9/16] object-cover w-full" autoPlay muted loop playsInline crossOrigin="anonymous"/>
+                <video src={v.video_url || v.url} className="aspect-[9/16] object-cover w-full" controls preload="metadata" playsInline crossOrigin="anonymous"/>
                 <div className={`p-5 flex justify-between items-center ${mode==='velvet'?'bg-[#0a0a0a]':'bg-white'}`}>
                     <span className={`text-[9px] font-bold uppercase tracking-widest ${mode==='velvet'?'text-white/40':'text-gray-400'}`}>{v.date}</span>
                     <div className="flex gap-2">
