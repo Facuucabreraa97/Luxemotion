@@ -18,9 +18,12 @@ const port = process.env.PORT || 3001;
 
 // --- CONFIGURATION ---
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co';
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder';
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_KEY);
+// Only if the service key exists
+const supabaseAdmin = SUPABASE_SERVICE_ROLE_KEY
+  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+  : null;
 
 const mpAccessToken = process.env.MP_ACCESS_TOKEN || 'TEST-TOKEN';
 const client = new MercadoPagoConfig({ accessToken: mpAccessToken });
@@ -351,6 +354,8 @@ app.post('/api/marketplace/buy', async (req, res) => {
 // --- API PUBLISH ---
 app.post('/api/publish', async (req, res) => {
   try {
+    if (!supabaseAdmin) throw new Error("ADMIN configuration is missing on the server.");
+
     const user = await getUser(req);
     const { video_id, id, type } = req.body;
     const targetId = video_id || id;
