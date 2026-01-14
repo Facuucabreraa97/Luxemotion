@@ -13,8 +13,12 @@ i18n
       es: { translation: es },
       en: { translation: en }
     },
-    lng: 'es', // Default language
-    fallbackLng: 'es',
+    fallbackLng: 'en',
+    detection: {
+      order: ['localStorage', 'navigator'],
+      caches: ['localStorage'],
+      lookupLocalStorage: 'i18nextLng'
+    },
     interpolation: {
       escapeValue: false
     }

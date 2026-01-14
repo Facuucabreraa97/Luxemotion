@@ -36,7 +36,7 @@ const S = {
   btnVelvet: "bg-gradient-to-r from-pink-700 via-purple-800 to-indigo-900 text-white font-bold uppercase tracking-[0.2em] shadow-[0_0_30px_rgba(236,72,153,0.4)] hover:scale-[1.02] hover:shadow-[0_0_50px_rgba(236,72,153,0.6)] active:scale-95 transition-all duration-300 border border-pink-500/30 rounded-xl cursor-pointer",
   activeTab: "bg-[#C6A649] text-black shadow-lg border-none font-bold",
   inactiveTab: "bg-black/40 text-gray-400 border border-white/10 hover:text-white hover:bg-white/5",
-  titleLuxe: "text-3xl font-bold tracking-[0.2em] text-white uppercase",
+  titleLuxe: "text-2xl md:text-3xl font-bold tracking-[0.2em] text-white uppercase",
   subLuxe: "text-[9px] text-[#C6A649] mt-2 uppercase tracking-[0.4em] font-bold"
 };
 
@@ -86,44 +86,42 @@ export interface GeneratedVideo {
 
 // --- CONSTANTS ---
 interface PricingTier {
-  name: string;
   creds: number;
   price: number;
   yearlyPrice?: number;
   popular?: boolean;
-  feats: string[];
 }
 
-const PRICING: Record<string, PricingTier> = {
-  starter: { name: "Starter", creds: 50, price: 0, feats: ["Calidad HD", "1 Modelo", "Marca de Agua", "Soporte Básico"] },
-  creator: { name: "Influencer", creds: 1000, price: 29, yearlyPrice: 24, popular: true, feats: ["4K Ultra", "Velvet Mode", "5 Modelos", "Licencia Comercial", "Sin Marca de Agua"] },
-  agency: { name: "Agency", creds: 5000, price: 99, yearlyPrice: 79, feats: ["Todo Ilimitado", "API Access", "Prioridad Total", "Account Manager", "Soporte 24/7"] }
+const PRICING_META: Record<string, PricingTier> = {
+  starter: { creds: 50, price: 0 },
+  creator: { creds: 1000, price: 29, yearlyPrice: 24, popular: true },
+  agency: { creds: 5000, price: 99, yearlyPrice: 79 }
 };
 
 const CAMS = [
-  { id: 'static', label: 'TRÍPODE', icon: <Move size={18}/>, desc: "Cámara fija. Ideal para resaltar detalles." },
-  { id: 'zoom', label: 'ZOOM IN', icon: <ZoomIn size={18}/>, desc: "Acercamiento lento y dramático." },
-  { id: 'eye', label: 'MIRADA', icon: <Heart size={18}/>, desc: "Contacto visual intenso." },
-  { id: 'hand', label: 'MANO', icon: <Video size={18}/>, desc: "Movimiento orgánico tipo vlog." }
+  { id: 'static', icon: <Move size={18}/> },
+  { id: 'zoom', icon: <ZoomIn size={18}/> },
+  { id: 'eye', icon: <Heart size={18}/> },
+  { id: 'hand', icon: <Video size={18}/> }
 ];
 
 const RATIOS = [
-  { id: '9:16', label: 'Stories', icon: <Smartphone size={14}/> },
-  { id: '16:9', label: 'Cinema', icon: <Monitor size={14}/> },
-  { id: '1:1', label: 'Square', icon: <Square size={14}/> }
+  { id: '9:16', labelKey: 'ratios.stories', icon: <Smartphone size={14}/> },
+  { id: '16:9', labelKey: 'ratios.cinema', icon: <Monitor size={14}/> },
+  { id: '1:1', labelKey: 'ratios.square', icon: <Square size={14}/> }
 ];
 
 const VELVET_STYLES = [
-  { id: 'leaked', name: 'Leaked Tape', desc: 'Raw & Amateur' },
-  { id: 'boudoir', name: 'Glamour', desc: 'Cinematic & Spicy' },
-  { id: 'cosplay', name: 'Cosplay', desc: 'Anime Realism' },
+  { id: 'leaked' },
+  { id: 'boudoir' },
+  { id: 'cosplay' },
 ];
 
 const ONBOARDING_STEPS = [
-    { target: 'studio-source-upload', text: "Upload your model's photo here", pos: 'right' },
-    { target: 'studio-product-upload', text: "Upload what you want to sell here (or leave it empty)", pos: 'left' },
-    { id: 'mode-switch', text: "Activate this for special modes (Requires a Plan)", pos: 'bottom' },
-    { target: 'studio-generate-btn', text: "Create your video", pos: 'top' }
+    { target: 'studio-source-upload', textKey: "modals.onboarding.step1", pos: 'right' },
+    { target: 'studio-product-upload', textKey: "modals.onboarding.step2", pos: 'left' },
+    { id: 'mode-switch', textKey: "modals.onboarding.step3", pos: 'bottom' },
+    { target: 'studio-generate-btn', textKey: "modals.onboarding.step4", pos: 'top' }
 ];
 
 // --- SUPABASE ---
@@ -220,7 +218,9 @@ const Tooltip = ({ txt }: { txt: string }) => (
   </div>
 );
 
-const VelvetModal = ({ onClose, onOk }: { onClose: () => void, onOk: () => void }) => (
+const VelvetModal = ({ onClose, onOk }: { onClose: () => void, onOk: () => void }) => {
+  const { t } = useTranslation();
+  return (
   <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-2xl p-4 animate-in zoom-in duration-300">
     <div className={`w-full max-w-sm p-1 rounded-[40px] relative group overflow-hidden`}>
       <div className="absolute inset-0 bg-gradient-to-br from-pink-600 via-purple-600 to-indigo-900 opacity-50 blur-xl"></div>
@@ -229,17 +229,19 @@ const VelvetModal = ({ onClose, onOk }: { onClose: () => void, onOk: () => void 
         <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-tr from-pink-600 to-purple-900 rounded-full flex items-center justify-center border border-pink-500/50 shadow-lg">
              <Flame size={32} className="text-white fill-white"/>
         </div>
-        <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-indigo-400 uppercase tracking-[0.2em] mb-4">Velvet Mode</h2>
-        <div className="inline-block px-4 py-1 border border-pink-500/30 rounded-full bg-pink-500/10 mb-6"><span className="text-[9px] font-bold text-pink-400 uppercase tracking-[0.3em]">Solo Adultos +18</span></div>
-        <p className="text-white/50 text-xs mb-8 leading-relaxed">Generación sin censura optimizada para hiperrealismo, texturas de piel y contenido insinuante.</p>
-        <button onClick={onOk} className={`w-full py-4 rounded-2xl flex items-center justify-center gap-3 group ${S.btnVelvet}`}><span>Desbloquear</span> <ChevronRight size={16}/></button>
+        <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-indigo-400 uppercase tracking-[0.2em] mb-4">{t('modals.velvet.title')}</h2>
+        <div className="inline-block px-4 py-1 border border-pink-500/30 rounded-full bg-pink-500/10 mb-6"><span className="text-[9px] font-bold text-pink-400 uppercase tracking-[0.3em]">{t('modals.velvet.adults_only')}</span></div>
+        <p className="text-white/50 text-xs mb-8 leading-relaxed">{t('modals.velvet.desc')}</p>
+        <button onClick={onOk} className={`w-full py-4 rounded-2xl flex items-center justify-center gap-3 group ${S.btnVelvet}`}><span>{t('modals.velvet.unlock')}</span> <ChevronRight size={16}/></button>
       </div>
     </div>
   </div>
-);
+)};
 
 const VelvetBenefitsModal: React.FC<{ onClose: () => void; onUnlock: () => void }> = ({ onClose, onUnlock }) => {
-  const benefits = ['Adult Content', 'Uncensored', '5 Extra Models', 'Hyperrealistic Skin (8K)'];
+  const { t } = useTranslation();
+  const benefits = t('modals.velvet_benefits.benefits', { returnObjects: true }) as Record<string, string>;
+
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-2xl p-4 animate-in zoom-in duration-300">
       <div className="w-full max-w-sm relative group">
@@ -249,16 +251,16 @@ const VelvetBenefitsModal: React.FC<{ onClose: () => void; onUnlock: () => void 
           <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-tr from-pink-600 to-purple-900 rounded-full flex items-center justify-center border border-pink-500/50 shadow-[0_0_30px_rgba(236,72,153,0.3)] animate-pulse relative z-10">
             <Lock size={32} className="text-white fill-white/20" />
           </div>
-          <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-indigo-400 uppercase tracking-[0.2em] mb-8 relative z-10 drop-shadow-sm">Unlock Velvet Mode</h2>
+          <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-indigo-400 uppercase tracking-[0.2em] mb-8 relative z-10 drop-shadow-sm">{t('modals.velvet_benefits.title')}</h2>
           <div className="space-y-4 mb-8 text-left pl-6 relative z-10">
-            {benefits.map((benefit, index) => (
+            {Object.values(benefits).map((benefit, index) => (
               <div key={index} className="flex items-center gap-4 group/item">
                 <div className="p-1 rounded-full bg-gradient-to-br from-[#C6A649] to-[#FCD34D] text-black shadow-[0_0_10px_rgba(198,166,73,0.3)]"><Check size={12} strokeWidth={4} /></div>
                 <span className="text-sm font-medium text-gray-300 tracking-wide group-hover/item:text-white transition-colors">{benefit}</span>
               </div>
             ))}
           </div>
-          <button onClick={onUnlock} className={`w-full py-4 text-sm ${S.btnVelvet} relative z-10 shadow-[0_0_20px_rgba(236,72,153,0.5)]`}>Unlock Access</button>
+          <button onClick={onUnlock} className={`w-full py-4 text-sm ${S.btnVelvet} relative z-10 shadow-[0_0_20px_rgba(236,72,153,0.5)]`}>{t('modals.velvet_benefits.unlock_access')}</button>
         </div>
       </div>
     </div>
@@ -270,6 +272,7 @@ const StudioOnboarding = () => {
     const [rect, setRect] = useState<DOMRect | null>(null);
     const [visible, setVisible] = useState(false);
     const { mode } = useMode();
+    const { t } = useTranslation();
 
     useEffect(() => {
         const hasSeen = localStorage.getItem('hasSeenStudioOnboarding_v1');
@@ -337,10 +340,10 @@ const StudioOnboarding = () => {
                         <span className={`text-[10px] font-bold uppercase tracking-widest ${mode === 'velvet' ? 'text-[#C6A649]' : 'text-blue-600'}`}>Step {step + 1}/{ONBOARDING_STEPS.length}</span>
                         <button onClick={handleClose} className="opacity-50 hover:opacity-100 transition-opacity"><X size={14} /></button>
                     </div>
-                    <p className="text-sm font-medium leading-relaxed mb-6">{currentStep.text}</p>
+                    <p className="text-sm font-medium leading-relaxed mb-6">{t(currentStep.textKey as any)}</p>
                     <div className="flex justify-end">
                         <button onClick={handleNext} className={`px-5 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 transition-transform hover:scale-105 ${mode === 'velvet' ? 'bg-[#C6A649] text-black' : 'bg-black text-white'}`}>
-                            {step === ONBOARDING_STEPS.length - 1 ? 'Finish' : 'Next'}
+                            {step === ONBOARDING_STEPS.length - 1 ? t('modals.onboarding.finish') : t('modals.onboarding.next')}
                             {step === ONBOARDING_STEPS.length - 1 ? <Check size={12}/> : <ChevronRight size={12}/>}
                         </button>
                     </div>
@@ -354,16 +357,20 @@ interface CheckoutModalProps { planKey: string; annual: boolean; onClose: () => 
 const CheckoutModal = ({ planKey, annual: initialAnnual, onClose }: CheckoutModalProps) => {
   const { mode } = useMode();
   const { showToast } = useToast();
+  const { t } = useTranslation();
   const [isAnnual, setIsAnnual] = useState(initialAnnual);
-  const plan = PRICING[planKey];
-  const price = isAnnual && plan.yearlyPrice ? plan.yearlyPrice : plan.price;
+  const planMeta = PRICING_META[planKey];
+  const price = isAnnual && planMeta.yearlyPrice ? planMeta.yearlyPrice : planMeta.price;
   const [load, setLoad] = useState(false);
   const [currency, setCurrency] = useState<'USDT' | 'ARS'>('ARS');
   const isVelvet = mode === 'velvet';
 
+  const planName = t(`pricing.${planKey}.name`);
+  const features = t(`pricing.${planKey}.features`, { returnObjects: true }) as string[];
+
   const handleCheckout = async () => {
       if (currency === 'USDT') {
-          showToast("Pagos Crypto temporalmente deshabilitados. Usa Mercado Pago.", 'info');
+          showToast(t('billing.crypto_disabled'), 'info');
           return;
       }
       setLoad(true);
@@ -377,7 +384,7 @@ const CheckoutModal = ({ planKey, annual: initialAnnual, onClose }: CheckoutModa
         const res = await fetch(`${CONFIG.API_URL}/create-preference`, {
             method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
             body: JSON.stringify({
-                title: `LuxeMotion ${plan.name}`,
+                title: `LuxeMotion ${planName}`,
                 price: payloadPrice,
                 quantity: 1,
                 type: planKey,
@@ -385,7 +392,7 @@ const CheckoutModal = ({ planKey, annual: initialAnnual, onClose }: CheckoutModa
             })
         });
 
-        if (!res.ok) throw new Error("Error iniciando pago");
+        if (!res.ok) throw new Error("Error");
 
         const data = await res.json();
         if(data.id) {
@@ -395,45 +402,65 @@ const CheckoutModal = ({ planKey, annual: initialAnnual, onClose }: CheckoutModa
                 const mp = new window.MercadoPago(import.meta.env.VITE_MP_PUBLIC_KEY, { locale: 'es-AR' });
                 mp.checkout({ preference: { id: data.id }, autoOpen: true });
             } else {
-                window.location.href = data.url; // Fallback to init_point if script not loaded
+                window.location.href = data.url;
             }
         }
       } catch(e) {
           console.error(e);
-          showToast("Error conectando con pasarela de pago", 'error');
+          showToast(t('explore.buy.error'), 'error');
       } finally { setLoad(false); }
   };
 
   const displayPrice = currency === 'ARS' ? (price * 1500).toLocaleString('es-AR') : price;
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4">
-      <div className={`w-full max-w-md rounded-[40px] relative overflow-hidden ${mode==='velvet'?'bg-[#0a0a0a] border border-white/10':'bg-white'}`}>
-          <button onClick={onClose} className="absolute top-6 right-6 z-10 p-2 bg-black/10 rounded-full hover:bg-black/20"><X size={18} className={mode==='velvet'?'text-white':'text-black'}/></button>
-          <div className="p-10 text-center">
-              <div className="flex justify-center gap-2 mb-8">
-                  <button onClick={() => setCurrency('USDT')} className={`px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${currency === 'USDT' ? (mode === 'velvet' ? 'bg-[#C6A649] text-black' : 'bg-black text-white') : (mode === 'velvet' ? 'bg-white/5 text-gray-500 hover:text-white' : 'bg-gray-100 text-gray-500 hover:text-black')}`}>USDT / Crypto</button>
-                  <button onClick={() => setCurrency('ARS')} className={`px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${currency === 'ARS' ? (mode === 'velvet' ? 'bg-[#C6A649] text-black' : 'bg-black text-white') : (mode === 'velvet' ? 'bg-white/5 text-gray-500 hover:text-white' : 'bg-gray-100 text-gray-500 hover:text-black')}`}>Pesos (ARS)</button>
+    <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-300">
+      <div className={`w-full max-w-md rounded-[40px] relative overflow-hidden transition-all duration-300 ${mode==='velvet'?'bg-[#0a0a0a] border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)]':'bg-white shadow-2xl'}`}>
+          <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-[#C6A649]/20 to-transparent opacity-50 pointer-events-none"></div>
+          <button onClick={onClose} className="absolute top-6 right-6 z-10 p-2 rounded-full transition-colors hover:bg-black/10 text-white/50 hover:text-white"><X size={20}/></button>
+
+          <div className="p-8 md:p-10 text-center relative z-10">
+              <div className="w-16 h-16 mx-auto mb-6 rounded-2xl flex items-center justify-center bg-gradient-to-br from-[#C6A649] to-[#FBF5B7] shadow-lg shadow-[#C6A649]/20">
+                  <Crown size={32} className="text-black fill-black/20"/>
               </div>
 
-              <div className="flex items-center justify-center gap-4 mb-6">
-                  <span className={`text-[10px] font-bold uppercase tracking-widest ${!isAnnual ? (isVelvet ? 'text-[#C6A649]' : 'text-blue-600') : (isVelvet ? 'text-white/40' : 'text-gray-400')}`}>Monthly</span>
-                  <button onClick={()=>setIsAnnual(!isAnnual)} className={`w-12 h-6 rounded-full relative p-1 transition-colors ${isVelvet ? 'bg-white/10 hover:bg-white/20' : 'bg-gray-200 hover:bg-gray-300'}`}><div className={`w-4 h-4 rounded-full shadow-lg transition-transform duration-300 ${isAnnual ? 'translate-x-6' : ''} ${isVelvet ? 'bg-[#C6A649]' : 'bg-white'}`}></div></button>
-                  <span className={`text-[10px] font-bold uppercase tracking-widest ${isAnnual ? (isVelvet ? 'text-[#C6A649]' : 'text-blue-600') : (isVelvet ? 'text-white/40' : 'text-gray-400')}`}>Annual <span className={`${isVelvet ? 'bg-[#C6A649] text-black' : 'bg-blue-600 text-white'} px-2 py-0.5 rounded text-[8px] ml-1`}>-20%</span></span>
+              <h2 className={`text-3xl font-bold uppercase tracking-widest mb-2 ${mode==='velvet'?'text-white':'text-gray-900'}`}>{planName}</h2>
+              <div className="flex items-center justify-center gap-2 mb-8">
+                <span className={`text-[10px] font-bold uppercase tracking-[0.2em] ${mode==='velvet'?'text-white/40':'text-gray-400'}`}>Premium Access</span>
               </div>
 
-              <h2 className={`text-2xl font-bold uppercase tracking-widest mb-2 ${mode==='velvet'?'text-white':'text-black'}`}>{plan.name}</h2>
-              <div className={`text-5xl font-bold mb-8 ${mode==='velvet'?'text-[#C6A649]':'text-black'}`}>${displayPrice}<span className="text-sm font-normal text-gray-500">/mo</span></div>
-              <ul className="space-y-4 mb-8 text-left">
-                  {plan.feats.map(f=><li key={f} className={`flex items-center gap-3 text-xs uppercase tracking-widest ${mode==='velvet'?'text-gray-400':'text-gray-600'}`}><Check size={14} className="text-[#C6A649]"/> {f}</li>)}
-              </ul>
-              <div className="border-t border-gray-800 pt-6 mb-6">
-                <details className={`text-left text-[10px] ${mode==='velvet'?'text-gray-500':'text-gray-400'}`}>
-                    <summary className="cursor-pointer hover:text-gray-300 mb-2">Terms & Conditions</summary>
-                    <p>Subscription renews automatically. Cancel anytime. Content ownership belongs to you.</p>
-                </details>
+              <div className="flex justify-center gap-2 mb-8 p-1 rounded-full bg-black/20 inline-flex backdrop-blur-sm border border-white/5">
+                  <button onClick={() => setCurrency('USDT')} className={`px-4 py-2 rounded-full text-[9px] font-bold uppercase tracking-widest transition-all ${currency === 'USDT' ? 'bg-[#C6A649] text-black shadow-lg' : 'text-white/50 hover:text-white'}`}>{t('common.currency.usdt')}</button>
+                  <button onClick={() => setCurrency('ARS')} className={`px-4 py-2 rounded-full text-[9px] font-bold uppercase tracking-widest transition-all ${currency === 'ARS' ? 'bg-[#C6A649] text-black shadow-lg' : 'text-white/50 hover:text-white'}`}>{t('common.currency.ars')}</button>
               </div>
-              <button onClick={handleCheckout} disabled={load} className={`w-full py-4 rounded-2xl text-xs font-bold uppercase tracking-widest ${S.btnGold}`}>{load ? "Processing..." : (currency === 'ARS' ? "Pay with Mercado Pago" : "Pay with Crypto")}</button>
+
+              <div className="flex items-center justify-center gap-4 mb-8">
+                  <span className={`text-[10px] font-bold uppercase tracking-widest ${!isAnnual ? 'text-[#C6A649]' : 'text-white/30'}`}>{t('billing.monthly')}</span>
+                  <button onClick={()=>setIsAnnual(!isAnnual)} className={`w-12 h-6 rounded-full relative p-1 transition-colors bg-white/10 hover:bg-white/20`}><div className={`w-4 h-4 rounded-full shadow-lg transition-transform duration-300 ${isAnnual ? 'translate-x-6' : ''} bg-[#C6A649]`}></div></button>
+                  <span className={`text-[10px] font-bold uppercase tracking-widest ${isAnnual ? 'text-[#C6A649]' : 'text-white/30'}`}>{t('billing.annual')} <span className="bg-[#C6A649] text-black px-1.5 py-0.5 rounded text-[8px] ml-1">{t('billing.discount')}</span></span>
+              </div>
+
+              <div className={`text-6xl font-serif font-bold mb-8 flex items-start justify-center gap-1 ${mode==='velvet'?'text-white':'text-gray-900'}`}>
+                <span className="text-2xl mt-2 opacity-50">$</span>
+                {displayPrice}
+                <span className="text-sm font-sans font-normal self-end mb-2 opacity-40">/mo</span>
+              </div>
+
+              <div className={`rounded-2xl p-6 mb-8 text-left border ${mode==='velvet'?'bg-white/5 border-white/5':'bg-gray-50 border-gray-100'}`}>
+                <ul className="space-y-3">
+                    {features.map(f=><li key={f} className={`flex items-center gap-3 text-[10px] font-bold uppercase tracking-wider ${mode==='velvet'?'text-gray-300':'text-gray-600'}`}><div className="w-4 h-4 rounded-full bg-[#C6A649]/20 flex items-center justify-center"><Check size={8} className="text-[#C6A649]"/></div> {f}</li>)}
+                </ul>
+              </div>
+
+              <button onClick={handleCheckout} disabled={load} className={`w-full py-4 rounded-xl text-xs font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-3 relative overflow-hidden group ${S.btnGold} disabled:opacity-50`}>
+                  {load && <Loader2 size={16} className="animate-spin"/>}
+                  <span>{load ? t('studio.processing') : (currency === 'ARS' ? t('billing.pay_mp') : t('billing.pay_crypto'))}</span>
+                  {!load && <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform"/>}
+              </button>
+
+              <div className="mt-6 text-center">
+                 <p className="text-[9px] text-white/30 uppercase tracking-widest">{t('billing.terms_text')}</p>
+              </div>
           </div>
       </div>
     </div>
@@ -444,6 +471,7 @@ const MobileHeader = ({ credits, userProfile, onUpgrade }: any) => {
   const { mode, setMode } = useMode();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showVelvetBenefits, setShowVelvetBenefits] = useState(false);
+  const { t } = useTranslation();
 
   const handleModeToggle = () => {
     if (mode === 'velvet') { setMode('agency'); } else {
@@ -475,16 +503,18 @@ const MobileHeader = ({ credits, userProfile, onUpgrade }: any) => {
   );
 };
 
-const MobileNav = () => (
+const MobileNav = () => {
+    const { t } = useTranslation();
+    return (
   <div className="lg:hidden fixed bottom-0 w-full bg-[#0a0a0a] border-t border-white/10 flex justify-around p-2 pb-6 z-50">
-      <NavLink to="/app" end className={({isActive})=>`p-3 flex flex-col items-center gap-1 ${isActive?'text-[#C6A649]':'text-white/50'}`}><LayoutDashboard size={20}/><span className="text-[8px] uppercase font-bold">Studio</span></NavLink>
-      <NavLink to="/app/explore" className={({isActive})=>`p-3 flex flex-col items-center gap-1 ${isActive?'text-[#C6A649]':'text-white/50'}`}><Globe size={20}/><span className="text-[8px] uppercase font-bold">Explore</span></NavLink>
-      <NavLink to="/app/talent" className={({isActive})=>`p-3 flex flex-col items-center gap-1 ${isActive?'text-[#C6A649]':'text-white/50'}`}><Users size={20}/><span className="text-[8px] uppercase font-bold">Casting</span></NavLink>
-      <NavLink to="/app/gallery" className={({isActive})=>`p-3 flex flex-col items-center gap-1 ${isActive?'text-[#C6A649]':'text-white/50'}`}><ImageIcon size={20}/><span className="text-[8px] uppercase font-bold">Galeria</span></NavLink>
-      <NavLink to="/app/billing" className={({isActive})=>`p-3 flex flex-col items-center gap-1 ${isActive?'text-[#C6A649]':'text-white/50'}`}><CreditCard size={20}/><span className="text-[8px] uppercase font-bold">Plan</span></NavLink>
-      <NavLink to="/app/settings" className={({isActive})=>`p-3 flex flex-col items-center gap-1 ${isActive?'text-[#C6A649]':'text-white/50'}`}><Settings size={20}/><span className="text-[8px] uppercase font-bold">Ajustes</span></NavLink>
+      <NavLink to="/app" end className={({isActive})=>`p-3 flex flex-col items-center gap-1 ${isActive?'text-[#C6A649]':'text-white/50'}`}><LayoutDashboard size={20}/><span className="text-[8px] uppercase font-bold">{t('common.nav.studio')}</span></NavLink>
+      <NavLink to="/app/explore" className={({isActive})=>`p-3 flex flex-col items-center gap-1 ${isActive?'text-[#C6A649]':'text-white/50'}`}><Globe size={20}/><span className="text-[8px] uppercase font-bold">{t('common.nav.explore')}</span></NavLink>
+      <NavLink to="/app/talent" className={({isActive})=>`p-3 flex flex-col items-center gap-1 ${isActive?'text-[#C6A649]':'text-white/50'}`}><Users size={20}/><span className="text-[8px] uppercase font-bold">{t('common.nav.talent')}</span></NavLink>
+      <NavLink to="/app/gallery" className={({isActive})=>`p-3 flex flex-col items-center gap-1 ${isActive?'text-[#C6A649]':'text-white/50'}`}><ImageIcon size={20}/><span className="text-[8px] uppercase font-bold">{t('common.nav.gallery')}</span></NavLink>
+      <NavLink to="/app/billing" className={({isActive})=>`p-3 flex flex-col items-center gap-1 ${isActive?'text-[#C6A649]':'text-white/50'}`}><CreditCard size={20}/><span className="text-[8px] uppercase font-bold">{t('common.nav.billing')}</span></NavLink>
+      <NavLink to="/app/settings" className={({isActive})=>`p-3 flex flex-col items-center gap-1 ${isActive?'text-[#C6A649]':'text-white/50'}`}><Settings size={20}/><span className="text-[8px] uppercase font-bold">{t('common.nav.settings')}</span></NavLink>
   </div>
-);
+)};
 
 const Sidebar = ({ credits, onLogout, onUp, userProfile, onUpgrade, notify }: any) => {
   const { pathname } = useLocation();
@@ -494,7 +524,7 @@ const Sidebar = ({ credits, onLogout, onUp, userProfile, onUpgrade, notify }: an
 
   const links = [
     { icon: Video, label: t('common.nav.studio'), path: '/app' },
-    { icon: Globe, label: 'Explore', path: '/app/explore' },
+    { icon: Globe, label: t('common.nav.explore'), path: '/app/explore' },
     { icon: Users, label: t('common.nav.talent'), path: '/app/talent' },
     { icon: ImageIcon, label: t('common.nav.gallery'), path: '/app/gallery' },
     { icon: CreditCard, label: t('common.nav.billing'), path: '/app/billing' },
@@ -511,7 +541,7 @@ const Sidebar = ({ credits, onLogout, onUp, userProfile, onUpgrade, notify }: an
           return;
       }
       setMode('velvet');
-      notify('High Fidelity Mode activated.');
+      notify(t('studio.velvet_active'));
     }
   };
 
@@ -525,8 +555,8 @@ const Sidebar = ({ credits, onLogout, onUp, userProfile, onUpgrade, notify }: an
         </div>
         <div className="px-8 mb-6">
           <button id="sidebar-mode-toggle" onClick={handleModeToggle} className={`w-full p-1 rounded-full border flex items-center relative overflow-hidden group transition-all duration-500 ${mode==='velvet' ? 'bg-black border-white/10' : 'bg-gray-200 border-gray-300'}`}>
-              <div className={`w-1/2 text-[9px] font-bold uppercase text-center py-2 rounded-full relative z-10 transition-colors ${mode==='velvet'?'text-white':'text-gray-500'}`}>Velvet</div>
-              <div className={`w-1/2 text-[9px] font-bold uppercase text-center py-2 rounded-full relative z-10 transition-colors ${mode==='agency'?'text-black':'text-gray-500'}`}>Agency</div>
+              <div className={`w-1/2 text-[9px] font-bold uppercase text-center py-2 rounded-full relative z-10 transition-colors ${mode==='velvet'?'text-white':'text-gray-500'}`}>{t('common.mode.velvet')}</div>
+              <div className={`w-1/2 text-[9px] font-bold uppercase text-center py-2 rounded-full relative z-10 transition-colors ${mode==='agency'?'text-black':'text-gray-500'}`}>{t('common.mode.agency')}</div>
               <div className={`absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-full transition-transform duration-500 ease-out shadow-lg ${mode==='velvet' ? 'translate-x-1 bg-[#C6A649]' : 'translate-x-[calc(100%+4px)] bg-white'}`}></div>
           </button>
         </div>
@@ -548,14 +578,14 @@ const Sidebar = ({ credits, onLogout, onUp, userProfile, onUpgrade, notify }: an
         <div className={`p-6 m-4 rounded-[2rem] border relative overflow-hidden group transition-all duration-500 ${mode==='velvet'?'bg-gradient-to-br from-[#1a1a1a] to-black border-white/10':'bg-white border-gray-200 shadow-lg'}`}>
           <div className={`absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity ${mode==='velvet'?'text-[#C6A649]':'text-black'}`}><Zap size={80}/></div>
           <div className="relative z-10">
-              <p className={`text-[9px] uppercase font-bold tracking-widest mb-2 ${mode==='velvet'?'text-gray-400':'text-gray-500'}`}>Créditos Disponibles</p>
+              <p className={`text-[9px] uppercase font-bold tracking-widest mb-2 ${mode==='velvet'?'text-gray-400':'text-gray-500'}`}>{t('sidebar.credits_avail')}</p>
               <div className={`text-4xl font-bold mb-4 flex items-baseline gap-1 ${mode==='velvet'?'text-white':'text-black'}`}>{userProfile?.is_admin ? '∞' : credits}<span className="text-sm font-normal text-gray-500">cr</span></div>
               <button onClick={onUp} className={`w-full py-3 rounded-xl text-[9px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-transform active:scale-95 shadow-lg ${mode==='velvet' ? 'bg-[#C6A649] text-black hover:bg-[#d4b55b]' : 'bg-black text-white hover:bg-gray-800'}`}>
-                  <Crown size={14}/> Recargar
+                  <Crown size={14}/> {t('sidebar.reload')}
               </button>
           </div>
         </div>
-        <div className="px-8 pb-8"><button onClick={onLogout} className="flex items-center gap-3 text-[10px] font-bold uppercase text-red-500/50 hover:text-red-500 transition-colors tracking-widest pl-2"><LogOut size={14}/> Cerrar Sesión</button></div>
+        <div className="px-8 pb-8"><button onClick={onLogout} className="flex items-center gap-3 text-[10px] font-bold uppercase text-red-500/50 hover:text-red-500 transition-colors tracking-widest pl-2"><LogOut size={14}/> {t('sidebar.logout')}</button></div>
       </aside>
     </>
   );
@@ -565,6 +595,7 @@ const Sidebar = ({ credits, onLogout, onUp, userProfile, onUpgrade, notify }: an
 
 const ExplorePage = () => {
     const { mode } = useMode();
+    const { t } = useTranslation();
     const [searchParams] = useSearchParams();
     const { showToast } = useToast();
     const [tab, setTab] = useState<'community' | 'marketplace'>(searchParams.get('tab') === 'marketplace' ? 'marketplace' : 'community');
@@ -607,7 +638,7 @@ const ExplorePage = () => {
             } catch (err) {
                 console.error("ExplorePage Error:", err);
                 if (active) {
-                    setError(tab === 'community' ? 'No public content available.' : 'There are no models for sale yet. Go to Casting and be the first to sell.');
+                    setError(tab === 'community' ? t('explore.empty.community') : t('explore.empty.marketplace'));
                 }
             } finally {
                 if (active) setLoading(false);
@@ -616,11 +647,11 @@ const ExplorePage = () => {
 
         fetchData();
         return () => { active = false; };
-    }, [tab]);
+    }, [tab, t]); // Added t to dependency array
 
     const handleBuy = async (item: any) => {
         if (!item.for_sale || !item.price) return;
-        if (!window.confirm(`Confirma compra de ${item.name || 'este talento'} por ${item.price} créditos?`)) return;
+        if (!window.confirm(t('explore.buy.confirm', { name: item.name || 'this talent', price: item.price }))) return;
 
         setPurchasing(item.id);
         try {
@@ -637,14 +668,14 @@ const ExplorePage = () => {
             });
 
             const result = await res.json();
-            if (!res.ok) throw new Error(result.error || 'Error en la compra');
+            if (!res.ok) throw new Error(result.error || 'Error');
 
-            showToast(result.message || '¡Compra exitosa! Talento añadido a tu casting.', 'success');
+            showToast(t('explore.buy.success'), 'success');
             // Optimistically update UI
             setItems(prev => prev.filter(i => i.id !== item.id));
         } catch (error: any) {
             console.error("Purchase error:", error);
-            showToast(error.message || 'Error procesando la compra', 'error');
+            showToast(t('explore.buy.error'), 'error');
         } finally {
             setPurchasing(null);
         }
@@ -655,10 +686,10 @@ const ExplorePage = () => {
     return (
         <div className={`pt-24 px-6 animate-in fade-in pb-32 min-h-screen ${mode === 'velvet' ? 'bg-black text-white' : 'bg-gray-50 text-black'}`}>
             <div className="flex items-center justify-between mb-12">
-                <h2 className={`text-4xl font-bold uppercase tracking-[0.2em] ${mode==='velvet'?'text-white':'text-gray-900'}`}>Explore</h2>
+                <h2 className={`text-4xl font-bold uppercase tracking-[0.2em] ${mode==='velvet'?'text-white':'text-gray-900'}`}>{t('explore.title')}</h2>
                 <div className={`p-1 rounded-full border flex ${mode==='velvet'?'bg-black/40 border-white/10':'bg-gray-100 border-gray-200'}`}>
-                    <button onClick={()=>setTab('community')} className={`px-6 py-2 rounded-full text-[9px] font-bold uppercase transition-all ${tab==='community' ? (mode==='velvet'?'bg-[#C6A649] text-black shadow-lg':'bg-black text-white shadow-lg') : 'text-gray-400 hover:text-white'}`}>Community</button>
-                    <button onClick={()=>setTab('marketplace')} className={`px-6 py-2 rounded-full text-[9px] font-bold uppercase transition-all ${tab==='marketplace' ? (mode==='velvet'?'bg-[#C6A649] text-black shadow-lg':'bg-black text-white shadow-lg') : 'text-gray-400 hover:text-white'}`}>Marketplace</button>
+                    <button onClick={()=>setTab('community')} className={`px-6 py-2 rounded-full text-[9px] font-bold uppercase transition-all ${tab==='community' ? (mode==='velvet'?'bg-[#C6A649] text-black shadow-lg':'bg-black text-white shadow-lg') : 'text-gray-400 hover:text-white'}`}>{t('explore.tabs.community')}</button>
+                    <button onClick={()=>setTab('marketplace')} className={`px-6 py-2 rounded-full text-[9px] font-bold uppercase transition-all ${tab==='marketplace' ? (mode==='velvet'?'bg-[#C6A649] text-black shadow-lg':'bg-black text-white shadow-lg') : 'text-gray-400 hover:text-white'}`}>{t('explore.tabs.marketplace')}</button>
                 </div>
             </div>
 
@@ -670,7 +701,7 @@ const ExplorePage = () => {
                 <>
                     {items.length === 0 && !loading && tab === 'marketplace' && (
                          <div className={`p-12 rounded-3xl border text-center ${mode === 'velvet' ? 'bg-white/5 border-white/10 text-white/50' : 'bg-gray-100 border-gray-200 text-gray-500'}`}>
-                            <p className="uppercase tracking-widest text-xs font-bold">There are no models for sale yet. Go to Casting and be the first to sell.</p>
+                            <p className="uppercase tracking-widest text-xs font-bold">{t('explore.empty.marketplace')}</p>
                         </div>
                     )}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -716,25 +747,30 @@ const ExplorePage = () => {
 
 const LandingPage = () => {
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
   const LANDING_VID = "https://videos.pexels.com/video-files/3205917/3205917-hd_1920_1080_25fps.mp4";
+
+  const toggleLang = () => i18n.changeLanguage(i18n.language === 'en' ? 'es' : 'en');
+
   return (
     <div className="bg-black min-h-screen text-white font-sans overflow-x-hidden">
       <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4 flex justify-between items-center bg-black/80 backdrop-blur-md border-b border-white/5">
         <div className="flex items-center gap-2"><div className="w-8 h-8 bg-[#C6A649]/10 rounded-lg flex items-center justify-center border border-[#C6A649]/20"><Play fill="#C6A649" className="text-[#C6A649] w-4 h-4 ml-0.5"/></div><div><h1 className="text-sm font-bold tracking-widest text-[#C6A649]">LUXE</h1></div></div>
         <div className="flex items-center gap-4">
-            <button onClick={() => navigate('/login')} className="text-xs uppercase tracking-widest text-white/70 hover:text-white transition-colors">Log In</button>
-            <button onClick={() => navigate('/login?mode=register')} className="bg-[#C6A649] text-black text-xs font-bold uppercase tracking-widest px-5 py-2 rounded-full hover:bg-[#D4B355] transition-colors">Get Started</button>
+            <button onClick={toggleLang} className="text-[10px] font-bold uppercase px-2 py-1 rounded border border-white/10 text-gray-400 hover:text-white transition-colors">{i18n.language?.substring(0, 2).toUpperCase() || 'EN'}</button>
+            <button onClick={() => navigate('/login')} className="text-xs uppercase tracking-widest text-white/70 hover:text-white transition-colors">{t('landing.hero.login')}</button>
+            <button onClick={() => navigate('/login?mode=register')} className="bg-[#C6A649] text-black text-xs font-bold uppercase tracking-widest px-5 py-2 rounded-full hover:bg-[#D4B355] transition-colors">{t('landing.hero.get_started')}</button>
         </div>
       </nav>
       <section className="relative h-screen flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0"><video src={LANDING_VID} autoPlay loop muted className="w-full h-full object-cover"/><div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black"></div></div>
         <div className="relative z-10 container mx-auto px-6 text-center mt-20">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 mb-6 backdrop-blur-sm"><Sparkles size={12} className="text-[#C6A649]" /><span className="text-[10px] uppercase tracking-[0.2em] text-[#C6A649]">The Future of Content</span></div>
-            <h1 className="text-5xl md:text-7xl lg:text-8xl font-serif font-medium text-white mb-6 leading-tight">Luxe<span className="text-[#C6A649] italic">Motion</span></h1>
-            <p className="text-xl md:text-2xl text-white/80 max-w-2xl mx-auto mb-10 font-light leading-relaxed">From Ecommerce to Velvet: Create Viral Content in Seconds.</p>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 mb-6 backdrop-blur-sm"><Sparkles size={12} className="text-[#C6A649]" /><span className="text-[10px] uppercase tracking-[0.2em] text-[#C6A649]">{t('landing.hero.badge')}</span></div>
+            <h1 className="text-5xl md:text-7xl lg:text-8xl font-serif font-medium text-white mb-6 leading-tight">Luxe<span className="text-[#C6A649] italic">{t('landing.hero.title_suffix')}</span></h1>
+            <p className="text-xl md:text-2xl text-white/80 max-w-2xl mx-auto mb-10 font-light leading-relaxed">{t('landing.hero.subtitle')}</p>
             <div className="flex flex-col md:flex-row items-center justify-center gap-4">
-                <button onClick={() => navigate('/login?mode=register')} className={`px-8 py-4 rounded-xl text-xs font-bold uppercase tracking-widest ${S.btnGold} min-w-[200px]`}>Get Started for Free</button>
-                <button className="px-8 py-4 rounded-xl text-xs font-bold uppercase tracking-widest bg-white/5 border border-white/10 hover:bg-white/10 transition-colors backdrop-blur-sm min-w-[200px]" onClick={() => document.getElementById('velvet-teaser')?.scrollIntoView({ behavior: 'smooth' })}>View Demo</button>
+                <button onClick={() => navigate('/login?mode=register')} className={`px-8 py-4 rounded-xl text-xs font-bold uppercase tracking-widest ${S.btnGold} min-w-[200px]`}>{t('landing.hero.start_btn')}</button>
+                <button className="px-8 py-4 rounded-xl text-xs font-bold uppercase tracking-widest bg-white/5 border border-white/10 hover:bg-white/10 transition-colors backdrop-blur-sm min-w-[200px]" onClick={() => document.getElementById('velvet-teaser')?.scrollIntoView({ behavior: 'smooth' })}>{t('landing.hero.demo_btn')}</button>
             </div>
         </div>
         <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce"><ChevronDown className="text-white/30" /></div>
@@ -742,11 +778,11 @@ const LandingPage = () => {
       <section id="velvet-teaser" className="py-32 relative overflow-hidden bg-black">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-purple-900/20 rounded-full blur-[120px] pointer-events-none"></div>
         <div className="container mx-auto px-6 relative z-10 text-center">
-            <h2 className="text-3xl md:text-5xl font-serif text-transparent bg-clip-text bg-gradient-to-r from-white via-purple-200 to-white mb-8">Unlock the power of <br/><span className="italic text-purple-400">unrestricted content</span></h2>
-            <p className="text-white/50 max-w-lg mx-auto mb-12 leading-loose">Experience the Velvet Mode. Designed for creators who demand freedom and elegance. Generate high-end aesthetics without boundaries.</p>
+            <h2 className="text-3xl md:text-5xl font-serif text-transparent bg-clip-text bg-gradient-to-r from-white via-purple-200 to-white mb-8">{t('landing.velvet.title_prefix')} <br/><span className="italic text-purple-400">{t('landing.velvet.title_highlight')}</span></h2>
+            <p className="text-white/50 max-w-lg mx-auto mb-12 leading-loose">{t('landing.velvet.description')}</p>
             <div className="relative inline-block group cursor-pointer">
                 <div className="absolute -inset-1 bg-gradient-to-r from-[#C6A649] to-purple-600 rounded-lg blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
-                <button onClick={() => navigate('/login?mode=register')} className="relative px-8 py-4 bg-black border border-white/10 rounded-lg leading-none flex items-center divide-x divide-gray-600"><span className="flex items-center space-x-5"><span className="pr-6 text-gray-100 uppercase tracking-widest text-xs">Access Velvet Mode</span></span><span className="pl-6 text-purple-400 group-hover:text-purple-300 transition duration-200">&rarr;</span></button>
+                <button onClick={() => navigate('/login?mode=register')} className="relative px-8 py-4 bg-black border border-white/10 rounded-lg leading-none flex items-center divide-x divide-gray-600"><span className="flex items-center space-x-5"><span className="pr-6 text-gray-100 uppercase tracking-widest text-xs">{t('landing.velvet.access_btn')}</span></span><span className="pl-6 text-purple-400 group-hover:text-purple-300 transition duration-200">&rarr;</span></button>
             </div>
         </div>
       </section>
@@ -756,6 +792,7 @@ const LandingPage = () => {
 
 const LoginScreen = ({ onLogin }: { onLogin: () => void }) => {
   const [searchParams] = useSearchParams();
+  const { t } = useTranslation();
   const m = searchParams.get('mode');
 
   const [load, setLoad] = useState(false);
@@ -769,15 +806,15 @@ const LoginScreen = ({ onLogin }: { onLogin: () => void }) => {
     try {
         if(mode === 'register') {
             const { error } = await supabase.auth.signUp({ email, password: pass });
-            if(error) setErrorMsg(error.message); else alert("Revisa tu email para confirmar.");
+            if(error) setErrorMsg(error.message); else alert(t('auth.check_email'));
         } else if (mode === 'login') {
             const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
             if(error) setErrorMsg(error.message);
         } else {
             const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + '/settings?mode=reset' });
-            if(error) setErrorMsg(error.message); else alert("Correo de recuperación enviado.");
+            if(error) setErrorMsg(error.message); else alert(t('auth.email_sent'));
         }
-    } catch(e) { setErrorMsg("Error de conexión"); }
+    } catch(e) { setErrorMsg(t('auth.connection_error')); }
     setLoad(false);
   };
   const LOGIN_VID = "https://videos.pexels.com/video-files/3205917/3205917-hd_1920_1080_25fps.mp4";
@@ -790,15 +827,15 @@ const LoginScreen = ({ onLogin }: { onLogin: () => void }) => {
         {errorMsg && <div className="mb-4 text-red-500 text-[10px] font-bold uppercase">{errorMsg}</div>}
         {mode !== 'forgot' ? (
             <div className="space-y-4 mb-8">
-                <div className="flex items-center gap-4 bg-black/50 border border-white/10 p-4 rounded-2xl focus-within:border-[#C6A649] transition-colors"><Mail size={18} className="text-white/30"/><input value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email" className="bg-transparent text-white text-xs w-full outline-none placeholder:text-white/20"/></div>
-                <div className="flex items-center gap-4 bg-black/50 border border-white/10 p-4 rounded-2xl focus-within:border-[#C6A649] transition-colors"><Lock size={18} className="text-white/30"/><input type="password" value={pass} onChange={e=>setPass(e.target.value)} placeholder="Pass" className="bg-transparent text-white text-xs w-full outline-none placeholder:text-white/20"/></div>
+                <div className="flex items-center gap-4 bg-black/50 border border-white/10 p-4 rounded-2xl focus-within:border-[#C6A649] transition-colors"><Mail size={18} className="text-white/30"/><input value={email} onChange={e=>setEmail(e.target.value)} placeholder={t('auth.email_placeholder')} className="bg-transparent text-white text-xs w-full outline-none placeholder:text-white/20"/></div>
+                <div className="flex items-center gap-4 bg-black/50 border border-white/10 p-4 rounded-2xl focus-within:border-[#C6A649] transition-colors"><Lock size={18} className="text-white/30"/><input type="password" value={pass} onChange={e=>setPass(e.target.value)} placeholder={t('auth.pass_placeholder')} className="bg-transparent text-white text-xs w-full outline-none placeholder:text-white/20"/></div>
             </div>
         ) : (
-            <div className="mb-8 text-left"><p className="text-xs text-white/60 mb-4 px-1">Recuperar acceso.</p><div className="flex items-center gap-4 bg-black/50 border border-white/10 p-4 rounded-2xl"><Mail size={18} className="text-white/30"/><input value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email" className="bg-transparent text-white text-xs w-full outline-none"/></div></div>
+            <div className="mb-8 text-left"><p className="text-xs text-white/60 mb-4 px-1">{t('auth.recover_desc')}</p><div className="flex items-center gap-4 bg-black/50 border border-white/10 p-4 rounded-2xl"><Mail size={18} className="text-white/30"/><input value={email} onChange={e=>setEmail(e.target.value)} placeholder={t('auth.email_placeholder')} className="bg-transparent text-white text-xs w-full outline-none"/></div></div>
         )}
-        <button onClick={handleSubmit} disabled={load} className={`w-full py-5 rounded-2xl text-[10px] ${S.btnGold}`}>{load ? "..." : (mode === 'login' ? "Entrar" : mode === 'register' ? "Crear" : "Enviar")}</button>
+        <button onClick={handleSubmit} disabled={load} className={`w-full py-5 rounded-2xl text-[10px] ${S.btnGold}`}>{load ? "..." : (mode === 'login' ? t('auth.login') : mode === 'register' ? t('auth.register') : t('auth.send'))}</button>
         <div className="mt-8 flex justify-between text-[9px] text-white/40 uppercase tracking-widest border-t border-white/5 pt-6">
-            {mode === 'login' ? (<><button onClick={()=>setMode('register')} className="hover:text-white">Crear Cuenta</button><button onClick={()=>setMode('forgot')} className="hover:text-white">Recuperar</button></>) : (<button onClick={()=>setMode('login')} className="w-full hover:text-white">Volver</button>)}
+            {mode === 'login' ? (<><button onClick={()=>setMode('register')} className="hover:text-white">{t('auth.register')}</button><button onClick={()=>setMode('forgot')} className="hover:text-white">{t('auth.forgot')}</button></>) : (<button onClick={()=>setMode('login')} className="w-full hover:text-white">{t('auth.back_login')}</button>)}
         </div>
       </div>
     </div>
@@ -841,7 +878,7 @@ const TalentPage = ({ list, add, del, notify, videos }: any) => {
 
   const save = () => {
       setErrorMsg(null);
-      if(!img || !name) { setErrorMsg("Imagen y Nombre son requeridos"); return; }
+      if(!img || !name) { setErrorMsg(t('talent.form.error_required')); return; }
 
       let finalPrice = 0;
       let finalForSale = false;
@@ -849,7 +886,7 @@ const TalentPage = ({ list, add, del, notify, videos }: any) => {
       if (isForSale) {
           finalPrice = parseFloat(createPrice);
           if (isNaN(finalPrice) || finalPrice <= 0) {
-              setErrorMsg("El precio debe ser mayor a 0");
+              setErrorMsg(t('talent.form.error_price'));
               return;
           }
           finalForSale = true;
@@ -870,15 +907,15 @@ const TalentPage = ({ list, add, del, notify, videos }: any) => {
       setNotes('');
       setIsForSale(false);
       setCreatePrice('');
-      notify("Persona creada exitosamente");
+      notify(t('talent.created_success'));
       navigate('/app/explore?tab=marketplace');
   };
   const handleSell = async (id: string) => {
       if (!sellPrice) return;
       try {
           const { error } = await supabase.from('talents').update({ for_sale: true, price: parseInt(sellPrice) }).eq('id', id);
-          if (!error) { notify("Listed on Marketplace"); setSellingId(null); setSellPrice(''); } else { notify("Error listing item"); }
-      } catch (e) { notify("Error"); }
+          if (!error) { notify(t('talent.listed_success')); setSellingId(null); setSellPrice(''); } else { notify(t('common.error')); }
+      } catch (e) { notify(t('common.error')); }
   };
   const isVelvet = mode === 'velvet';
   const isVideo = (url: string) => url?.match(/\.(mp4|webm|mov|mkv)$/i);
@@ -887,21 +924,21 @@ const TalentPage = ({ list, add, del, notify, videos }: any) => {
   return (
     <div className="p-6 lg:p-12 pb-32 animate-in fade-in">
         <div className={`flex justify-between items-end border-b pb-8 mb-12 ${isVelvet?'border-white/10':'border-gray-200'}`}>
-            <div><h2 className={`text-4xl font-bold uppercase tracking-[0.1em] ${isVelvet?'text-white':'text-gray-900'}`}>{t('common.nav.talent')}</h2><p className={isVelvet ? S.subLuxe : "text-[9px] text-blue-600 mt-2 uppercase tracking-[0.4em] font-bold"}>{isVelvet ? "Database" : "Brand Assets"}</p></div>
-            <button onClick={()=>setOpen(!open)} className={`px-8 py-3 rounded-full text-[10px] uppercase font-bold transition-all flex items-center gap-2 border ${isVelvet ? 'border-white/20 text-white hover:bg-[#C6A649] hover:text-black' : 'border-gray-300 text-gray-700 hover:bg-black hover:text-white'}`}>{open?<X size={14}/>:<Plus size={14}/>} {open?t('common.cancel'):"New Persona"}</button>
+            <div><h2 className={`text-4xl font-bold uppercase tracking-[0.1em] ${isVelvet?'text-white':'text-gray-900'}`}>{t('talent.title')}</h2><p className={isVelvet ? S.subLuxe : "text-[9px] text-blue-600 mt-2 uppercase tracking-[0.4em] font-bold"}>{isVelvet ? t('talent.subtitle_velvet') : t('talent.subtitle_agency')}</p></div>
+            <button onClick={()=>setOpen(!open)} className={`px-8 py-3 rounded-full text-[10px] uppercase font-bold transition-all flex items-center gap-2 border ${isVelvet ? 'border-white/20 text-white hover:bg-[#C6A649] hover:text-black' : 'border-gray-300 text-gray-700 hover:bg-black hover:text-white'}`}>{open?<X size={14}/>:<Plus size={14}/>} {open?t('common.cancel'):t('talent.new_btn')}</button>
         </div>
         {open && (
             <div className={`grid grid-cols-1 md:grid-cols-2 gap-12 p-12 rounded-[40px] mb-12 transition-all duration-500 ${isVelvet ? S.panel : 'bg-white shadow-xl border border-gray-100'}`}>
                 <div onClick={()=>setShowGallery(true)} className={`aspect-[3/4] rounded-[30px] border-2 border-dashed flex items-center justify-center relative overflow-hidden group cursor-pointer transition-all ${isVelvet ? 'bg-black/30 border-white/10 hover:border-[#C6A649]/50' : 'bg-gray-50 border-gray-300 hover:border-blue-500'}`}>
-                    {img ? (isVideo(img) ? <video src={img} className="w-full h-full object-cover" controls preload="metadata" playsInline crossOrigin="anonymous"/> : <img src={img} className="w-full h-full object-cover"/>) : (<div className={`text-center ${isVelvet?'opacity-30':'opacity-50 text-gray-500'}`}><ImageIcon className="mx-auto mb-4 w-8 h-8"/><span className="text-[10px] font-bold uppercase tracking-widest">Select from Gallery</span></div>)}
+                    {img ? (isVideo(img) ? <video src={img} className="w-full h-full object-cover" controls preload="metadata" playsInline crossOrigin="anonymous"/> : <img src={img} className="w-full h-full object-cover"/>) : (<div className={`text-center ${isVelvet?'opacity-30':'opacity-50 text-gray-500'}`}><ImageIcon className="mx-auto mb-4 w-8 h-8"/><span className="text-[10px] font-bold uppercase tracking-widest">{t('talent.select_gallery')}</span></div>)}
                 </div>
                 <div className="flex flex-col justify-center gap-8">
                     {errorMsg && <div className="text-red-500 text-[10px] font-bold uppercase">{errorMsg}</div>}
-                    <div className="space-y-4"><label className={`text-[10px] uppercase tracking-widest ${isVelvet?'text-white/40':'text-gray-400'}`}>Name</label><input value={name} onChange={e=>setName(e.target.value)} className={isVelvet ? S.input : "w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-sm outline-none transition-all"}/></div>
-                    <div className="space-y-4"><label className={`text-[10px] uppercase tracking-widest ${isVelvet?'text-white/40':'text-gray-400'}`}>Notes</label><textarea value={notes} onChange={e=>setNotes(e.target.value)} className={`${isVelvet ? S.input : "w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-sm outline-none transition-all"} h-24 resize-none`}/></div>
+                    <div className="space-y-4"><label className={`text-[10px] uppercase tracking-widest ${isVelvet?'text-white/40':'text-gray-400'}`}>{t('talent.form.name')}</label><input value={name} onChange={e=>setName(e.target.value)} className={isVelvet ? S.input : "w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-sm outline-none transition-all"}/></div>
+                    <div className="space-y-4"><label className={`text-[10px] uppercase tracking-widest ${isVelvet?'text-white/40':'text-gray-400'}`}>{t('talent.form.notes')}</label><textarea value={notes} onChange={e=>setNotes(e.target.value)} className={`${isVelvet ? S.input : "w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-sm outline-none transition-all"} h-24 resize-none`}/></div>
 
                     <div className="flex items-center justify-between">
-                        <label className={`text-[10px] uppercase tracking-widest ${isVelvet?'text-white/40':'text-gray-400'}`}>Sell on Marketplace?</label>
+                        <label className={`text-[10px] uppercase tracking-widest ${isVelvet?'text-white/40':'text-gray-400'}`}>{t('talent.form.sell')}</label>
                         <button onClick={()=>setIsForSale(!isForSale)} className={`w-12 h-6 rounded-full border relative transition-all ${isForSale ? 'bg-[#C6A649] border-[#C6A649]' : 'bg-gray-200 border-gray-300'}`}>
                             <div className={`absolute top-0.5 bottom-0.5 w-5 rounded-full bg-white shadow-sm transition-transform duration-300 ${isForSale ? 'translate-x-6' : 'translate-x-0.5'}`}></div>
                         </button>
@@ -909,12 +946,12 @@ const TalentPage = ({ list, add, del, notify, videos }: any) => {
 
                     {isForSale && (
                         <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
-                            <label className={`text-[10px] uppercase tracking-widest ${isVelvet?'text-white/40':'text-gray-400'}`}>Price (Credits)</label>
+                            <label className={`text-[10px] uppercase tracking-widest ${isVelvet?'text-white/40':'text-gray-400'}`}>{t('talent.form.price')}</label>
                             <input type="number" value={createPrice} onChange={e=>setCreatePrice(e.target.value)} className={isVelvet ? S.input : "w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-sm outline-none transition-all"} placeholder="100"/>
                         </div>
                     )}
 
-                    {!isVelvet && (<div className="space-y-4"><div className="flex gap-4"><button onClick={()=>setRole('model')} className={`flex-1 py-3 border rounded-xl flex items-center justify-center gap-2 text-xs font-bold uppercase transition-all ${role==='model'?'bg-black text-white border-black':'text-gray-400 border-gray-200'}`}><User size={14}/> Model</button><button onClick={()=>setRole('brand')} className={`flex-1 py-3 border rounded-xl flex items-center justify-center gap-2 text-xs font-bold uppercase transition-all ${role==='brand'?'bg-blue-600 text-white border-blue-600':'text-gray-400 border-gray-200'}`}><Briefcase size={14}/> Brand</button></div></div>)}
+                    {!isVelvet && (<div className="space-y-4"><div className="flex gap-4"><button onClick={()=>setRole('model')} className={`flex-1 py-3 border rounded-xl flex items-center justify-center gap-2 text-xs font-bold uppercase transition-all ${role==='model'?'bg-black text-white border-black':'text-gray-400 border-gray-200'}`}><User size={14}/> {t('talent.form.model')}</button><button onClick={()=>setRole('brand')} className={`flex-1 py-3 border rounded-xl flex items-center justify-center gap-2 text-xs font-bold uppercase transition-all ${role==='brand'?'bg-blue-600 text-white border-blue-600':'text-gray-400 border-gray-200'}`}><Briefcase size={14}/> {t('talent.form.brand')}</button></div></div>)}
                     <button onClick={save} className={`w-full py-5 rounded-2xl text-[10px] font-bold uppercase transition-transform hover:scale-[1.02] active:scale-95 ${isVelvet ? S.btnGold : 'bg-black text-white shadow-xl hover:bg-gray-800'}`}>{t('common.save')}</button>
                 </div>
             </div>
@@ -922,7 +959,7 @@ const TalentPage = ({ list, add, del, notify, videos }: any) => {
         {showGallery && (
             <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-xl flex items-center justify-center p-8">
                 <div className={`w-full max-w-4xl max-h-[80vh] overflow-y-auto p-8 rounded-[40px] ${isVelvet ? 'bg-[#0a0a0a] border border-white/10' : 'bg-white'}`}>
-                    <div className="flex justify-between items-center mb-8"><h3 className={`text-2xl font-bold uppercase tracking-widest ${isVelvet?'text-white':'text-black'}`}>Select Asset</h3><button onClick={()=>setShowGallery(false)}><X size={24} className={isVelvet?'text-white':'text-black'}/></button></div>
+                    <div className="flex justify-between items-center mb-8"><h3 className={`text-2xl font-bold uppercase tracking-widest ${isVelvet?'text-white':'text-black'}`}>{t('talent.select_gallery')}</h3><button onClick={()=>setShowGallery(false)}><X size={24} className={isVelvet?'text-white':'text-black'}/></button></div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         {localVideos && localVideos.map((v:any) => {
                              const assetUrl = v.video_url || v.url;
@@ -943,7 +980,7 @@ const TalentPage = ({ list, add, del, notify, videos }: any) => {
                 <div key={inf.id} className={`rounded-[30px] overflow-hidden relative group transition-all duration-500 hover:-translate-y-2 ${isVelvet ? S.panel : 'bg-white shadow-lg border border-gray-100'}`}>
                     {isVideo(inf.image_url) ? <video src={inf.image_url} className="aspect-[3/4] object-cover w-full group-hover:scale-105 transition-transform duration-700" controls preload="metadata" playsInline crossOrigin="anonymous"/> : <img src={inf.image_url} className="aspect-[3/4] object-cover w-full group-hover:scale-105 transition-transform duration-700"/>}
                     <div className="absolute bottom-0 inset-x-0 p-6 pt-20 flex justify-between items-end bg-gradient-to-t from-black/90 via-black/50 to-transparent">
-                        <div><span className="text-[10px] font-bold uppercase tracking-widest text-white block">{inf.name}</span>{(inf as any).for_sale && <span className="text-[8px] font-bold uppercase bg-[#C6A649] text-black px-2 py-0.5 rounded-full mt-1 inline-block ml-2">For Sale</span>}</div>
+                        <div><span className="text-[10px] font-bold uppercase tracking-widest text-white block">{inf.name}</span>{(inf as any).for_sale && <span className="text-[8px] font-bold uppercase bg-[#C6A649] text-black px-2 py-0.5 rounded-full mt-1 inline-block ml-2">{t('talent.for_sale_badge')}</span>}</div>
                         <div className="flex gap-2">
                             {!(inf as any).for_sale && <button onClick={()=>setSellingId(sellingId === inf.id ? null : inf.id)} className="bg-white/10 p-2 rounded-full text-white/50 hover:text-[#C6A649] hover:bg-white/20"><ShoppingBag size={12}/></button>}
                             <button onClick={()=>del(inf.id)} className="bg-white/10 p-2 rounded-full text-white/50 hover:text-red-500 hover:bg-white/20"><X size={12}/></button>
@@ -952,8 +989,8 @@ const TalentPage = ({ list, add, del, notify, videos }: any) => {
                     {sellingId === inf.id && (
                         <div className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center p-6 text-center animate-in fade-in">
                             <h3 className="text-white text-xs font-bold uppercase mb-4">Sell {inf.name}</h3>
-                            <input type="number" placeholder="Price (Credits)" value={sellPrice} onChange={(e)=>setSellPrice(e.target.value)} className="w-full bg-white/10 border border-white/20 rounded p-2 text-white text-xs mb-4 text-center outline-none"/>
-                            <div className="flex gap-2 w-full"><button onClick={()=>setSellingId(null)} className="flex-1 py-2 bg-white/10 text-white text-[10px] font-bold uppercase rounded">Cancel</button><button onClick={()=>handleSell(inf.id)} className="flex-1 py-2 bg-[#C6A649] text-black text-[10px] font-bold uppercase rounded">List</button></div>
+                            <input type="number" placeholder={t('talent.list_price')} value={sellPrice} onChange={(e)=>setSellPrice(e.target.value)} className="w-full bg-white/10 border border-white/20 rounded p-2 text-white text-xs mb-4 text-center outline-none"/>
+                            <div className="flex gap-2 w-full"><button onClick={()=>setSellingId(null)} className="flex-1 py-2 bg-white/10 text-white text-[10px] font-bold uppercase rounded">{t('common.cancel')}</button><button onClick={()=>handleSell(inf.id)} className="flex-1 py-2 bg-[#C6A649] text-black text-[10px] font-bold uppercase rounded">{t('talent.list_btn')}</button></div>
                         </div>
                     )}
                 </div>
@@ -966,6 +1003,7 @@ const TalentPage = ({ list, add, del, notify, videos }: any) => {
 const GalleryPage = ({ videos, setVideos }: any) => {
   const { mode } = useMode();
   const { showToast } = useToast();
+  const { t } = useTranslation();
   const [publishing, setPublishing] = useState<string | null>(null);
 
   const togglePublish = async (video: any) => {
@@ -978,17 +1016,17 @@ const GalleryPage = ({ videos, setVideos }: any) => {
         });
         if (res.ok) {
             const data = await res.json();
-            showToast(data.is_public ? 'Published!' : 'Unpublished', 'success');
+            showToast(data.is_public ? t('gallery.published') : t('gallery.unpublished'), 'success');
             if (setVideos) {
                 setVideos((prev: any[]) => prev.map(v => v.id === video.id ? { ...v, is_public: data.is_public } : v));
             }
         } else { throw new Error("Failed"); }
-    } catch (e) { showToast('Error', 'error'); } finally { setPublishing(null); }
+    } catch (e) { showToast(t('common.error'), 'error'); } finally { setPublishing(null); }
   };
 
   return (
   <div className={`p-6 lg:p-12 pb-32 animate-in fade-in ${mode==='velvet'?'':'bg-gray-50'}`}>
-    <h2 className={`text-4xl font-bold uppercase tracking-[0.2em] mb-12 border-b pb-8 ${mode==='velvet'?'text-white border-white/10':'text-gray-900 border-gray-200'}`}>Portfolio</h2>
+    <h2 className={`text-4xl font-bold uppercase tracking-[0.2em] mb-12 border-b pb-8 ${mode==='velvet'?'text-white border-white/10':'text-gray-900 border-gray-200'}`}>{t('gallery.title')}</h2>
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
         {videos.map((v:any) => (
             <div key={v.id} className={`rounded-[30px] overflow-hidden group relative hover:-translate-y-2 transition-all ${mode==='velvet'?S.panel:'bg-white shadow-lg border border-gray-100'}`}>
@@ -1012,33 +1050,35 @@ const GalleryPage = ({ videos, setVideos }: any) => {
 const BillingPage = ({ onSelect }: any) => {
   const { mode } = useMode();
   const [annual, setAnnual] = useState(true);
+  const { t } = useTranslation();
   const isVelvet = mode === 'velvet';
 
   return (
     <div className="p-6 lg:p-12 pb-32 max-w-7xl mx-auto animate-in fade-in">
       <div className="text-center mb-16">
-          <h2 className={`text-4xl lg:text-5xl font-bold uppercase tracking-[0.2em] mb-4 ${isVelvet ? 'text-white' : 'text-gray-900'}`}>Membresía</h2>
+          <h2 className={`text-4xl lg:text-5xl font-bold uppercase tracking-[0.2em] mb-4 ${isVelvet ? 'text-white' : 'text-gray-900'}`}>{t('billing.title')}</h2>
           <div className="flex items-center justify-center gap-4 mt-8">
-              <span className={`text-[10px] font-bold uppercase tracking-widest ${!annual ? (isVelvet ? 'text-[#C6A649]' : 'text-blue-600') : (isVelvet ? 'text-white/40' : 'text-gray-400')}`}>Mensual</span>
+              <span className={`text-[10px] font-bold uppercase tracking-widest ${!annual ? (isVelvet ? 'text-[#C6A649]' : 'text-blue-600') : (isVelvet ? 'text-white/40' : 'text-gray-400')}`}>{t('billing.monthly')}</span>
               <button onClick={()=>setAnnual(!annual)} className={`w-12 h-6 rounded-full relative p-1 transition-colors ${isVelvet ? 'bg-white/10 hover:bg-white/20' : 'bg-gray-200 hover:bg-gray-300'}`}><div className={`w-4 h-4 rounded-full shadow-lg transition-transform duration-300 ${annual ? 'translate-x-6' : ''} ${isVelvet ? 'bg-[#C6A649]' : 'bg-white'}`}></div></button>
-              <span className={`text-[10px] font-bold uppercase tracking-widest ${annual ? (isVelvet ? 'text-[#C6A649]' : 'text-blue-600') : (isVelvet ? 'text-white/40' : 'text-gray-400')}`}>Anual <span className={`${isVelvet ? 'bg-[#C6A649] text-black' : 'bg-blue-600 text-white'} px-2 py-0.5 rounded text-[8px] ml-1`}>-20%</span></span>
+              <span className={`text-[10px] font-bold uppercase tracking-widest ${annual ? (isVelvet ? 'text-[#C6A649]' : 'text-blue-600') : (isVelvet ? 'text-white/40' : 'text-gray-400')}`}>{t('billing.annual')} <span className={`${isVelvet ? 'bg-[#C6A649] text-black' : 'bg-blue-600 text-white'} px-2 py-0.5 rounded text-[8px] ml-1`}>{t('billing.discount')}</span></span>
           </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-          {Object.entries(PRICING).map(([k, p]) => {
+          {Object.entries(PRICING_META).map(([k, p]) => {
               const price = annual && (p as any).yearlyPrice ? (p as any).yearlyPrice : p.price;
+              const features = t(`pricing.${k}.features`, { returnObjects: true }) as string[];
               return (
                   <div key={k} className={`p-10 rounded-[40px] text-center flex flex-col items-center relative overflow-hidden group hover:scale-105 transition-transform duration-500 ${isVelvet ? S.panel : 'bg-white border border-gray-200 shadow-xl'} ${p.popular ? (isVelvet ? 'border-[#C6A649]/50 shadow-[0_0_50px_rgba(198,166,73,0.15)]' : 'border-blue-500 shadow-lg scale-105') : ''}`}>
                       {p.popular && <div className={`absolute top-0 inset-x-0 h-1.5 ${isVelvet ? 'bg-gradient-to-r from-[#C6A649] to-[#FBF5B7]' : 'bg-blue-500'}`}/>}
-                      {p.popular && <div className={`${isVelvet ? 'bg-[#C6A649]/20 text-[#C6A649] border-[#C6A649]/30' : 'bg-blue-50 text-blue-600 border-blue-200'} text-[8px] font-bold px-4 py-1 rounded-full uppercase tracking-widest mb-6 border`}>Recomendado</div>}
-                      <h3 className={`text-xl font-bold uppercase tracking-[0.2em] mb-2 ${isVelvet ? 'text-white' : 'text-gray-900'}`}>{p.name}</h3>
-                      <div className={`text-5xl font-bold mb-8 tracking-tighter ${isVelvet ? 'text-white' : 'text-gray-900'}`}>${price}<span className={`text-sm font-normal ml-2 ${isVelvet ? 'text-white/30' : 'text-gray-400'}`}>/mo</span></div>
+                      {p.popular && <div className={`${isVelvet ? 'bg-[#C6A649]/20 text-[#C6A649] border-[#C6A649]/30' : 'bg-blue-50 text-blue-600 border-blue-200'} text-[8px] font-bold px-4 py-1 rounded-full uppercase tracking-widest mb-6 border`}>{t('billing.recommended')}</div>}
+                      <h3 className={`text-xl font-bold uppercase tracking-[0.2em] mb-2 ${isVelvet ? 'text-white' : 'text-gray-900'}`}>{t(`pricing.${k}.name`)}</h3>
+                      <div className={`text-3xl md:text-5xl font-bold mb-8 tracking-tighter ${isVelvet ? 'text-white' : 'text-gray-900'}`}>${price}<span className={`text-sm font-normal ml-2 ${isVelvet ? 'text-white/30' : 'text-gray-400'}`}>/mo</span></div>
                       <div className={`w-full h-px mb-8 ${isVelvet ? 'bg-white/5' : 'bg-gray-100'}`}></div>
                       <div className="space-y-5 mb-10 w-full text-left">
-                          <div className={`p-3 rounded-xl flex items-center justify-center gap-3 border mb-6 ${isVelvet ? 'bg-white/5 border-white/5' : 'bg-gray-50 border-gray-100'}`}><Zap size={14} className={isVelvet ? 'text-[#C6A649]' : 'text-blue-500'}/><span className={`text-xs font-bold uppercase tracking-widest ${isVelvet ? 'text-white' : 'text-gray-900'}`}>{p.creds} Créditos</span></div>
-                          {p.feats.map(f => <div key={f} className={`flex items-center gap-3 text-[10px] uppercase tracking-widest ${isVelvet ? 'text-white/60' : 'text-gray-500'}`}><Check size={10} className={isVelvet ? 'text-[#C6A649]' : 'text-blue-500'}/> {f}</div>)}
+                          <div className={`p-3 rounded-xl flex items-center justify-center gap-3 border mb-6 ${isVelvet ? 'bg-white/5 border-white/5' : 'bg-gray-50 border-gray-100'}`}><Zap size={14} className={isVelvet ? 'text-[#C6A649]' : 'text-blue-500'}/><span className={`text-xs font-bold uppercase tracking-widest ${isVelvet ? 'text-white' : 'text-gray-900'}`}>{t('studio.credits_cost', { cost: p.creds })}</span></div>
+                          {features.map(f => <div key={f} className={`flex items-center gap-3 text-[10px] uppercase tracking-widest ${isVelvet ? 'text-white/60' : 'text-gray-500'}`}><Check size={10} className={isVelvet ? 'text-[#C6A649]' : 'text-blue-500'}/> {f}</div>)}
                       </div>
-                      <button onClick={()=>onSelect(k, annual)} className={`w-full py-5 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] ${p.popular ? (isVelvet ? S.btnGold : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg') : (isVelvet ? 'bg-white/5 text-white hover:bg-white hover:text-black transition-all' : 'bg-gray-100 text-gray-900 hover:bg-black hover:text-white transition-all')}`}>Elegir Plan</button>
+                      <button onClick={()=>onSelect(k, annual)} className={`w-full py-5 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] ${p.popular ? (isVelvet ? S.btnGold : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg') : (isVelvet ? 'bg-white/5 text-white hover:bg-white hover:text-black transition-all' : 'bg-gray-100 text-gray-900 hover:bg-black hover:text-white transition-all')}`}>{t('billing.select_plan')}</button>
                   </div>
               );
           })}
@@ -1050,28 +1090,29 @@ const BillingPage = ({ onSelect }: any) => {
 const SettingsPage = ({ profile, setProfile, notify }: any) => {
   const { mode } = useMode();
   const [data, setData] = useState(profile);
+  const { t } = useTranslation();
   const isVelvet = mode === 'velvet';
 
   const save = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if(user) {
           const { error } = await supabase.from('profiles').update({ instagram: data.instagram, telegram: data.telegram, phone: data.phone }).eq('id', user.id);
-          if(error) { notify("Error al guardar"); } else { notify("Perfil Actualizado"); }
+          if(error) { notify(t('settings.saved_error')); } else { notify(t('settings.saved_success')); }
       }
   };
   return (
     <div className="p-6 lg:p-12 max-w-4xl mx-auto">
-       <h2 className={`text-4xl font-bold uppercase tracking-[0.2em] mb-12 border-b pb-8 ${isVelvet ? 'text-white border-white/10' : 'text-gray-900 border-gray-200'}`}>Ajustes</h2>
+       <h2 className={`text-2xl md:text-4xl font-bold uppercase tracking-[0.2em] mb-12 border-b pb-8 ${isVelvet ? 'text-white border-white/10' : 'text-gray-900 border-gray-200'}`}>{t('settings.title')}</h2>
        <div className={`p-10 rounded-[40px] mb-12 flex items-center gap-10 ${isVelvet ? S.panel : 'bg-white shadow-xl border border-gray-200'}`}>
            <div className={`w-24 h-24 rounded-full p-[2px] flex items-center justify-center ${isVelvet ? 'bg-gradient-to-br from-[#C6A649] to-black' : 'bg-gradient-to-br from-blue-500 to-blue-600'}`}><span className={`text-3xl font-bold ${isVelvet ? 'text-[#C6A649]' : 'text-white'}`}>JD</span></div>
-           <div><h3 className={`text-2xl font-bold ${isVelvet ? 'text-white' : 'text-gray-900'}`}>{data.name}</h3><p className={`text-xs uppercase tracking-widest font-bold mt-1 ${isVelvet ? 'text-[#C6A649]' : 'text-blue-600'}`}>Plan Pro</p></div>
+           <div><h3 className={`text-2xl font-bold ${isVelvet ? 'text-white' : 'text-gray-900'}`}>{data.name}</h3><p className={`text-xs uppercase tracking-widest font-bold mt-1 ${isVelvet ? 'text-[#C6A649]' : 'text-blue-600'}`}>{t('settings.plan_pro')}</p></div>
        </div>
        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-           <div className="space-y-2"><label className={`text-[10px] uppercase tracking-widest ${isVelvet ? 'text-white/40' : 'text-gray-400'}`}>Instagram</label><input value={data.instagram || ''} onChange={e=>setData({...data, instagram:e.target.value})} className={isVelvet ? S.input : "w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-sm outline-none transition-all focus:border-blue-500"} placeholder="@usuario"/></div>
-           <div className="space-y-2"><label className={`text-[10px] uppercase tracking-widest ${isVelvet ? 'text-white/40' : 'text-gray-400'}`}>Telegram</label><input value={data.telegram || ''} onChange={e=>setData({...data, telegram:e.target.value})} className={isVelvet ? S.input : "w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-sm outline-none transition-all focus:border-blue-500"} placeholder="@usuario"/></div>
-           <div className="space-y-2"><label className={`text-[10px] uppercase tracking-widest ${isVelvet ? 'text-white/40' : 'text-gray-400'}`}>Teléfono</label><input value={data.phone || ''} onChange={e=>setData({...data, phone:e.target.value})} className={isVelvet ? S.input : "w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-sm outline-none transition-all focus:border-blue-500"} placeholder="+123456789"/></div>
+           <div className="space-y-2"><label className={`text-[10px] uppercase tracking-widest ${isVelvet ? 'text-white/40' : 'text-gray-400'}`}>{t('settings.instagram')}</label><input value={data.instagram || ''} onChange={e=>setData({...data, instagram:e.target.value})} className={isVelvet ? S.input : "w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-sm outline-none transition-all focus:border-blue-500"} placeholder="@usuario"/></div>
+           <div className="space-y-2"><label className={`text-[10px] uppercase tracking-widest ${isVelvet ? 'text-white/40' : 'text-gray-400'}`}>{t('settings.telegram')}</label><input value={data.telegram || ''} onChange={e=>setData({...data, telegram:e.target.value})} className={isVelvet ? S.input : "w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-sm outline-none transition-all focus:border-blue-500"} placeholder="@usuario"/></div>
+           <div className="space-y-2"><label className={`text-[10px] uppercase tracking-widest ${isVelvet ? 'text-white/40' : 'text-gray-400'}`}>{t('settings.phone')}</label><input value={data.phone || ''} onChange={e=>setData({...data, phone:e.target.value})} className={isVelvet ? S.input : "w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-sm outline-none transition-all focus:border-blue-500"} placeholder="+123456789"/></div>
        </div>
-       <button onClick={save} className={`w-full py-5 rounded-2xl font-bold uppercase tracking-[0.2em] text-xs ${isVelvet ? S.btnGold : 'bg-black text-white hover:bg-gray-800'}`}>Guardar Cambios</button>
+       <button onClick={save} className={`w-full py-5 rounded-2xl font-bold uppercase tracking-[0.2em] text-xs ${isVelvet ? S.btnGold : 'bg-black text-white hover:bg-gray-800'}`}>{t('common.save')}</button>
     </div>
   );
 };
@@ -1109,7 +1150,7 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile }
   const generate = async () => {
       if(!img && !vid) return;
       const cost = calculateCost();
-      if(!profile?.is_admin && credits < cost) { notify("Faltan Créditos"); onUp(); return; }
+      if(!profile?.is_admin && credits < cost) { notify(t('studio.insufficient_credits')); onUp(); return; }
       setLoading(true); setResUrl(null);
       try {
           const { data: { session } } = await supabase.auth.getSession();
@@ -1120,8 +1161,8 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile }
               body: JSON.stringify({ image: img, endImage: prod, inputVideo: vid, prompt, duration: dur, aspectRatio: ratio, mode: effectiveMode, velvetStyle: effectiveVelvetStyle })
           });
           const d = await r.json();
-          if(d.videoUrl) { setResUrl(d.videoUrl); onGen({url: d.videoUrl, cost, id: Date.now().toString(), date: new Date().toLocaleDateString(), prompt, aspectRatio: ratio}); notify("¡Video Generado!"); } else throw new Error(d.error);
-      } catch(e:any) { console.error(e); notify("Error de conexión"); } finally { setLoading(false); }
+          if(d.videoUrl) { setResUrl(d.videoUrl); onGen({url: d.videoUrl, cost, id: Date.now().toString(), date: new Date().toLocaleDateString(), prompt, aspectRatio: ratio}); notify(t('studio.generated_success')); } else throw new Error(d.error);
+      } catch(e:any) { console.error(e); notify(t('auth.connection_error')); } finally { setLoading(false); }
   };
 
   const panelClass = mode === 'velvet' ? `bg-[#0a0a0a]/90 border-white/5 shadow-2xl hover:border-[#C6A649]/20 text-white` : `bg-white border-gray-200 shadow-xl text-gray-900`;
@@ -1134,29 +1175,29 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile }
   return (
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 p-6 lg:p-12 pb-32 lg:pb-12 animate-in fade-in duration-700 mb-24 lg:mb-0 relative">
       <StudioOnboarding />
-      {modal && <VelvetModal onClose={()=>setModal(false)} onOk={()=>{setModal(false); setVelvetFilter(true); notify("Modo Velvet Activado 🔥");}}/>}
+      {modal && <VelvetModal onClose={()=>setModal(false)} onOk={()=>{setModal(false); setVelvetFilter(true); notify(t('studio.velvet_active') + " 🔥");}}/>}
       <div className="lg:col-span-2 space-y-6">
         <div className={`p-8 rounded-[40px] border transition-all duration-300 ${panelClass}`}>
             <div className="flex justify-between items-center mb-8">
                 <h2 className="text-xs font-bold uppercase tracking-[0.2em] flex gap-3"><span className={mode==='velvet'?"text-[#C6A649]":"text-blue-600"}>01</span> {t('studio.source')} <Tooltip txt="Base asset"/></h2>
                 <div className={`p-1.5 rounded-full border flex ${mode==='velvet'?'bg-black/40 border-white/10':'bg-gray-100 border-gray-200'}`}>
-                    <button onClick={()=>{setType('img'); setVid(null);}} className={`px-6 py-2 rounded-full text-[9px] font-bold uppercase transition-all ${toggleClass(type==='img')}`}>Photo</button>
-                    <button onClick={()=>{setType('vid'); setImg(null);}} className={`px-6 py-2 rounded-full text-[9px] font-bold uppercase transition-all ${toggleClass(type==='vid')}`}>Remix</button>
+                    <button onClick={()=>{setType('img'); setVid(null);}} className={`px-6 py-2 rounded-full text-[9px] font-bold uppercase transition-all ${toggleClass(type==='img')}`}>{t('studio.tabs.photo')}</button>
+                    <button onClick={()=>{setType('vid'); setImg(null);}} className={`px-6 py-2 rounded-full text-[9px] font-bold uppercase transition-all ${toggleClass(type==='vid')}`}>{t('studio.tabs.remix')}</button>
                 </div>
             </div>
             <div className="grid grid-cols-2 gap-6">
                 <div id="studio-source-upload" className={`aspect-[3/4] rounded-[30px] border-2 border-dashed relative overflow-hidden group transition-all duration-300 ${type==='vid'?'border-blue-500/30':(mode==='velvet'?'border-white/10 hover:border-[#C6A649]/50':'border-gray-200 hover:border-blue-500')}`}>
-                    {type==='img' ? ( img ? (<><img src={img} className="w-full h-full object-cover"/>{img===DEMO_IMG && <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-[#C6A649] text-black text-[8px] font-bold px-3 py-1 rounded-full uppercase shadow-lg flex gap-2"><Sparkles size={10}/> Demo</div>}<button onClick={()=>{setImg(null);}} className="absolute top-4 right-4 bg-black/60 p-2 rounded-full text-white hover:bg-red-500 transition-all z-20"><X size={14}/></button></>) : <div className={`absolute inset-0 flex flex-col items-center justify-center ${mode==='velvet'?'text-white/20':'text-gray-400'}`}><Upload className="mb-4 w-8 h-8"/><span className="text-[9px] uppercase font-bold tracking-widest text-center">Subject /<br/>AI Model</span><input type="file" onChange={e=>handleFile(e, setImg)} className="absolute inset-0 opacity-0 cursor-pointer"/></div> ) : ( vid ? (<><video src={vid} className="w-full h-full object-cover opacity-50" controls preload="metadata" playsInline crossOrigin="anonymous"/><button onClick={()=>setVid(null)} className="absolute top-4 right-4 bg-black/50 p-2 rounded-full text-white hover:bg-red-500 z-20"><X size={14}/></button></>) : <div className="absolute inset-0 flex flex-col items-center justify-center text-blue-500/40"><Film className="mb-4 w-8 h-8"/><span className="text-[9px] uppercase font-bold tracking-widest text-center">Upload<br/>Video</span><input type="file" onChange={e=>handleFile(e, setVid)} className="absolute inset-0 opacity-0 cursor-pointer"/></div> )}
+                    {type==='img' ? ( img ? (<><img src={img} className="w-full h-full object-cover"/>{img===DEMO_IMG && <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-[#C6A649] text-black text-[8px] font-bold px-3 py-1 rounded-full uppercase shadow-lg flex gap-2"><Sparkles size={10}/> {t('studio.upload.demo')}</div>}<button onClick={()=>{setImg(null);}} className="absolute top-4 right-4 bg-black/60 p-2 rounded-full text-white hover:bg-red-500 transition-all z-20"><X size={14}/></button></>) : <div className={`absolute inset-0 flex flex-col items-center justify-center ${mode==='velvet'?'text-white/20':'text-gray-400'}`}><Upload className="mb-4 w-8 h-8"/><span className="text-[9px] uppercase font-bold tracking-widest text-center">{t('studio.upload.subject')}</span><input type="file" onChange={e=>handleFile(e, setImg)} className="absolute inset-0 opacity-0 cursor-pointer"/></div> ) : ( vid ? (<><video src={vid} className="w-full h-full object-cover opacity-50" controls preload="metadata" playsInline crossOrigin="anonymous"/><button onClick={()=>setVid(null)} className="absolute top-4 right-4 bg-black/50 p-2 rounded-full text-white hover:bg-red-500 z-20"><X size={14}/></button></>) : <div className="absolute inset-0 flex flex-col items-center justify-center text-blue-500/40"><Film className="mb-4 w-8 h-8"/><span className="text-[9px] uppercase font-bold tracking-widest text-center">{t('studio.upload.video')}</span><input type="file" onChange={e=>handleFile(e, setVid)} className="absolute inset-0 opacity-0 cursor-pointer"/></div> )}
                 </div>
                 <div className="flex flex-col gap-4">
                      <div id="studio-product-upload" className={`aspect-[3/4] rounded-[30px] border-2 border-dashed relative overflow-hidden group transition-all duration-300 ${mode==='velvet'?'border-white/10 bg-black/20 hover:border-[#C6A649]/50':'border-gray-200 bg-gray-50 hover:border-blue-500'}`}>
-                        {prod ? (<><img src={prod} className="w-full h-full object-cover"/>{prod===DEMO_PROD && <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-[#C6A649] text-black text-[8px] font-bold px-3 py-1 rounded-full uppercase shadow-lg flex gap-2"><Sparkles size={10}/> Demo</div>}<button onClick={()=>setProd(null)} className="absolute top-4 right-4 bg-black/60 p-2 rounded-full text-white hover:bg-red-500 transition-all z-20"><X size={14}/></button></>) : <div className={`absolute inset-0 flex flex-col items-center justify-center ${mode==='velvet'?'text-white/20':'text-gray-400'}`}><Plus className="mb-4 w-8 h-8"/><span className="text-[9px] uppercase font-bold tracking-widest text-center">Product /<br/>Service</span><input type="file" onChange={e=>handleFile(e, setProd)} className="absolute inset-0 opacity-0 cursor-pointer"/></div>}
+                        {prod ? (<><img src={prod} className="w-full h-full object-cover"/>{prod===DEMO_PROD && <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-[#C6A649] text-black text-[8px] font-bold px-3 py-1 rounded-full uppercase shadow-lg flex gap-2"><Sparkles size={10}/> {t('studio.upload.demo')}</div>}<button onClick={()=>setProd(null)} className="absolute top-4 right-4 bg-black/60 p-2 rounded-full text-white hover:bg-red-500 transition-all z-20"><X size={14}/></button></>) : <div className={`absolute inset-0 flex flex-col items-center justify-center ${mode==='velvet'?'text-white/20':'text-gray-400'}`}><Plus className="mb-4 w-8 h-8"/><span className="text-[9px] uppercase font-bold tracking-widest text-center">{t('studio.upload.product')}</span><input type="file" onChange={e=>handleFile(e, setProd)} className="absolute inset-0 opacity-0 cursor-pointer"/></div>}
                      </div>
                 </div>
             </div>
             {talents && talents.length > 0 && (
                 <div className={`mt-6 rounded-3xl p-6 border transition-all ${mode==='velvet'?'bg-black/40 border-white/10':'bg-gray-50 border-gray-200'}`}>
-                    <div className="flex items-center justify-between mb-4 px-2"><p className="text-[9px] opacity-50 uppercase tracking-widest flex items-center gap-2"><Sparkles size={10}/> Quick Cast</p></div>
+                    <div className="flex items-center justify-between mb-4 px-2"><p className="text-[9px] opacity-50 uppercase tracking-widest flex items-center gap-2"><Sparkles size={10}/> {t('studio.quick_cast')}</p></div>
                     <div className="overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2">
                         <div className="flex gap-4">
                             {talents.map((t:Talent) => (
@@ -1173,28 +1214,28 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile }
             )}
         </div>
         <div className={`p-8 rounded-[40px] border transition-all duration-300 ${panelClass}`}>
-            <div className="flex justify-between items-center mb-8"><h2 className="text-xs font-bold uppercase tracking-[0.2em] flex gap-3"><span className={mode==='velvet'?"text-[#C6A649]":"text-blue-600"}>02</span> {t('studio.settings')}</h2>{mode === 'velvet' && (<div className="px-4 py-1.5 rounded-full border border-[#C6A649]/30 bg-[#C6A649]/10 text-[#C6A649] text-[9px] font-bold uppercase tracking-widest flex items-center gap-2"><Flame size={12}/> Velvet Mode Active</div>)}</div>
+            <div className="flex justify-between items-center mb-8"><h2 className="text-xs font-bold uppercase tracking-[0.2em] flex gap-3"><span className={mode==='velvet'?"text-[#C6A649]":"text-blue-600"}>02</span> {t('studio.settings')}</h2>{mode === 'velvet' && (<div className="px-4 py-1.5 rounded-full border border-[#C6A649]/30 bg-[#C6A649]/10 text-[#C6A649] text-[9px] font-bold uppercase tracking-widest flex items-center gap-2"><Flame size={12}/> {t('studio.velvet_active')}</div>)}</div>
             <div className="grid grid-cols-4 gap-4 mb-8">
-                {CAMS.map(m => (<button key={m.id} onClick={()=>setCam(m.id)} className={`relative p-4 rounded-3xl border flex flex-col items-center gap-3 transition-all group overflow-hidden ${cam===m.id ? (mode==='velvet' ? 'bg-[#C6A649] border-[#C6A649] text-black shadow-lg' : 'bg-black border-black text-white shadow-lg') : (mode==='velvet' ? 'bg-black/40 border-white/5 text-gray-500 hover:bg-white/5' : 'bg-gray-50 border-gray-200 text-gray-400 hover:bg-white hover:border-gray-300')}`}>{m.icon}<span className="text-[7px] font-bold uppercase tracking-widest">{m.label}</span></button>))}
+                {CAMS.map(m => (<button key={m.id} onClick={()=>setCam(m.id)} className={`relative p-4 rounded-3xl border flex flex-col items-center gap-3 transition-all group overflow-hidden ${cam===m.id ? (mode==='velvet' ? 'bg-[#C6A649] border-[#C6A649] text-black shadow-lg' : 'bg-black border-black text-white shadow-lg') : (mode==='velvet' ? 'bg-black/40 border-white/5 text-gray-500 hover:bg-white/5' : 'bg-gray-50 border-gray-200 text-gray-400 hover:bg-white hover:border-gray-300')}`}>{m.icon}<span className="text-[7px] font-bold uppercase tracking-widest">{t(`cams.${m.id}.label`)}</span></button>))}
             </div>
             {mode === 'velvet' && (
                 <div className="grid grid-cols-4 gap-3 mb-6 animate-in fade-in slide-in-from-top-4">
-                    {VELVET_STYLES.map(v => (<button key={v.name} onClick={()=>{setVelvetStyle(v.id); handlePromptInjection(v.desc);}} className={`p-3 rounded-2xl border transition-all text-center group ${velvetStyle===v.id ? (mode==='velvet' ? 'bg-pink-500/10 border-pink-500 text-white' : 'bg-purple-100 border-purple-500 text-purple-900') : (mode==='velvet' ? 'bg-black/40 border-white/5 text-white/50' : 'bg-white border-gray-200 text-gray-400')}`}><p className="text-[8px] font-bold uppercase tracking-widest mb-1">{v.name}</p></button>))}
+                    {VELVET_STYLES.map(v => (<button key={v.id} onClick={()=>{setVelvetStyle(v.id); handlePromptInjection(t(`velvet_styles.${v.id}.desc`));}} className={`p-3 rounded-2xl border transition-all text-center group ${velvetStyle===v.id ? (mode==='velvet' ? 'bg-pink-500/10 border-pink-500 text-white' : 'bg-purple-100 border-purple-500 text-purple-900') : (mode==='velvet' ? 'bg-black/40 border-white/5 text-white/50' : 'bg-white border-gray-200 text-gray-400')}`}><p className="text-[8px] font-bold uppercase tracking-widest mb-1">{t(`velvet_styles.${v.id}.name`)}</p></button>))}
                 </div>
             )}
-            <div className="relative group"><textarea value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder="Describe your vision..." className={`${inputClass} h-32 mb-8 resize-none p-6 text-sm ${mode==='velvet' ? 'border-pink-900/50 focus:border-pink-500' : ''}`}/><div className="absolute bottom-10 right-4"><Sparkles size={16} className={`${mode==='velvet'?'text-[#C6A649]':'text-blue-500'} opacity-50`}/></div></div>
+            <div className="relative group"><textarea value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder={t('studio.prompt_placeholder')} className={`${inputClass} h-32 mb-8 resize-none p-6 text-sm ${mode==='velvet' ? 'border-pink-900/50 focus:border-pink-500' : ''}`}/><div className="absolute bottom-10 right-4"><Sparkles size={16} className={`${mode==='velvet'?'text-[#C6A649]':'text-blue-500'} opacity-50`}/></div></div>
             <div className={`grid grid-cols-2 gap-8 pt-6 border-t ${mode==='velvet'?'border-white/5':'border-gray-100'}`}>
                 <div className="space-y-4">
-                    <div className="flex justify-between items-center"><span className="text-[10px] uppercase tracking-widest opacity-40">Duration</span><span className={`font-bold text-xs ${mode==='velvet'?'text-[#C6A649]':'text-blue-600'}`}>{dur}s</span></div>
+                    <div className="flex justify-between items-center"><span className="text-[10px] uppercase tracking-widest opacity-40">{t('studio.duration')}</span><span className={`font-bold text-xs ${mode==='velvet'?'text-[#C6A649]':'text-blue-600'}`}>{dur}s</span></div>
                     <div className={`flex gap-2 p-1.5 rounded-2xl border ${mode==='velvet'?'bg-black/40 border-white/10':'bg-gray-100 border-gray-200'}`}><button onClick={()=>setDur(5)} className={`flex-1 py-3 rounded-xl text-[9px] font-bold uppercase transition-all ${toggleClass(dur===5)}`}>5s (10cr)</button><button onClick={()=>setDur(10)} className={`flex-1 py-3 rounded-xl text-[9px] font-bold uppercase transition-all ${toggleClass(dur===10)}`}>10s (20cr)</button></div>
                 </div>
                 <div className="space-y-4">
-                    <div className="flex justify-between items-center"><span className="text-[10px] uppercase tracking-widest opacity-40">Ratio</span></div>
-                    <div className={`flex gap-2 p-1.5 rounded-2xl border ${mode==='velvet'?'bg-black/40 border-white/10':'bg-gray-100 border-gray-200'}`}>{RATIOS.map(r => (<button key={r.id} onClick={() => setRatio(r.id)} className={`flex-1 py-3 rounded-xl text-[9px] font-bold uppercase transition-all ${toggleClass(ratio === r.id)}`}>{r.id}</button>))}</div>
+                    <div className="flex justify-between items-center"><span className="text-[10px] uppercase tracking-widest opacity-40">{t('studio.ratio')}</span></div>
+                    <div className={`flex gap-2 p-1.5 rounded-2xl border ${mode==='velvet'?'bg-black/40 border-white/10':'bg-gray-100 border-gray-200'}`}>{RATIOS.map(r => (<button key={r.id} onClick={() => setRatio(r.id)} className={`flex-1 py-3 rounded-xl text-[9px] font-bold uppercase transition-all ${toggleClass(ratio === r.id)}`}>{t(r.labelKey)}</button>))}</div>
                 </div>
             </div>
         </div>
-        <button id="studio-generate-btn" onClick={generate} disabled={loading || (!img && !vid)} className={`w-full py-7 rounded-[32px] font-bold uppercase tracking-[0.3em] text-xs flex items-center justify-center gap-4 fixed bottom-6 left-4 right-4 lg:static lg:w-full z-50 shadow-2xl transition-all duration-300 ${mode==='velvet' ? (velvetFilter ? S.btnVelvet : S.btnGold) : 'bg-black text-white shadow-lg hover:bg-gray-800 hover:shadow-xl active:scale-95'}`}>{loading ? "Processing..." : <><Zap size={18}/> {t('studio.generate')} ({calculateCost()})</>}</button>
+        <button id="studio-generate-btn" onClick={generate} disabled={loading || (!img && !vid)} className={`w-full py-7 rounded-[32px] font-bold uppercase tracking-[0.3em] text-xs flex items-center justify-center gap-4 fixed bottom-6 left-4 right-4 lg:static lg:w-full z-50 shadow-2xl transition-all duration-300 ${mode==='velvet' ? (velvetFilter ? S.btnVelvet : S.btnGold) : 'bg-black text-white shadow-lg hover:bg-gray-800 hover:shadow-xl active:scale-95'}`}>{loading ? t('studio.processing') : <><Zap size={18}/> {t('studio.generate')} ({calculateCost()})</>}</button>
       </div>
       <div className="lg:col-span-3 relative z-10 flex flex-col pt-0 h-[calc(100vh-100px)] sticky top-8">
          <div className={`w-full h-full rounded-[40px] border overflow-hidden shadow-2xl relative transition-all duration-500 flex flex-col ${mode==='velvet' ? 'bg-black border-white/10' : 'bg-white border-gray-200'}`}>
@@ -1207,7 +1248,7 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile }
                  </div>
             </div>
             <div className={`p-6 border-t flex justify-center backdrop-blur-sm transition-colors ${mode==='velvet'?'border-white/5 bg-black/40':'border-gray-100 bg-white/40'}`}>
-                {resUrl ? (<a href={resUrl} download className={`px-12 py-4 rounded-full text-[10px] font-bold uppercase hover:scale-105 transition-transform flex gap-3 shadow-2xl items-center ${mode==='velvet' ? 'bg-white text-black' : 'bg-black text-white'}`}><Download size={16}/> Download 4K</a>) : (<div className={`text-[9px] uppercase tracking-widest ${mode==='velvet'?'text-white/30':'text-gray-400'}`}>Ready to Render</div>)}
+                {resUrl ? (<a href={resUrl} download className={`px-12 py-4 rounded-full text-[10px] font-bold uppercase hover:scale-105 transition-transform flex gap-3 shadow-2xl items-center ${mode==='velvet' ? 'bg-white text-black' : 'bg-black text-white'}`}><Download size={16}/> {t('studio.download')}</a>) : (<div className={`text-[9px] uppercase tracking-widest ${mode==='velvet'?'text-white/30':'text-gray-400'}`}>{t('studio.ready')}</div>)}
             </div>
          </div>
       </div>
