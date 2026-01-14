@@ -313,6 +313,7 @@ app.post('/api/buy', async (req, res) => {
     }
 
     // Existence Verification
+    console.log(`🔍 Verifying user ${buyerId} in 'profiles' table...`);
     const { data: userProfile, error: userError } = await supabaseAdmin
         .from('profiles') // <--- KEY: Use the real table
         .select('id, credits, email')
