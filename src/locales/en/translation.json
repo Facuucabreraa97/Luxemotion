@@ -101,7 +101,11 @@
       "models": "No models found."
     },
     "buy": {
-      "confirm": "Confirm purchase of {{name}} for {{price}} credits?",
+      "confirm_title": "Confirm Purchase",
+      "item_price": "Item Price",
+      "service_fee": "Service Fee",
+      "total": "Total",
+      "confirm_btn": "Confirm Purchase",
       "success": "Purchase successful! Talent added to your casting.",
       "error": "Error processing purchase",
       "button": "Buy for {{price}} CR",
@@ -133,7 +137,10 @@
     "sell_modal": {
         "title": "Sell {{name}}",
         "price_placeholder": "Price (Credits)",
-        "list": "List"
+        "list": "List",
+        "selling_price": "Selling Price",
+        "royalty": "Royalty to Creator (10%)",
+        "you_receive": "You will receive"
     },
     "list_price": "Price (Credits)",
     "list_btn": "List",
