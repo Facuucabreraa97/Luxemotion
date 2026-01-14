@@ -27,7 +27,7 @@ export const TalentPage = ({ list, add, del, notify }: any) => {
           setImg(null);
           setName('');
           setNotes('');
-          notify("Persona Added");
+          notify(t('talent.created_success'));
       }
   };
 
@@ -35,7 +35,10 @@ export const TalentPage = ({ list, add, del, notify }: any) => {
       if (!sellPrice) return;
       try {
           const { data: { session } } = await supabase.auth.getSession();
-          if (!session) return;
+          if (!session) {
+            notify(t('explore.buy.login_required')); // Reuse login required message
+            return;
+          }
 
           const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/marketplace/list`, {
               method: 'POST',
@@ -47,14 +50,14 @@ export const TalentPage = ({ list, add, del, notify }: any) => {
           });
 
           if (res.ok) {
-              notify("Listed on Marketplace");
+              notify(t('talent.listed_success'));
               setSellingId(null);
               setSellPrice('');
           } else {
-              notify("Error listing item");
+              notify(t('common.error'));
           }
       } catch (e) {
-          notify("Error");
+          notify(t('common.error'));
       }
   };
 

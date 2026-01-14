@@ -15,17 +15,15 @@ const DEMO_IMG = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q
 const DEMO_PROD = "https://images.unsplash.com/photo-1541643600914-78b084683601?q=80&w=800&auto=format&fit=crop";
 const DEMO_TXT = "Cinematic slow motion shot, elegant lighting, 8k resolution";
 
-const CAMS = [
-  { id: 'static', label: 'TRÍPODE', icon: <Move size={18}/>, desc: "Cámara fija. Ideal para resaltar detalles." },
-  { id: 'zoom', label: 'ZOOM IN', icon: <ZoomIn size={18}/>, desc: "Acercamiento lento y dramático." },
-  { id: 'eye', label: 'MIRADA', icon: <Heart size={18}/>, desc: "Contacto visual intenso." },
-  { id: 'hand', label: 'MANO', icon: <Video size={18}/>, desc: "Movimiento orgánico tipo vlog." }
-];
+// CAMS & RATIOS Moved to component or using t() dynamically
+// But since they are constants, we can't use hook here.
+// We will move them inside component or use translation keys.
+// For now, I will map them inside the component render.
 
 const RATIOS = [
-  { id: '9:16', label: 'Stories', icon: <Smartphone size={14}/> },
-  { id: '16:9', label: 'Cinema', icon: <Monitor size={14}/> },
-  { id: '1:1', label: 'Square', icon: <Square size={14}/> }
+  { id: '9:16', label: 'ratios.stories', icon: <Smartphone size={14}/> },
+  { id: '16:9', label: 'ratios.cinema', icon: <Monitor size={14}/> },
+  { id: '1:1', label: 'ratios.square', icon: <Square size={14}/> }
 ];
 
 const VELVET_STYLES = [
@@ -149,21 +147,21 @@ export const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, pr
             <div className="flex justify-between items-center mb-8">
                 <h2 className="text-xs font-bold uppercase tracking-[0.2em] flex gap-3"><span className={mode==='velvet'?"text-[#C6A649]":"text-blue-600"}>01</span> {t('studio.source')} <Tooltip txt="Base asset"/></h2>
                 <div className={`p-1.5 rounded-full border flex ${mode==='velvet'?'bg-black/40 border-white/10':'bg-gray-100 border-gray-200'}`}>
-                    <button onClick={()=>{setType('img'); setVid(null);}} className={`px-6 py-2 rounded-full text-[9px] font-bold uppercase transition-all ${toggleClass(type==='img')}`}>Photo</button>
-                    <button onClick={()=>{setType('vid'); setImg(null);}} className={`px-6 py-2 rounded-full text-[9px] font-bold uppercase transition-all ${toggleClass(type==='vid')}`}>Remix</button>
+                    <button onClick={()=>{setType('img'); setVid(null);}} className={`px-6 py-2 rounded-full text-[9px] font-bold uppercase transition-all ${toggleClass(type==='img')}`}>{t('studio.tabs.photo')}</button>
+                    <button onClick={()=>{setType('vid'); setImg(null);}} className={`px-6 py-2 rounded-full text-[9px] font-bold uppercase transition-all ${toggleClass(type==='vid')}`}>{t('studio.tabs.remix')}</button>
                 </div>
             </div>
 
             <div className="grid grid-cols-2 gap-6">
                 {/* MAIN UPLOAD */}
                 <div id="studio-source-upload" className={`aspect-[3/4] rounded-[30px] border-2 border-dashed relative overflow-hidden group transition-all duration-300 ${type==='vid'?'border-blue-500/30':(mode==='velvet'?'border-white/10 hover:border-[#C6A649]/50':'border-gray-200 hover:border-blue-500')}`}>
-                    {type==='img' ? ( img ? (<><img src={img} className="w-full h-full object-cover"/>{img===DEMO_IMG && <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-[#C6A649] text-black text-[8px] font-bold px-3 py-1 rounded-full uppercase shadow-lg flex gap-2"><Sparkles size={10}/> Demo</div>}<button onClick={()=>{setImg(null);}} className="absolute top-4 right-4 bg-black/60 p-2 rounded-full text-white hover:bg-red-500 transition-all z-20"><X size={14}/></button></>) : <div className={`absolute inset-0 flex flex-col items-center justify-center ${mode==='velvet'?'text-white/20':'text-gray-400'}`}><Upload className="mb-4 w-8 h-8"/><span className="text-[9px] uppercase font-bold tracking-widest text-center">Subject /<br/>AI Model</span><input type="file" onChange={e=>handleFile(e, setImg)} className="absolute inset-0 opacity-0 cursor-pointer"/></div> ) : ( vid ? (<><video src={vid} autoPlay loop muted className="w-full h-full object-cover opacity-50"/><button onClick={()=>setVid(null)} className="absolute top-4 right-4 bg-black/50 p-2 rounded-full text-white hover:bg-red-500 z-20"><X size={14}/></button></>) : <div className="absolute inset-0 flex flex-col items-center justify-center text-blue-500/40"><Film className="mb-4 w-8 h-8"/><span className="text-[9px] uppercase font-bold tracking-widest text-center">Upload<br/>Video</span><input type="file" onChange={e=>handleFile(e, setVid)} className="absolute inset-0 opacity-0 cursor-pointer"/></div> )}
+                    {type==='img' ? ( img ? (<><img src={img} className="w-full h-full object-cover"/>{img===DEMO_IMG && <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-[#C6A649] text-black text-[8px] font-bold px-3 py-1 rounded-full uppercase shadow-lg flex gap-2"><Sparkles size={10}/> {t('studio.upload.demo')}</div>}<button onClick={()=>{setImg(null);}} className="absolute top-4 right-4 bg-black/60 p-2 rounded-full text-white hover:bg-red-500 transition-all z-20"><X size={14}/></button></>) : <div className={`absolute inset-0 flex flex-col items-center justify-center ${mode==='velvet'?'text-white/20':'text-gray-400'}`}><Upload className="mb-4 w-8 h-8"/><span className="text-[9px] uppercase font-bold tracking-widest text-center">{t('studio.upload.subject')}</span><input type="file" onChange={e=>handleFile(e, setImg)} className="absolute inset-0 opacity-0 cursor-pointer"/></div> ) : ( vid ? (<><video src={vid} autoPlay loop muted className="w-full h-full object-cover opacity-50"/><button onClick={()=>setVid(null)} className="absolute top-4 right-4 bg-black/50 p-2 rounded-full text-white hover:bg-red-500 z-20"><X size={14}/></button></>) : <div className="absolute inset-0 flex flex-col items-center justify-center text-blue-500/40"><Film className="mb-4 w-8 h-8"/><span className="text-[9px] uppercase font-bold tracking-widest text-center">{t('studio.upload.video')}</span><input type="file" onChange={e=>handleFile(e, setVid)} className="absolute inset-0 opacity-0 cursor-pointer"/></div> )}
                 </div>
 
                 {/* SECONDARY UPLOAD / TALENTS */}
                 <div className="flex flex-col gap-4">
                      <div id="studio-product-upload" className={`aspect-[3/4] rounded-[30px] border-2 border-dashed relative overflow-hidden group transition-all duration-300 ${mode==='velvet'?'border-white/10 bg-black/20 hover:border-[#C6A649]/50':'border-gray-200 bg-gray-50 hover:border-blue-500'}`}>
-                        {prod ? (<><img src={prod} className="w-full h-full object-cover"/>{prod===DEMO_PROD && <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-[#C6A649] text-black text-[8px] font-bold px-3 py-1 rounded-full uppercase shadow-lg flex gap-2"><Sparkles size={10}/> Demo</div>}<button onClick={()=>setProd(null)} className="absolute top-4 right-4 bg-black/60 p-2 rounded-full text-white hover:bg-red-500 transition-all z-20"><X size={14}/></button></>) : <div className={`absolute inset-0 flex flex-col items-center justify-center ${mode==='velvet'?'text-white/20':'text-gray-400'}`}><Plus className="mb-4 w-8 h-8"/><span className="text-[9px] uppercase font-bold tracking-widest text-center">Product /<br/>Service</span><input type="file" onChange={e=>handleFile(e, setProd)} className="absolute inset-0 opacity-0 cursor-pointer"/></div>}
+                        {prod ? (<><img src={prod} className="w-full h-full object-cover"/>{prod===DEMO_PROD && <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-[#C6A649] text-black text-[8px] font-bold px-3 py-1 rounded-full uppercase shadow-lg flex gap-2"><Sparkles size={10}/> {t('studio.upload.demo')}</div>}<button onClick={()=>setProd(null)} className="absolute top-4 right-4 bg-black/60 p-2 rounded-full text-white hover:bg-red-500 transition-all z-20"><X size={14}/></button></>) : <div className={`absolute inset-0 flex flex-col items-center justify-center ${mode==='velvet'?'text-white/20':'text-gray-400'}`}><Plus className="mb-4 w-8 h-8"/><span className="text-[9px] uppercase font-bold tracking-widest text-center">{t('studio.upload.product')}</span><input type="file" onChange={e=>handleFile(e, setProd)} className="absolute inset-0 opacity-0 cursor-pointer"/></div>}
                      </div>
                 </div>
             </div>
@@ -172,7 +170,7 @@ export const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, pr
             {talents && talents.length > 0 && (
                 <div className={`mt-6 rounded-3xl p-6 border transition-all ${mode==='velvet'?'bg-black/40 border-white/10':'bg-gray-50 border-gray-200'}`}>
                     <div className="flex items-center justify-between mb-4 px-2">
-                        <p className="text-[9px] opacity-50 uppercase tracking-widest flex items-center gap-2"><Sparkles size={10}/> Quick Cast</p>
+                        <p className="text-[9px] opacity-50 uppercase tracking-widest flex items-center gap-2"><Sparkles size={10}/> {t('studio.quick_cast')}</p>
                     </div>
 
                     <div className="overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2">
@@ -228,7 +226,7 @@ export const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, pr
 
             {/* CAMERA CONTROLS */}
             <div className="grid grid-cols-4 gap-4 mb-8">
-                {CAMS.map(m => (
+                {[{ id: 'static', label: t('cams.static.label'), icon: <Move size={18}/>}, { id: 'zoom', label: t('cams.zoom.label'), icon: <ZoomIn size={18}/>}, { id: 'eye', label: t('cams.eye.label'), icon: <Heart size={18}/>}, { id: 'hand', label: t('cams.hand.label'), icon: <Video size={18}/>}].map(m => (
                     <button key={m.id} onClick={()=>setCam(m.id)} className={`relative p-4 rounded-3xl border flex flex-col items-center gap-3 transition-all group overflow-hidden
                         ${cam===m.id
                             ? (mode==='velvet' ? 'bg-[#C6A649] border-[#C6A649] text-black shadow-lg' : 'bg-black border-black text-white shadow-lg')
@@ -255,24 +253,24 @@ export const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, pr
 
             {/* PROMPT */}
             <div className="relative group">
-                <textarea value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder="Describe your vision..." className={`${inputClass} h-32 mb-8 resize-none p-6 text-sm ${mode==='velvet' ? 'border-pink-900/50 focus:border-pink-500' : ''}`}/>
+                <textarea value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder={t('studio.prompt_placeholder')} className={`${inputClass} h-32 mb-8 resize-none p-6 text-sm ${mode==='velvet' ? 'border-pink-900/50 focus:border-pink-500' : ''}`}/>
                 <div className="absolute bottom-10 right-4"><Sparkles size={16} className={`${mode==='velvet'?'text-[#C6A649]':'text-blue-500'} opacity-50`}/></div>
             </div>
 
             {/* DURATION & RATIO */}
             <div className={`grid grid-cols-2 gap-8 pt-6 border-t ${mode==='velvet'?'border-white/5':'border-gray-100'}`}>
                 <div className="space-y-4">
-                    <div className="flex justify-between items-center"><span className="text-[10px] uppercase tracking-widest opacity-40">Duration</span><span className={`font-bold text-xs ${mode==='velvet'?'text-[#C6A649]':'text-blue-600'}`}>{dur}s</span></div>
+                    <div className="flex justify-between items-center"><span className="text-[10px] uppercase tracking-widest opacity-40">{t('studio.duration')}</span><span className={`font-bold text-xs ${mode==='velvet'?'text-[#C6A649]':'text-blue-600'}`}>{dur}s</span></div>
                     <div className={`flex gap-2 p-1.5 rounded-2xl border ${mode==='velvet'?'bg-black/40 border-white/10':'bg-gray-100 border-gray-200'}`}>
                         <button onClick={()=>setDur(5)} className={`flex-1 py-3 rounded-xl text-[9px] font-bold uppercase transition-all ${toggleClass(dur===5)}`}>5s (10cr)</button>
                         <button onClick={()=>setDur(10)} className={`flex-1 py-3 rounded-xl text-[9px] font-bold uppercase transition-all ${toggleClass(dur===10)}`}>10s (20cr)</button>
                     </div>
                 </div>
                 <div className="space-y-4">
-                    <div className="flex justify-between items-center"><span className="text-[10px] uppercase tracking-widest opacity-40">Ratio</span></div>
+                    <div className="flex justify-between items-center"><span className="text-[10px] uppercase tracking-widest opacity-40">{t('studio.ratio')}</span></div>
                     <div className={`flex gap-2 p-1.5 rounded-2xl border ${mode==='velvet'?'bg-black/40 border-white/10':'bg-gray-100 border-gray-200'}`}>
                         {RATIOS.map(r => (
-                            <button key={r.id} onClick={() => setRatio(r.id)} className={`flex-1 py-3 rounded-xl text-[9px] font-bold uppercase transition-all ${toggleClass(ratio === r.id)}`}>{r.id}</button>
+                            <button key={r.id} onClick={() => setRatio(r.id)} className={`flex-1 py-3 rounded-xl text-[9px] font-bold uppercase transition-all ${toggleClass(ratio === r.id)}`}>{t(r.label)}</button>
                         ))}
                     </div>
                 </div>
@@ -280,12 +278,12 @@ export const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, pr
         </div>
 
         {/* ACTION BUTTON */}
-        <button id="studio-generate-btn" onClick={generate} disabled={loading || (!img && !vid)} className={`w-full py-7 rounded-[32px] font-bold uppercase tracking-[0.3em] text-xs flex items-center justify-center gap-4 fixed bottom-6 left-4 right-4 lg:static lg:w-full z-50 shadow-2xl transition-all duration-300
+        <button id="studio-generate-btn" onClick={generate} disabled={loading || (!img && !vid)} className={`w-full py-7 rounded-[32px] font-bold uppercase tracking-[0.3em] text-xs flex items-center justify-center gap-4 fixed bottom-24 lg:bottom-auto left-4 right-4 lg:static lg:w-full z-50 shadow-2xl transition-all duration-300
             ${mode==='velvet'
                 ? (velvetFilter ? S.btnVelvet : S.btnGold)
                 : 'bg-black text-white shadow-lg hover:bg-gray-800 hover:shadow-xl active:scale-95'
             }`}>
-            {loading ? "Processing..." : <><Zap size={18}/> {t('studio.generate')} ({calculateCost()})</>}
+            {loading ? t('studio.processing') : <><Zap size={18}/> {t('studio.generate')} ({calculateCost()})</>}
         </button>
       </div>
 
@@ -305,7 +303,7 @@ export const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, pr
                     {!resUrl && !loading && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-white/10 gap-6 border border-white/5">
                             <div className="w-24 h-24 rounded-full border border-white/5 flex items-center justify-center"><Video size={40} strokeWidth={1}/></div>
-                            <span className="text-[9px] uppercase tracking-[0.4em] font-light">Preview</span>
+                            <span className="text-[9px] uppercase tracking-[0.4em] font-light">{t('studio.preview')}</span>
                         </div>
                     )}
 
@@ -327,9 +325,9 @@ export const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, pr
                 {resUrl ? (
                     <a href={resUrl} download className={`px-12 py-4 rounded-full text-[10px] font-bold uppercase hover:scale-105 transition-transform flex gap-3 shadow-2xl items-center
                         ${mode==='velvet' ? 'bg-white text-black' : 'bg-black text-white'}
-                    `}><Download size={16}/> Download 4K</a>
+                    `}><Download size={16}/> {t('studio.download')}</a>
                 ) : (
-                    <div className={`text-[9px] uppercase tracking-widest ${mode==='velvet'?'text-white/30':'text-gray-400'}`}>Ready to Render</div>
+                    <div className={`text-[9px] uppercase tracking-widest ${mode==='velvet'?'text-white/30':'text-gray-400'}`}>{t('studio.ready_render')}</div>
                 )}
             </div>
          </div>
