@@ -6,11 +6,28 @@ import { MercadoPagoConfig, Preference } from 'mercadopago';
 import helmet from 'helmet';
 import compression from 'compression';
 import { createClient } from '@supabase/supabase-js';
+import OpenAI from 'openai';
 
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3001;
+
+// --- CONFIGURATION ---
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co';
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder';
+
+const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const mpAccessToken = process.env.MP_ACCESS_TOKEN || 'TEST-TOKEN';
+const client = new MercadoPagoConfig({ accessToken: mpAccessToken });
+
+const replicateToken = process.env.REPLICATE_API_TOKEN;
+const replicate = new Replicate({ auth: replicateToken });
+
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+});
 
 // --- CACHE ---
 let exchangeRateCache = {
@@ -45,18 +62,6 @@ async function getUsdToArsRate() {
   return exchangeRateCache.rate || 1200; // Fallback to safe default
 }
 
-// --- CONFIGURATION ---
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co';
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder';
-
-const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-const mpAccessToken = process.env.MP_ACCESS_TOKEN || 'TEST-TOKEN';
-const client = new MercadoPagoConfig({ accessToken: mpAccessToken });
-
-const replicateToken = process.env.REPLICATE_API_TOKEN;
-const replicate = new Replicate({ auth: replicateToken });
-
 // --- MIDDLEWARE ---
 app.use(helmet());
 app.use(compression());
@@ -73,6 +78,32 @@ const getUser = async (req) => {
     return user;
 };
 
+const analyzeProductImage = async (imageUrl) => {
+    try {
+        const response = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            messages: [
+                {
+                    role: "system",
+                    content: "You are a visual analysis AI. Output ONLY a short, concise visual description of the main object in the image (e.g., 'a red soda can', 'a black leather handbag'). Do not use full sentences. Do not describe the background."
+                },
+                {
+                    role: "user",
+                    content: [
+                        { type: "text", text: "Analyze this product image." },
+                        { type: "image_url", image_url: { url: imageUrl } },
+                    ],
+                },
+            ],
+            max_tokens: 50,
+        });
+        return response.choices[0].message.content.trim();
+    } catch (error) {
+        console.error("Vision Analysis Failed:", error.message);
+        throw error; // Propagate to let the caller handle the fallback
+    }
+};
+
 // --- API GENERATE VIDEO (VELVET ENGINE) ---
 app.post('/api/generate', async (req, res) => {
   try {
@@ -81,7 +112,19 @@ app.post('/api/generate', async (req, res) => {
     if (!replicateToken) throw new Error("Falta configurar Replicate API Token");
 
     // 1. Calculate Costs
-    const { duration, mode, prompt, aspectRatio, image, inputVideo, endImage, velvetStyle } = req.body;
+    const {
+        duration,
+        mode,
+        prompt,
+        aspectRatio,
+        image,
+        inputVideo,
+        endImage,
+        velvetStyle,
+        product_image_url,
+        action_type
+    } = req.body;
+
     let cost = Number(duration) === 5 ? 10 : 20;
     if (mode === 'velvet') cost += 10; // Velvet Premium
 
@@ -101,9 +144,43 @@ app.post('/api/generate', async (req, res) => {
       if (deductError) throw new Error("Error actualizando saldo");
     }
 
-    // 4. Prompt Engineering
-    let stylePrompt = "";
+    // 4. Prompt Engineering (Vision & Logic)
+    let effectivePrompt = prompt || "Beautiful subject";
 
+    // --- VISION MIDDLEWARE START ---
+    if (product_image_url) {
+        console.log(`👁️ Vision Middleware Active for ${user.email}`);
+        try {
+            const visionOutput = await analyzeProductImage(product_image_url);
+            console.log(`👁️ Vision Output: "${visionOutput}"`);
+
+            // Map action_type to phrase
+            const action = action_type || 'holding';
+            const actionMap = {
+                'holding': `holding ${visionOutput}`,
+                'drinking': `drinking from ${visionOutput}`,
+                'using': `using ${visionOutput}`,
+                'wearing': `wearing ${visionOutput}`
+            };
+
+            // Default to 'holding' + output if key not found
+            const actionPhrase = actionMap[action] || `holding ${visionOutput}`;
+
+            // Inject into prompt
+            // "Subject description, [actionPhrase], style..."
+            // Remove trailing period from base prompt if present
+            if (effectivePrompt.endsWith('.')) effectivePrompt = effectivePrompt.slice(0, -1);
+
+            effectivePrompt = `${effectivePrompt}, ${actionPhrase}`;
+
+        } catch (visionError) {
+            console.warn("⚠️ Vision Middleware failed, falling back to original prompt.", visionError.message);
+            // Fallback: Proceed with effectivePrompt as is (original prompt)
+        }
+    }
+    // --- VISION MIDDLEWARE END ---
+
+    let stylePrompt = "";
     if (mode === 'velvet') {
         const skinOptimizer = ", (skin texture:1.4), (visible pores:1.3)";
         switch (velvetStyle) {
@@ -121,12 +198,14 @@ app.post('/api/generate', async (req, res) => {
         stylePrompt = ", cinematic lighting, commercial grade, sharp focus, masterpiece, shot on ARRI Alexa, color graded, professional studio, vogue magazine style, 4k, clean composition";
     }
 
+    const finalPrompt = effectivePrompt + stylePrompt;
+
     const negativePrompt = mode === 'velvet'
         ? "censor bars, mosaic, blur, cartoonish skin, airbrushed, plastic look, 3d render, plastic, doll, smooth skin, cartoon, illustration, symmetry, cgi, drawing, doll-like, deformed, ugly, watermark, text, low quality, distortion, bad anatomy, extra limbs"
         : "cartoon, drawing, illustration, plastic skin, doll-like, deformed, ugly, blur, watermark, text, low quality, distortion, bad anatomy, extra limbs, cgi, 3d render";
 
     const inputPayload = {
-      prompt: (prompt || "Beautiful subject") + stylePrompt,
+      prompt: finalPrompt,
       aspect_ratio: aspectRatio || "9:16",
       duration: Number(duration),
       cfg_scale: mode === 'velvet' ? 0.45 : 0.6,
@@ -141,7 +220,7 @@ app.post('/api/generate', async (req, res) => {
         if (endImage) inputPayload.tail_image = endImage;
     }
 
-    console.log(`🎬 Generating ${mode?.toUpperCase() || 'STD'} for ${user.email}`);
+    console.log(`🎬 Generating ${mode?.toUpperCase() || 'STD'} for ${user.email} | Prompt: ${finalPrompt.substring(0, 50)}...`);
     const output = await replicate.run("kwaivgi/kling-v2.5-turbo-pro", { input: inputPayload });
     const remoteUrl = Array.isArray(output) ? output[0] : output;
 
@@ -162,7 +241,7 @@ app.post('/api/generate', async (req, res) => {
     await supabaseAdmin.from('generations').insert({
         user_id: user.id,
         video_url: publicUrl,
-        prompt: prompt,
+        prompt: finalPrompt, // Save the actual used prompt
         aspect_ratio: aspectRatio,
         cost: cost
     });
@@ -237,11 +316,6 @@ app.post('/api/buy', async (req, res) => {
 
 // Alias for compatibility
 app.post('/api/marketplace/buy', async (req, res) => {
-    // Redirect logic to the main handler
-    // We can't internally redirect in Express easily with body preservation without re-calling logic
-    // So we just call the logic again or extract it.
-    // For simplicity, I'll copy the body of /api/buy here or better yet, just extract the logic.
-    // But since I'm overwriting the file, I'll just use the same code.
     try {
         const user = await getUser(req);
         const { talent_id } = req.body;
