@@ -12,10 +12,19 @@ import { useTranslation } from 'react-i18next';
 import './i18n';
 
 // --- CONFIGURATION ---
+const getApiUrl = () => {
+  let url = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+  url = url.replace(/\/$/, "");
+  if (!url.endsWith('/api')) {
+    url += '/api';
+  }
+  return url;
+};
+
 const CONFIG = {
   SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co',
   SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder',
-  API_URL: import.meta.env.VITE_API_URL || 'http://localhost:3001/api',
+  API_URL: getApiUrl(),
 };
 
 // --- STYLES ---
@@ -983,7 +992,7 @@ const GalleryPage = ({ videos, setVideos }: any) => {
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
         {videos.map((v:any) => (
             <div key={v.id} className={`rounded-[30px] overflow-hidden group relative hover:-translate-y-2 transition-all ${mode==='velvet'?S.panel:'bg-white shadow-lg border border-gray-100'}`}>
-                <video src={v.url} className="aspect-[9/16] object-cover w-full" controls preload="metadata" playsInline crossOrigin="anonymous"/>
+                <video src={v.url} className="aspect-[9/16] object-cover w-full" autoPlay muted loop playsInline crossOrigin="anonymous"/>
                 <div className={`p-5 flex justify-between items-center ${mode==='velvet'?'bg-[#0a0a0a]':'bg-white'}`}>
                     <span className={`text-[9px] font-bold uppercase tracking-widest ${mode==='velvet'?'text-white/40':'text-gray-400'}`}>{v.date}</span>
                     <div className="flex gap-2">
