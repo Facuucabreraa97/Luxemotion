@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useLocation, NavLink, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Loader2, Play, Sparkles, ChevronDown, ChevronRight, Mail, Lock, Upload, X, Plus, User,
-  Briefcase, Camera, ShoppingBag, Globe, Download, Zap, Check, Video, Users,
+  Briefcase, ShoppingBag, Globe, Download, Zap, Check, Video, Users,
   Image as ImageIcon, CreditCard, Settings, LogOut, Crown, Film, Move, ZoomIn,
   Heart, Smartphone, Monitor, Square, Flame, LayoutDashboard, Info
 } from 'lucide-react';
@@ -63,6 +63,8 @@ export interface Talent {
   role?: string;
   dna_prompt?: string;
   user_id?: string;
+  for_sale?: boolean;
+  price?: number;
 }
 
 export interface GeneratedVideo {
@@ -119,6 +121,24 @@ const ONBOARDING_STEPS = [
 
 // --- SUPABASE ---
 const supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+
+// --- HELPER COMPONENTS ---
+const VideoPlayer = ({ src, className, ...props }: any) => {
+    const [error, setError] = useState(false);
+    if (error) return <div className={`flex items-center justify-center bg-gray-900 text-white/50 text-xs ${className}`}>Video Unavailable</div>;
+    return (
+        <video
+            src={src}
+            className={className}
+            controls
+            playsInline
+            crossOrigin="anonymous"
+            preload="metadata"
+            onError={() => setError(true)}
+            {...props}
+        />
+    );
+};
 
 // --- CONTEXTS ---
 type Mode = 'velvet' | 'agency';
@@ -566,22 +586,43 @@ const ExplorePage = () => {
         const fetchData = async () => {
             try {
                 if (tab === 'community') {
-                    // Correct query: select public generations (community) without user filter
+                    // Try to fetch with profiles, fall back to simple if needed
                     let { data, error } = await supabase
                         .from('generations')
-                        .select('*')
+                        .select('*, profiles(name, avatar)')
                         .eq('is_public', true)
                         .order('created_at', { ascending: false });
+
+                    if (error) {
+                        // Fallback to simple query if relationship fails
+                        const simple = await supabase
+                            .from('generations')
+                            .select('*')
+                            .eq('is_public', true)
+                            .order('created_at', { ascending: false });
+                        data = simple.data;
+                        error = simple.error;
+                    }
 
                     if (error) throw error;
                     if (active) setItems(data || []);
                 } else {
-                    // Correct query: select talents for sale (marketplace)
+                    // Marketplace items - Show all (no user filtering)
                     let { data, error } = await supabase
                         .from('talents')
-                        .select('*')
+                        .select('*, profiles(name, avatar)')
                         .eq('for_sale', true)
                         .order('created_at', { ascending: false });
+
+                     if (error) {
+                         const simple = await supabase
+                             .from('talents')
+                             .select('*')
+                             .eq('for_sale', true)
+                             .order('created_at', { ascending: false });
+                         data = simple.data;
+                         error = simple.error;
+                     }
 
                     if (error) throw error;
                     if (active) setItems(data || []);
@@ -664,7 +705,7 @@ const ExplorePage = () => {
                              return (
                              <div key={item.id} className={`rounded-[30px] overflow-hidden group relative hover:-translate-y-2 transition-all ${mode==='velvet'?S.panel:'bg-white shadow-lg border border-gray-100'}`}>
                                 {isVid ? (
-                                    <video src={assetUrl} className="aspect-[9/16] object-cover w-full" controls preload="metadata" playsInline crossOrigin="anonymous" />
+                                    <VideoPlayer src={assetUrl} className="aspect-[9/16] object-cover w-full" />
                                 ) : (
                                     <img src={assetUrl} className="aspect-[3/4] object-cover w-full" />
                                 )}
@@ -802,6 +843,24 @@ const TalentPage = ({ list, add, del, notify, videos }: any) => {
   const [isForSale, setIsForSale] = useState(false);
   const [createPrice, setCreatePrice] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [localVideos, setLocalVideos] = useState<any[]>(videos || []);
+
+  // UseEffect to sync videos prop if it changes or load if missing
+  useEffect(() => {
+    if (videos && videos.length > 0) {
+        setLocalVideos(videos);
+    } else {
+        // Fallback fetch if videos prop is empty (robustness)
+        const fetchVids = async () => {
+             const { data: { user } } = await supabase.auth.getUser();
+             if (user) {
+                 const { data } = await supabase.from('generations').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
+                 if (data) setLocalVideos(data);
+             }
+        };
+        fetchVids();
+    }
+  }, [videos, open]); // Reload when modal opens to be fresh
 
   const save = () => {
       setErrorMsg(null);
@@ -859,7 +918,7 @@ const TalentPage = ({ list, add, del, notify, videos }: any) => {
         {open && (
             <div className={`grid grid-cols-1 md:grid-cols-2 gap-12 p-12 rounded-[40px] mb-12 transition-all duration-500 ${isVelvet ? S.panel : 'bg-white shadow-xl border border-gray-100'}`}>
                 <div onClick={()=>setShowGallery(true)} className={`aspect-[3/4] rounded-[30px] border-2 border-dashed flex items-center justify-center relative overflow-hidden group cursor-pointer transition-all ${isVelvet ? 'bg-black/30 border-white/10 hover:border-[#C6A649]/50' : 'bg-gray-50 border-gray-300 hover:border-blue-500'}`}>
-                    {img ? (isVideo(img) ? <video src={img} className="w-full h-full object-cover" controls preload="metadata" playsInline crossOrigin="anonymous"/> : <img src={img} className="w-full h-full object-cover"/>) : (<div className={`text-center ${isVelvet?'opacity-30':'opacity-50 text-gray-500'}`}><ImageIcon className="mx-auto mb-4 w-8 h-8"/><span className="text-[10px] font-bold uppercase tracking-widest">Select from Gallery</span></div>)}
+                    {img ? (isVideo(img) ? <VideoPlayer src={img} className="w-full h-full object-cover" /> : <img src={img} className="w-full h-full object-cover"/>) : (<div className={`text-center ${isVelvet?'opacity-30':'opacity-50 text-gray-500'}`}><ImageIcon className="mx-auto mb-4 w-8 h-8"/><span className="text-[10px] font-bold uppercase tracking-widest">Select from Gallery</span></div>)}
                 </div>
                 <div className="flex flex-col justify-center gap-8">
                     {errorMsg && <div className="text-red-500 text-[10px] font-bold uppercase">{errorMsg}</div>}
@@ -890,13 +949,13 @@ const TalentPage = ({ list, add, del, notify, videos }: any) => {
                 <div className={`w-full max-w-4xl max-h-[80vh] overflow-y-auto p-8 rounded-[40px] ${isVelvet ? 'bg-[#0a0a0a] border border-white/10' : 'bg-white'}`}>
                     <div className="flex justify-between items-center mb-8"><h3 className={`text-2xl font-bold uppercase tracking-widest ${isVelvet?'text-white':'text-black'}`}>Select Asset</h3><button onClick={()=>setShowGallery(false)}><X size={24} className={isVelvet?'text-white':'text-black'}/></button></div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {videos && videos.map((v:any) => (
+                        {localVideos && localVideos.map((v:any) => (
                             <div key={v.id} onClick={()=>{setImg(v.url); setShowGallery(false);}} className="cursor-pointer group relative aspect-[9/16] rounded-xl overflow-hidden border border-transparent hover:border-[#C6A649]">
-                                {isVideo(v.url) ? <video src={v.url} className="w-full h-full object-cover" controls preload="metadata" playsInline crossOrigin="anonymous"/> : <img src={v.url} className="w-full h-full object-cover" />}
+                                {isVideo(v.url) ? <VideoPlayer src={v.url} className="w-full h-full object-cover" /> : <img src={v.url} className="w-full h-full object-cover" />}
                                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all"/>
                             </div>
                         ))}
-                         {(!videos || videos.length === 0) && <p className="col-span-4 text-center text-gray-500 py-10">No generations found.</p>}
+                         {(!localVideos || localVideos.length === 0) && <p className="col-span-4 text-center text-gray-500 py-10">No generations found.</p>}
                     </div>
                 </div>
             </div>
@@ -904,7 +963,7 @@ const TalentPage = ({ list, add, del, notify, videos }: any) => {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
             {list.map((inf:Talent) => (
                 <div key={inf.id} className={`rounded-[30px] overflow-hidden relative group transition-all duration-500 hover:-translate-y-2 ${isVelvet ? S.panel : 'bg-white shadow-lg border border-gray-100'}`}>
-                    {isVideo(inf.image_url) ? <video src={inf.image_url} className="aspect-[3/4] object-cover w-full group-hover:scale-105 transition-transform duration-700" controls preload="metadata" playsInline crossOrigin="anonymous"/> : <img src={inf.image_url} className="aspect-[3/4] object-cover w-full group-hover:scale-105 transition-transform duration-700"/>}
+                    {isVideo(inf.image_url) ? <VideoPlayer src={inf.image_url} className="aspect-[3/4] object-cover w-full group-hover:scale-105 transition-transform duration-700" /> : <img src={inf.image_url} className="aspect-[3/4] object-cover w-full group-hover:scale-105 transition-transform duration-700"/>}
                     <div className="absolute bottom-0 inset-x-0 p-6 pt-20 flex justify-between items-end bg-gradient-to-t from-black/90 via-black/50 to-transparent">
                         <div><span className="text-[10px] font-bold uppercase tracking-widest text-white block">{inf.name}</span>{(inf as any).for_sale && <span className="text-[8px] font-bold uppercase bg-[#C6A649] text-black px-2 py-0.5 rounded-full mt-1 inline-block ml-2">For Sale</span>}</div>
                         <div className="flex gap-2">
@@ -952,10 +1011,10 @@ const GalleryPage = ({ videos, setVideos }: any) => {
   return (
   <div className={`p-6 lg:p-12 pb-32 animate-in fade-in ${mode==='velvet'?'':'bg-gray-50'}`}>
     <h2 className={`text-4xl font-bold uppercase tracking-[0.2em] mb-12 border-b pb-8 ${mode==='velvet'?'text-white border-white/10':'text-gray-900 border-gray-200'}`}>Portfolio</h2>
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
         {videos.map((v:any) => (
             <div key={v.id} className={`rounded-[30px] overflow-hidden group relative hover:-translate-y-2 transition-all ${mode==='velvet'?S.panel:'bg-white shadow-lg border border-gray-100'}`}>
-                <video src={v.url} className="aspect-[9/16] object-cover w-full" controls preload="metadata" playsInline crossOrigin="anonymous"/>
+                <VideoPlayer src={v.url} className="aspect-[9/16] object-cover w-full" />
                 <div className={`p-5 flex justify-between items-center ${mode==='velvet'?'bg-[#0a0a0a]':'bg-white'}`}>
                     <span className={`text-[9px] font-bold uppercase tracking-widest ${mode==='velvet'?'text-white/40':'text-gray-400'}`}>{v.date}</span>
                     <div className="flex gap-2">
@@ -1109,7 +1168,7 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile }
             </div>
             <div className="grid grid-cols-2 gap-6">
                 <div id="studio-source-upload" className={`aspect-[3/4] rounded-[30px] border-2 border-dashed relative overflow-hidden group transition-all duration-300 ${type==='vid'?'border-blue-500/30':(mode==='velvet'?'border-white/10 hover:border-[#C6A649]/50':'border-gray-200 hover:border-blue-500')}`}>
-                    {type==='img' ? ( img ? (<><img src={img} className="w-full h-full object-cover"/>{img===DEMO_IMG && <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-[#C6A649] text-black text-[8px] font-bold px-3 py-1 rounded-full uppercase shadow-lg flex gap-2"><Sparkles size={10}/> Demo</div>}<button onClick={()=>{setImg(null);}} className="absolute top-4 right-4 bg-black/60 p-2 rounded-full text-white hover:bg-red-500 transition-all z-20"><X size={14}/></button></>) : <div className={`absolute inset-0 flex flex-col items-center justify-center ${mode==='velvet'?'text-white/20':'text-gray-400'}`}><Upload className="mb-4 w-8 h-8"/><span className="text-[9px] uppercase font-bold tracking-widest text-center">Subject /<br/>AI Model</span><input type="file" onChange={e=>handleFile(e, setImg)} className="absolute inset-0 opacity-0 cursor-pointer"/></div> ) : ( vid ? (<><video src={vid} className="w-full h-full object-cover opacity-50" controls preload="metadata" playsInline crossOrigin="anonymous"/><button onClick={()=>setVid(null)} className="absolute top-4 right-4 bg-black/50 p-2 rounded-full text-white hover:bg-red-500 z-20"><X size={14}/></button></>) : <div className="absolute inset-0 flex flex-col items-center justify-center text-blue-500/40"><Film className="mb-4 w-8 h-8"/><span className="text-[9px] uppercase font-bold tracking-widest text-center">Upload<br/>Video</span><input type="file" onChange={e=>handleFile(e, setVid)} className="absolute inset-0 opacity-0 cursor-pointer"/></div> )}
+                    {type==='img' ? ( img ? (<><img src={img} className="w-full h-full object-cover"/>{img===DEMO_IMG && <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-[#C6A649] text-black text-[8px] font-bold px-3 py-1 rounded-full uppercase shadow-lg flex gap-2"><Sparkles size={10}/> Demo</div>}<button onClick={()=>{setImg(null);}} className="absolute top-4 right-4 bg-black/60 p-2 rounded-full text-white hover:bg-red-500 transition-all z-20"><X size={14}/></button></>) : <div className={`absolute inset-0 flex flex-col items-center justify-center ${mode==='velvet'?'text-white/20':'text-gray-400'}`}><Upload className="mb-4 w-8 h-8"/><span className="text-[9px] uppercase font-bold tracking-widest text-center">Subject /<br/>AI Model</span><input type="file" onChange={e=>handleFile(e, setImg)} className="absolute inset-0 opacity-0 cursor-pointer"/></div> ) : ( vid ? (<><VideoPlayer src={vid} className="w-full h-full object-cover opacity-50" /><button onClick={()=>setVid(null)} className="absolute top-4 right-4 bg-black/50 p-2 rounded-full text-white hover:bg-red-500 z-20"><X size={14}/></button></>) : <div className="absolute inset-0 flex flex-col items-center justify-center text-blue-500/40"><Film className="mb-4 w-8 h-8"/><span className="text-[9px] uppercase font-bold tracking-widest text-center">Upload<br/>Video</span><input type="file" onChange={e=>handleFile(e, setVid)} className="absolute inset-0 opacity-0 cursor-pointer"/></div> )}
                 </div>
                 <div className="flex flex-col gap-4">
                      <div id="studio-product-upload" className={`aspect-[3/4] rounded-[30px] border-2 border-dashed relative overflow-hidden group transition-all duration-300 ${mode==='velvet'?'border-white/10 bg-black/20 hover:border-[#C6A649]/50':'border-gray-200 bg-gray-50 hover:border-blue-500'}`}>
@@ -1166,7 +1225,7 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile }
                     <div className="absolute top-6 left-6 right-6 flex justify-between items-center z-20 pointer-events-none opacity-60"><div className="text-[10px] text-white font-mono flex items-center gap-2"><span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span> REC</div><div className="text-[10px] text-white font-mono">{dur}s • 4K</div></div>
                     {!resUrl && !loading && (<div className="absolute inset-0 flex flex-col items-center justify-center text-white/10 gap-6 border border-white/5"><div className="w-24 h-24 rounded-full border border-white/5 flex items-center justify-center"><Video size={40} strokeWidth={1}/></div><span className="text-[9px] uppercase tracking-[0.4em] font-light">Preview</span></div>)}
                     {loading && (<div className="absolute inset-0 bg-[#050505] z-30 flex flex-col items-center justify-center"><div className={`w-20 h-20 border-t-2 border-r-2 rounded-full animate-spin mb-8 shadow-[0_0_30px_rgba(198,166,73,0.2)] ${mode==='velvet' ? 'border-[#C6A649]' : 'border-black shadow-lg'}`}></div><p className={`text-[10px] uppercase tracking-widest animate-pulse font-bold ${mode==='velvet'?'text-[#C6A649]':'text-black'}`}>{t('studio.processing')}</p></div>)}
-                    {resUrl && <video src={resUrl} className="w-full h-full object-cover" controls preload="metadata" playsInline crossOrigin="anonymous"/>}
+                    {resUrl && <VideoPlayer src={resUrl} className="w-full h-full object-cover" />}
                  </div>
             </div>
             <div className={`p-6 border-t flex justify-center backdrop-blur-sm transition-colors ${mode==='velvet'?'border-white/5 bg-black/40':'border-gray-100 bg-white/40'}`}>

@@ -18,7 +18,7 @@ let exchangeRateCache = {
   timestamp: 0
 };
 
-const CACHE_DURATION = 3600 * 1000; // 1 hora
+const CACHE_DURATION = 3600 * 1000; // 1 hour
 
 async function getUsdToArsRate() {
   const now = Date.now();
@@ -206,6 +206,7 @@ app.get('/api/explore', async (req, res) => {
 
     let results = [];
 
+    // Fetch Videos (Generations)
     if (type === 'all' || type === 'videos') {
       try {
         const { data: videos, error: vidError } = await supabaseAdmin
@@ -221,12 +222,16 @@ app.get('/api/explore', async (req, res) => {
       }
     }
 
+    // Fetch Models (Talents)
     if (type === 'all' || type === 'models') {
        try {
+         // Show public talents. For Marketplace we have a specific endpoint /api/marketplace.
+         // Here in Explore we might want to see what people are sharing.
+         // If a talent is for_sale, it should likely also be visible here if is_public is true.
          const { data: models, error: modError } = await supabaseAdmin
           .from('talents')
           .select('*, profiles(name, avatar)')
-          .or('is_public.eq.true,for_sale.eq.true')
+          .eq('is_public', true)
           .order('created_at', { ascending: false })
           .range(offset, offset + limit - 1);
 
@@ -291,6 +296,8 @@ app.post('/api/publish', async (req, res) => {
 // --- API MARKETPLACE (GET ITEMS FOR SALE) ---
 app.get('/api/marketplace', async (req, res) => {
   try {
+    // Marketplace must show ALL items for sale, regardless of user.
+    // Querying talents where for_sale is true.
     const { data: talents, error } = await supabaseAdmin
       .from('talents')
       .select('*, profiles(name, avatar)')
@@ -300,6 +307,7 @@ app.get('/api/marketplace', async (req, res) => {
     if (error) throw error;
     res.json(talents);
   } catch (error) {
+    console.error("Marketplace Error:", error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -358,93 +366,6 @@ app.post('/api/buy', async (req, res) => {
     console.error("Purchase Error:", error);
     res.status(500).json({ error: error.message });
   }
-});
-
-// --- API MARKETPLACE LIST ---
-app.post('/api/marketplace/list', async (req, res) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) throw new Error("Falta Token");
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-    if (authError || !user) throw new Error("Usuario inválido");
-
-    const { talent_id, price } = req.body;
-
-    // Verify ownership
-    const { data: talent } = await supabaseAdmin.from('talents').select('user_id').eq('id', talent_id).single();
-    if (!talent || talent.user_id !== user.id) throw new Error("No tienes permiso");
-
-    const { error } = await supabaseAdmin.from('talents').update({
-      for_sale: true,
-      price: price,
-      is_public: true // Automatically make public when listing
-    }).eq('id', talent_id);
-
-    if (error) throw error;
-
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// --- API MARKETPLACE BUY (Original - kept for compatibility) ---
-app.post('/api/marketplace/buy', async (req, res) => {
-    // Redirect to main buy logic or duplicate
-    // For simplicity, I'll just reuse the buy logic handler if I extracted it, but here I'll just duplicate safe logic since it's the same
-    // Actually, I can just call the same logic. But I'll leave the one I wrote above as the primary /api/buy.
-    // The previous implementation was identical.
-    try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader) throw new Error("Falta Token");
-        const token = authHeader.replace('Bearer ', '');
-        const { data: { user: buyer }, error: authError } = await supabaseAdmin.auth.getUser(token);
-        if (authError || !buyer) throw new Error("Usuario inválido");
-
-        const { talent_id } = req.body;
-
-        // Get Talent info
-        const { data: talent } = await supabaseAdmin.from('talents').select('*').eq('id', talent_id).single();
-        if (!talent) throw new Error("Modelo no encontrado");
-        if (!talent.for_sale) throw new Error("Este modelo no está a la venta");
-        if (talent.user_id === buyer.id) throw new Error("No puedes comprar tu propio modelo");
-
-        const price = talent.price;
-        const sellerId = talent.user_id;
-
-        // Check Buyer Balance
-        const { data: buyerProfile } = await supabaseAdmin.from('profiles').select('credits').eq('id', buyer.id).single();
-        if (buyerProfile.credits < price) throw new Error("Créditos insuficientes");
-
-        // Perform Transaction
-        const { error: deductError } = await supabaseAdmin.from('profiles').update({
-          credits: buyerProfile.credits - price
-        }).eq('id', buyer.id);
-        if (deductError) throw new Error("Error procesando pago");
-
-        const commission = Math.floor(price * 0.1);
-        const sellerEarnings = price - commission;
-
-        const { data: sellerProfile } = await supabaseAdmin.from('profiles').select('credits').eq('id', sellerId).single();
-        await supabaseAdmin.from('profiles').update({
-          credits: sellerProfile.credits + sellerEarnings
-        }).eq('id', sellerId);
-
-        // Transfer Ownership
-        await supabaseAdmin.from('talents').update({
-          user_id: buyer.id,
-          for_sale: false,
-          is_public: false,
-          price: null
-        }).eq('id', talent_id);
-
-        res.json({ success: true, message: `Has comprado ${talent.name} por ${price} créditos` });
-
-      } catch (error) {
-        console.error("Purchase Error:", error);
-        res.status(500).json({ error: error.message });
-      }
 });
 
 app.listen(port, () => console.log(`🛡️ SERVER LUXE (ULTRA HOT) EN PUERTO ${port}`));
