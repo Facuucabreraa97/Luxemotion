@@ -5,7 +5,7 @@ import {
   Loader2, Play, Sparkles, ChevronDown, ChevronRight, Mail, Lock, Upload, X, Plus, User,
   Briefcase, Camera, ShoppingBag, Globe, Download, Zap, Check, Video, Users,
   Image as ImageIcon, CreditCard, Settings, LogOut, Crown, Film, Move, ZoomIn,
-  Heart, Smartphone, Monitor, Square, Flame, LayoutDashboard, Info
+  Heart, Smartphone, Monitor, Square, Flame, LayoutDashboard, Info, Mic
 } from 'lucide-react';
 import { createClient, Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { useTranslation } from 'react-i18next';
@@ -119,6 +119,12 @@ const VELVET_STYLES = [
   { id: 'leaked' },
   { id: 'boudoir' },
   { id: 'cosplay' },
+];
+
+const VOICES = [
+  { id: '21m00Tcm4TlvDq8ikWAM', name: 'Rachel', desc: 'Soft American' },
+  { id: 'AZnzlk1XvdvUeBnXmlld', name: 'Domi', desc: 'Strong/Narrative' },
+  { id: 'ErXwobaYiN019PkySvjV', name: 'Antoni', desc: 'Male' }
 ];
 
 const ONBOARDING_STEPS = [
@@ -1188,6 +1194,12 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile }
   const [dur, setDur] = useState(5);
   const [velvetFilter, setVelvetFilter] = useState(false);
   const [velvetStyle, setVelvetStyle] = useState('leaked');
+
+  // Voice State
+  const [voiceMode, setVoiceMode] = useState(false);
+  const [voiceScript, setVoiceScript] = useState('');
+  const [voiceId, setVoiceId] = useState(VOICES[0].id);
+
   const [loading, setLoading] = useState(false);
   const [resUrl, setResUrl] = useState<string|null>(null);
   const [modal, setModal] = useState(false);
@@ -1202,7 +1214,16 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile }
   }, [mode]);
 
   const handleFile = (e:any, setter:any) => { const f = e.target.files[0]; if(f) { const r=new FileReader(); r.onload=()=>setter(r.result); r.readAsDataURL(f); } };
-  const calculateCost = () => { let base = dur === 5 ? 10 : 20; if (mode === 'velvet' || velvetFilter) base += 10; return base; };
+
+  const calculateCost = () => {
+      let base = 5;
+      if (voiceMode && voiceScript.trim().length > 0) {
+          base += 20;
+      }
+      if (mode === 'velvet' || velvetFilter) base += 10;
+      return base;
+  };
+
   const handlePromptInjection = (text: string) => { setPrompt(prev => prev + (prev ? ", " : "") + text); };
 
   const generate = async () => {
@@ -1214,12 +1235,31 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile }
           const { data: { session } } = await supabase.auth.getSession();
           const effectiveMode = mode === 'velvet' ? 'velvet' : 'standard';
           const effectiveVelvetStyle = mode === 'velvet' ? velvetStyle : null;
+
+          const payload = {
+              image: img,
+              endImage: prod,
+              inputVideo: vid,
+              prompt,
+              duration: dur,
+              aspectRatio: ratio,
+              mode: effectiveMode,
+              velvetStyle: effectiveVelvetStyle,
+              voiceScript: (voiceMode && voiceScript) ? voiceScript : undefined,
+              voiceId: (voiceMode && voiceId) ? voiceId : undefined
+          };
+
           const r = await fetch(`${CONFIG.API_URL}/generate`, {
               method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
-              body: JSON.stringify({ image: img, endImage: prod, inputVideo: vid, prompt, duration: dur, aspectRatio: ratio, mode: effectiveMode, velvetStyle: effectiveVelvetStyle })
+              body: JSON.stringify(payload)
           });
           const d = await r.json();
-          if(d.videoUrl) { setResUrl(d.videoUrl); onGen({url: d.videoUrl, cost, id: Date.now().toString(), date: new Date().toLocaleDateString(), prompt, aspectRatio: ratio}); notify(t('studio.generated_success')); } else throw new Error(d.error);
+          if(d.videoUrl) {
+              setResUrl(d.videoUrl);
+              onGen({url: d.videoUrl, cost, id: Date.now().toString(), date: new Date().toLocaleDateString(), prompt, aspectRatio: ratio});
+              if (d.voiceWarning) notify(`Video generado (Voz falló: se cobraron ${cost - 20}cr)`);
+              else notify(t('studio.generated_success'));
+          } else throw new Error(d.error);
       } catch(e:any) { console.error(e); notify(t('auth.connection_error')); } finally { setLoading(false); }
   };
 
@@ -1281,6 +1321,59 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile }
                     {VELVET_STYLES.map(v => (<button key={v.id} onClick={()=>{setVelvetStyle(v.id); handlePromptInjection(t(`velvet_styles.${v.id}.desc`));}} className={`p-3 rounded-2xl border transition-all text-center group ${velvetStyle===v.id ? (mode==='velvet' ? 'bg-pink-500/10 border-pink-500 text-white' : 'bg-purple-100 border-purple-500 text-purple-900') : (mode==='velvet' ? 'bg-black/40 border-white/5 text-white/50' : 'bg-white border-gray-200 text-gray-400')}`}><p className="text-[8px] font-bold uppercase tracking-widest mb-1">{t(`velvet_styles.${v.id}.name`)}</p></button>))}
                 </div>
             )}
+
+            {/* LUXEVOICE MODE (+20 CR) */}
+            <div className={`p-6 rounded-3xl border mb-6 transition-all ${mode==='velvet'?'bg-black/40 border-white/10':'bg-gray-50 border-gray-200'}`}>
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-full ${voiceMode ? (mode==='velvet' ? 'bg-[#C6A649] text-black' : 'bg-blue-600 text-white') : (mode==='velvet'?'bg-white/10 text-white/50':'bg-gray-200 text-gray-400')}`}>
+                            <Mic size={14}/>
+                        </div>
+                        <div>
+                            <p className={`text-[10px] font-bold uppercase tracking-widest ${mode==='velvet'?'text-white':'text-gray-900'}`}>Voice Mode</p>
+                            <p className={`text-[8px] ${mode==='velvet'?'text-white/50':'text-gray-500'}`}>+20 Credits (LipSync)</p>
+                        </div>
+                    </div>
+
+                    <button
+                        onClick={() => setVoiceMode(!voiceMode)}
+                        className={`w-10 h-5 rounded-full relative transition-all duration-300 ${voiceMode ? (mode==='velvet'?'bg-[#C6A649]':'bg-blue-600') : 'bg-gray-300'}`}
+                    >
+                        <div className={`absolute top-1 bottom-1 w-3 h-3 rounded-full bg-white transition-all duration-300 ${voiceMode ? 'right-1' : 'left-1'}`}/>
+                    </button>
+                </div>
+
+                {voiceMode && (
+                    <div className="animate-in fade-in slide-in-from-top-2 space-y-4 pt-2">
+                        {/* Voice Selection */}
+                        <div className="grid grid-cols-3 gap-2">
+                            {VOICES.map(v => (
+                                <button
+                                    key={v.id}
+                                    onClick={() => setVoiceId(v.id)}
+                                    className={`p-2 rounded-xl border text-center transition-all ${voiceId === v.id
+                                        ? (mode==='velvet' ? 'border-[#C6A649] text-[#C6A649] bg-[#C6A649]/10' : 'border-blue-600 text-blue-600 bg-blue-50')
+                                        : (mode==='velvet' ? 'border-white/10 text-white/40' : 'border-gray-200 text-gray-400')}`}
+                                >
+                                    <p className="text-[9px] font-bold uppercase">{v.name}</p>
+                                    <p className="text-[7px] opacity-60">{v.desc}</p>
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Script Input */}
+                        <textarea
+                            value={voiceScript}
+                            onChange={e => setVoiceScript(e.target.value)}
+                            maxLength={200}
+                            placeholder="Enter script for voice synthesis (max 200 chars)..."
+                            className={`${inputClass} h-24`}
+                        />
+                        <div className={`flex justify-end text-[8px] ${mode==='velvet'?'text-white/30':'text-gray-400'}`}>{voiceScript.length}/200</div>
+                    </div>
+                )}
+            </div>
+
             <div className="relative group"><textarea value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder={t('studio.prompt_placeholder')} className={`${inputClass} h-32 mb-8 resize-none p-6 text-sm ${mode==='velvet' ? 'border-pink-900/50 focus:border-pink-500' : ''}`}/><div className="absolute bottom-10 right-4"><Sparkles size={16} className={`${mode==='velvet'?'text-[#C6A649]':'text-blue-500'} opacity-50`}/></div></div>
             <div className={`grid grid-cols-2 gap-8 pt-6 border-t ${mode==='velvet'?'border-white/5':'border-gray-100'}`}>
                 <div className="space-y-4">

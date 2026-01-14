@@ -7,6 +7,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
+import axios from 'axios';
 
 // Load .dotenv only in non-production environments
 if (process.env.NODE_ENV !== 'production') {
@@ -30,6 +31,8 @@ const client = new MercadoPagoConfig({ accessToken: mpAccessToken });
 
 const replicateToken = process.env.REPLICATE_API_TOKEN;
 const replicate = new Replicate({ auth: replicateToken });
+
+const elevenLabsApiKey = process.env.ELEVENLABS_API_KEY;
 
 // Safety Check for OpenAI
 let openai;
@@ -126,7 +129,7 @@ app.post('/api/generate', async (req, res) => {
 
     if (!replicateToken) throw new Error("Missing Replicate API Token");
 
-    // 1. Calculate Costs
+    // 1. Calculate Costs (Modified for LuxeVoice)
     const {
         duration,
         mode,
@@ -137,11 +140,19 @@ app.post('/api/generate', async (req, res) => {
         endImage,
         velvetStyle,
         product_image_url,
-        action_type
+        action_type,
+        voiceScript, // Phase 2 Trigger
+        voiceId
     } = req.body;
 
-    let cost = Number(duration) === 5 ? 10 : 20;
-    if (mode === 'velvet') cost += 10; // Velvet Premium
+    // Default base cost (5 for standard)
+    // If voiceScript is present, cost jumps to 25.
+    let cost = 5;
+    if (voiceScript && voiceScript.length > 0) {
+        cost = 25;
+    }
+
+    if (mode === 'velvet') cost += 10; // Velvet Premium surcharge stacks
 
     // 2. Verify Balance
     const { data: profile } = await supabaseAdmin.from('profiles').select('credits, is_admin').eq('id', user.id).single();
@@ -154,6 +165,7 @@ app.post('/api/generate', async (req, res) => {
     }
 
     // 3. Deduct Credits (if not admin)
+    // We deduct FULL amount upfront to prevent fraud. We refund if Phase 2 fails.
     if (!isAdmin) {
       const { error: deductError } = await supabaseAdmin.from('profiles').update({ credits: profile.credits - cost }).eq('id', user.id);
       if (deductError) throw new Error("Error updating balance");
@@ -236,11 +248,84 @@ app.post('/api/generate', async (req, res) => {
     }
 
     console.log(`🎬 Generating ${mode?.toUpperCase() || 'STD'} for ${user.email} | Prompt: ${finalPrompt.substring(0, 50)}...`);
+
+    // PHASE 1: Base Video Generation
     const output = await replicate.run("kwaivgi/kling-v2.5-turbo-pro", { input: inputPayload });
     const remoteUrl = Array.isArray(output) ? output[0] : output;
 
-    // 5. Upload to Storage
-    const videoRes = await fetch(remoteUrl);
+    let finalVideoUrl = remoteUrl;
+    let voiceSuccess = false;
+    let voiceWarning = false;
+
+    // PHASE 2: Voice Layer (Conditional)
+    if (voiceScript && voiceId) {
+        console.log(`🎤 Voice Mode Active: Script "${voiceScript.substring(0, 20)}..." | Voice: ${voiceId}`);
+        try {
+            if (!elevenLabsApiKey) throw new Error("ElevenLabs API Key missing");
+
+            // Step A: TTS (ElevenLabs)
+            const ttsResponse = await axios.post(
+                `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+                {
+                    text: voiceScript,
+                    model_id: "eleven_monolingual_v1",
+                    voice_settings: { stability: 0.5, similarity_boost: 0.5 }
+                },
+                {
+                    headers: {
+                        'xi-api-key': elevenLabsApiKey,
+                        'Content-Type': 'application/json',
+                        'Accept': 'audio/mpeg'
+                    },
+                    responseType: 'arraybuffer'
+                }
+            );
+
+            // Step B: Upload Audio to Storage
+            const audioBuffer = ttsResponse.data;
+            const audioFileName = `audio-temp/${user.id}-${Date.now()}.mp3`;
+            const { error: audioUploadError } = await supabaseAdmin.storage
+                .from('assets') // Using 'assets' bucket as requested
+                .upload(audioFileName, audioBuffer, { contentType: 'audio/mpeg' });
+
+            if (audioUploadError) throw new Error("Audio upload failed: " + audioUploadError.message);
+
+            const { data: { publicUrl: audioUrl } } = supabaseAdmin.storage
+                .from('assets')
+                .getPublicUrl(audioFileName);
+
+            console.log("🔊 Audio uploaded:", audioUrl);
+
+            // Step C: Lip-Sync (Replicate)
+            // Using cjwbw/video-retalking
+            const syncOutput = await replicate.run(
+                "cjwbw/video-retalking:db5a63d14300880584749699479a42ca0f55b1f486d9a9f24e4c9e782e5d9780",
+                {
+                    input: {
+                        face: remoteUrl, // Result from Phase 1
+                        input_audio: audioUrl
+                    }
+                }
+            );
+
+            finalVideoUrl = Array.isArray(syncOutput) ? syncOutput[0] : syncOutput;
+            voiceSuccess = true;
+            console.log("🗣️ LipSync Complete:", finalVideoUrl);
+
+        } catch (voiceError) {
+            console.error("⚠️ Voice Layer Failed:", voiceError.message);
+            voiceWarning = true;
+
+            // Refund the extra cost (20 credits)
+            if (!isAdmin) {
+                await supabaseAdmin.from('profiles').update({ credits: profile.credits - 5 }).eq('id', user.id); // Refund 20, keeping 5 base
+                cost = 5; // Update cost variable for record keeping
+            }
+        }
+    }
+
+    // 5. Upload Final Result to Storage
+    const videoRes = await fetch(finalVideoUrl);
     const videoBlob = await videoRes.arrayBuffer();
     const fileName = `luxe_${user.id}_${Date.now()}.mp4`;
 
@@ -261,7 +346,12 @@ app.post('/api/generate', async (req, res) => {
         cost: cost
     });
 
-    res.json({ videoUrl: publicUrl, cost, remainingCredits: isAdmin ? profile.credits : profile.credits - cost });
+    res.json({
+        videoUrl: publicUrl,
+        cost,
+        remainingCredits: isAdmin ? profile.credits : (voiceWarning ? profile.credits - 5 : profile.credits - cost),
+        voiceWarning
+    });
 
   } catch (error) {
     console.error("❌ Generation Error:", error.message);
