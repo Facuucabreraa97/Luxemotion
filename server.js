@@ -314,15 +314,17 @@ app.post('/api/buy', async (req, res) => {
 
     // Existence Verification
     const { data: userProfile, error: userError } = await supabaseAdmin
-        .from('profiles')
-        .select('id')
+        .from('profiles') // <--- KEY: Use the real table
+        .select('id, credits, email')
         .eq('id', buyerId)
         .single();
 
     if (userError || !userProfile) {
-         console.error("❌ User Verification Failed:", userError?.message);
-         throw new Error("Invalid User: User not found in database");
+         console.error("❌ Error searching for profile:", userError);
+         throw new Error("Invalid User: User not found in database (Check table name 'profiles')");
     }
+
+    console.log(`✅ Valid Buyer: ${userProfile.email} | Credits: ${userProfile.credits}`);
 
     const talent_id = req.body.talent_id || req.body.assetId;
     if (!talent_id) throw new Error("Talent ID (assetId) required");
