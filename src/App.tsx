@@ -344,6 +344,7 @@ const StudioOnboarding = () => {
 interface CheckoutModalProps { planKey: string; annual: boolean; onClose: () => void; }
 const CheckoutModal = ({ planKey, annual: initialAnnual, onClose }: CheckoutModalProps) => {
   const { mode } = useMode();
+  const { showToast } = useToast();
   const [isAnnual, setIsAnnual] = useState(initialAnnual);
   const plan = PRICING[planKey];
   const price = isAnnual && plan.yearlyPrice ? plan.yearlyPrice : plan.price;
@@ -353,7 +354,7 @@ const CheckoutModal = ({ planKey, annual: initialAnnual, onClose }: CheckoutModa
 
   const handleCheckout = async () => {
       if (currency === 'USDT') {
-          alert("Crypto payments are temporarily unavailable. Please use Mercado Pago.");
+          showToast("Pagos Crypto temporalmente deshabilitados. Usa Mercado Pago.", 'info');
           return;
       }
       setLoad(true);
@@ -361,9 +362,6 @@ const CheckoutModal = ({ planKey, annual: initialAnnual, onClose }: CheckoutModa
         const { data: { session } } = await supabase.auth.getSession();
         if(!session) return;
 
-        // Calculate price to send.
-        // If ARS, we want to charge exactly what is displayed (price * 1500).
-        // We send currency: 'ARS' so backend skips conversion.
         const payloadPrice = currency === 'ARS' ? price * 1500 : price;
         const payloadCurrency = currency;
 
@@ -377,13 +375,24 @@ const CheckoutModal = ({ planKey, annual: initialAnnual, onClose }: CheckoutModa
                 currency: payloadCurrency
             })
         });
+
+        if (!res.ok) throw new Error("Error iniciando pago");
+
         const data = await res.json();
         if(data.id) {
             // @ts-ignore
-            const mp = new window.MercadoPago(import.meta.env.VITE_MP_PUBLIC_KEY, { locale: 'es-AR' });
-            mp.checkout({ preference: { id: data.id }, autoOpen: true });
+            if (window.MercadoPago) {
+                // @ts-ignore
+                const mp = new window.MercadoPago(import.meta.env.VITE_MP_PUBLIC_KEY, { locale: 'es-AR' });
+                mp.checkout({ preference: { id: data.id }, autoOpen: true });
+            } else {
+                window.location.href = data.url; // Fallback to init_point if script not loaded
+            }
         }
-      } catch(e) { console.error(e); } finally { setLoad(false); }
+      } catch(e) {
+          console.error(e);
+          showToast("Error conectando con pasarela de pago", 'error');
+      } finally { setLoad(false); }
   };
 
   const displayPrice = currency === 'ARS' ? (price * 1500).toLocaleString('es-AR') : price;
@@ -602,7 +611,7 @@ const ExplorePage = () => {
 
     const handleBuy = async (item: any) => {
         if (!item.for_sale || !item.price) return;
-        if (!window.confirm(`Buy ${item.name || 'this item'} for ${item.price} credits?`)) return;
+        if (!window.confirm(`Confirma compra de ${item.name || 'este talento'} por ${item.price} créditos?`)) return;
 
         setPurchasing(item.id);
         try {
@@ -619,14 +628,14 @@ const ExplorePage = () => {
             });
 
             const result = await res.json();
-            if (!res.ok) throw new Error(result.error || 'Purchase failed');
+            if (!res.ok) throw new Error(result.error || 'Error en la compra');
 
-            showToast(result.message || 'Purchase successful!', 'success');
-            // Refresh items to remove the bought item
+            showToast(result.message || '¡Compra exitosa! Talento añadido a tu casting.', 'success');
+            // Optimistically update UI
             setItems(prev => prev.filter(i => i.id !== item.id));
         } catch (error: any) {
             console.error("Purchase error:", error);
-            showToast(error.message || 'Error processing purchase', 'error');
+            showToast(error.message || 'Error procesando la compra', 'error');
         } finally {
             setPurchasing(null);
         }
@@ -805,7 +814,7 @@ const TalentPage = ({ list, add, del, notify, videos }: any) => {
 
   const save = () => {
       setErrorMsg(null);
-      if(!img || !name) { setErrorMsg("Image and Name are required"); return; }
+      if(!img || !name) { setErrorMsg("Imagen y Nombre son requeridos"); return; }
 
       let finalPrice = 0;
       let finalForSale = false;
@@ -813,13 +822,10 @@ const TalentPage = ({ list, add, del, notify, videos }: any) => {
       if (isForSale) {
           finalPrice = parseFloat(createPrice);
           if (isNaN(finalPrice) || finalPrice <= 0) {
-              setErrorMsg("Price must be greater than 0");
+              setErrorMsg("El precio debe ser mayor a 0");
               return;
           }
           finalForSale = true;
-      } else {
-          finalPrice = 0;
-          finalForSale = false;
       }
 
       add({
@@ -837,7 +843,7 @@ const TalentPage = ({ list, add, del, notify, videos }: any) => {
       setNotes('');
       setIsForSale(false);
       setCreatePrice('');
-      notify("Persona Added");
+      notify("Persona creada exitosamente");
       navigate('/app/explore?tab=marketplace');
   };
   const handleSell = async (id: string) => {

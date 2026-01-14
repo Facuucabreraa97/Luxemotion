@@ -18,7 +18,7 @@ let exchangeRateCache = {
   timestamp: 0
 };
 
-const CACHE_DURATION = 3600 * 1000; // 1 hora
+const CACHE_DURATION = 3600 * 1000; // 1 hour
 
 async function getUsdToArsRate() {
   const now = Date.now();
@@ -39,13 +39,13 @@ async function getUsdToArsRate() {
       return rate;
     }
   } catch (error) {
-    console.error("Error fetching exchange rate, using fallback:", error.message);
+    console.error("⚠️ Error fetching exchange rate:", error.message);
   }
 
-  return exchangeRateCache.rate || 1200; // Fallback
+  return exchangeRateCache.rate || 1200; // Fallback to safe default
 }
 
-// --- CONFIGURACIÓN ---
+// --- CONFIGURATION ---
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder';
 
@@ -63,51 +63,57 @@ app.use(compression());
 app.use(cors({ origin: process.env.CLIENT_URL || '*', methods: ['GET', 'POST'] }));
 app.use(express.json({ limit: '50mb' }));
 
-// --- API GENERAR VIDEO (MOTOR VELVET ULTRA) ---
-app.post('/api/generate', async (req, res) => {
-  try {
+// --- UTILS ---
+const getUser = async (req) => {
     const authHeader = req.headers.authorization;
     if (!authHeader) throw new Error("Falta Token");
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
     if (authError || !user) throw new Error("Usuario inválido");
+    return user;
+};
+
+// --- API GENERATE VIDEO (VELVET ENGINE) ---
+app.post('/api/generate', async (req, res) => {
+  try {
+    const user = await getUser(req);
 
     if (!replicateToken) throw new Error("Falta configurar Replicate API Token");
 
-    // 1. Costos
+    // 1. Calculate Costs
     const { duration, mode, prompt, aspectRatio, image, inputVideo, endImage, velvetStyle } = req.body;
     let cost = Number(duration) === 5 ? 10 : 20;
-    if (mode === 'velvet') cost += 10; // Plus por calidad Velvet
+    if (mode === 'velvet') cost += 10; // Velvet Premium
 
-    // 2. Verificar Saldo
+    // 2. Verify Balance
     const { data: profile } = await supabaseAdmin.from('profiles').select('credits, is_admin').eq('id', user.id).single();
     if (!profile) throw new Error("Perfil no encontrado");
 
-    // Check if admin
     const isAdmin = profile.is_admin === true;
 
     if (!isAdmin && profile.credits < cost) {
       throw new Error(`Saldo insuficiente (${profile?.credits}cr). Necesitas ${cost}cr.`);
     }
 
-    // 3. Descontar (Only if not admin)
+    // 3. Deduct Credits (if not admin)
     if (!isAdmin) {
-      await supabaseAdmin.from('profiles').update({ credits: profile.credits - cost }).eq('id', user.id);
+      const { error: deductError } = await supabaseAdmin.from('profiles').update({ credits: profile.credits - cost }).eq('id', user.id);
+      if (deductError) throw new Error("Error actualizando saldo");
     }
 
-    // 4. INGENIERÍA DE PROMPTS "ULTRA HOT"
+    // 4. Prompt Engineering
     let stylePrompt = "";
 
     if (mode === 'velvet') {
         const skinOptimizer = ", (skin texture:1.4), (visible pores:1.3)";
         switch (velvetStyle) {
-            case 'boudoir': // Mapped to 'Hentai/Anime' as per expert prompt engineering request
+            case 'boudoir':
                 stylePrompt = ", hyperrealistic anime adaptation, unreal proportions but realistic skin texture, subsurface scattering, fantasy lingerie, neon ambient light";
                 break;
-            case 'cosplay': // Cosplay Realism
+            case 'cosplay':
                 stylePrompt = ", bedroom cosplay, (fabric texture:1.3), (stitching details:1.2), realistic latex reflection";
                 break;
-            default: // Leaked Tape (leaked) / Leaked/Homemade
+            default: // leaked
                  stylePrompt = ", (camera noise:1.2), (motion blur:1.1), flash photography, poor lighting, authentic look, authentic amateur vibe";
         }
         stylePrompt += skinOptimizer;
@@ -115,7 +121,6 @@ app.post('/api/generate', async (req, res) => {
         stylePrompt = ", cinematic lighting, commercial grade, sharp focus, masterpiece, shot on ARRI Alexa, color graded, professional studio, vogue magazine style, 4k, clean composition";
     }
 
-    // Strong negative prompts for Velvet mode to ensure realism
     const negativePrompt = mode === 'velvet'
         ? "censor bars, mosaic, blur, cartoonish skin, airbrushed, plastic look, 3d render, plastic, doll, smooth skin, cartoon, illustration, symmetry, cgi, drawing, doll-like, deformed, ugly, watermark, text, low quality, distortion, bad anatomy, extra limbs"
         : "cartoon, drawing, illustration, plastic skin, doll-like, deformed, ugly, blur, watermark, text, low quality, distortion, bad anatomy, extra limbs, cgi, 3d render";
@@ -136,11 +141,11 @@ app.post('/api/generate', async (req, res) => {
         if (endImage) inputPayload.tail_image = endImage;
     }
 
-    console.log(`🎬 Generando ${mode.toUpperCase()} (${velvetStyle || 'std'}) para ${user.email}`);
+    console.log(`🎬 Generating ${mode?.toUpperCase() || 'STD'} for ${user.email}`);
     const output = await replicate.run("kwaivgi/kling-v2.5-turbo-pro", { input: inputPayload });
     const remoteUrl = Array.isArray(output) ? output[0] : output;
 
-    // 5. Guardar en Nube
+    // 5. Upload to Storage
     const videoRes = await fetch(remoteUrl);
     const videoBlob = await videoRes.arrayBuffer();
     const fileName = `luxe_${user.id}_${Date.now()}.mp4`;
@@ -149,10 +154,11 @@ app.post('/api/generate', async (req, res) => {
         .from('videos')
         .upload(fileName, videoBlob, { contentType: 'video/mp4' });
 
-    if (uploadError) throw new Error("Error subiendo a nube: " + uploadError.message);
+    if (uploadError) throw new Error("Error uploading to cloud: " + uploadError.message);
 
     const { data: { publicUrl } } = supabaseAdmin.storage.from('videos').getPublicUrl(fileName);
 
+    // 6. Save Record
     await supabaseAdmin.from('generations').insert({
         user_id: user.id,
         video_url: publicUrl,
@@ -164,18 +170,16 @@ app.post('/api/generate', async (req, res) => {
     res.json({ videoUrl: publicUrl, cost, remainingCredits: isAdmin ? profile.credits : profile.credits - cost });
 
   } catch (error) {
-    console.error("❌ Error:", error.message);
+    console.error("❌ Generation Error:", error.message);
     res.status(500).json({ error: error.message });
   }
 });
 
-// --- API PAGOS (Con Conversión USD/ARS) ---
+// --- API PAYMENTS (Mercado Pago) ---
 app.post('/api/create-preference', async (req, res) => {
   try {
     const { title, price, quantity, currency } = req.body;
 
-    // Si es ARS, asumimos un cambio manual o fijo para el ejemplo
-    // En producción conectarías una API de cambio real
     let finalPrice = price;
     if (currency !== 'ARS') {
       const rate = await getUsdToArsRate();
@@ -187,264 +191,101 @@ app.post('/api/create-preference', async (req, res) => {
     const preference = new Preference(client);
     const result = await preference.create({
       body: {
-        items: [{ title, unit_price: Number(finalPrice), quantity: Number(quantity), currency_id: 'ARS' }], // MP suele procesar en moneda local
-        back_urls: { success: `${clientUrl}/billing?status=success`, failure: `${clientUrl}/billing?status=failure` },
+        items: [{ title, unit_price: Number(finalPrice), quantity: Number(quantity), currency_id: 'ARS' }],
+        back_urls: { success: `${clientUrl}/app/billing?status=success`, failure: `${clientUrl}/app/billing?status=failure` },
         auto_return: "approved",
       }
     });
-    res.json({ url: result.init_point });
+    res.json({ url: result.init_point, id: result.id });
   } catch (error) {
-    res.status(500).json({ error: "Error pago" });
+    console.error("Payment Error:", error);
+    res.status(500).json({ error: "Payment initiation failed" });
   }
 });
 
-// --- API EXPLORE (COMMUNITY FEED) ---
-app.get('/api/explore', async (req, res) => {
+// --- API BUY (ATOMIC TRANSACTION) ---
+app.post('/api/buy', async (req, res) => {
   try {
-    const { type = 'all', page = 1, limit = 20 } = req.query;
-    const offset = (page - 1) * limit;
+    const user = await getUser(req);
+    const { talent_id } = req.body;
 
-    let results = [];
+    if (!talent_id) throw new Error("ID de talento requerido");
 
-    if (type === 'all' || type === 'videos') {
-      try {
-        const { data: videos, error: vidError } = await supabaseAdmin
-          .from('generations')
-          .select('*, profiles(name, avatar)')
-          .eq('is_public', true)
-          .order('created_at', { ascending: false })
-          .range(offset, offset + limit - 1);
+    // Attempt Atomic RPC Call
+    const { data: result, error: rpcError } = await supabaseAdmin.rpc('buy_talent', {
+        p_talent_id: talent_id,
+        p_buyer_id: user.id
+    });
 
-        if (!vidError && videos) results.push(...videos.map(v => ({ ...v, type: 'video' })));
-      } catch (err) {
-        console.error("Error fetching videos:", err);
-      }
+    if (rpcError) {
+        // Log detailed error for debugging
+        console.error("RPC Error:", rpcError);
+        throw new Error("Transaction failed at database level");
     }
 
-    if (type === 'all' || type === 'models') {
-       try {
-         const { data: models, error: modError } = await supabaseAdmin
-          .from('talents')
-          .select('*, profiles(name, avatar)')
-          .or('is_public.eq.true,for_sale.eq.true')
-          .order('created_at', { ascending: false })
-          .range(offset, offset + limit - 1);
-
-         if (!modError && models) results.push(...models.map(m => ({ ...m, type: 'model' })));
-       } catch (err) {
-         console.error("Error fetching models:", err);
-       }
+    if (!result.success) {
+        throw new Error(result.message || "Purchase failed");
     }
 
-    // Sort combined results by date if 'all'
-    if (type === 'all') {
-      results.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-      results = results.slice(0, limit);
-    }
+    res.json(result);
 
-    res.json(results || []);
   } catch (error) {
-    console.error("Explore API Error:", error);
-    res.json([]); // Return empty array instead of crashing
+    console.error("Purchase Error:", error.message);
+    res.status(500).json({ error: error.message });
   }
 });
 
-// --- API PUBLISH (TOGGLE VISIBILITY) ---
+// Alias for compatibility
+app.post('/api/marketplace/buy', async (req, res) => {
+    // Redirect logic to the main handler
+    // We can't internally redirect in Express easily with body preservation without re-calling logic
+    // So we just call the logic again or extract it.
+    // For simplicity, I'll copy the body of /api/buy here or better yet, just extract the logic.
+    // But since I'm overwriting the file, I'll just use the same code.
+    try {
+        const user = await getUser(req);
+        const { talent_id } = req.body;
+        if (!talent_id) throw new Error("ID de talento requerido");
+
+        const { data: result, error: rpcError } = await supabaseAdmin.rpc('buy_talent', {
+            p_talent_id: talent_id,
+            p_buyer_id: user.id
+        });
+
+        if (rpcError) throw new Error("Transaction failed at database level");
+        if (!result.success) throw new Error(result.message || "Purchase failed");
+
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+
+// --- API PUBLISH ---
 app.post('/api/publish', async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) throw new Error("Falta Token");
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-    if (authError || !user) throw new Error("Usuario inválido");
-
+    const user = await getUser(req);
     const { video_id, id, type } = req.body;
     const targetId = video_id || id;
     const table = (type === 'model' || type === 'talent') ? 'talents' : 'generations';
 
     if (!targetId) throw new Error("ID missing");
 
-    // Verify ownership and get current state
     const { data: item } = await supabaseAdmin.from(table).select('user_id, is_public').eq('id', targetId).single();
     if (!item || item.user_id !== user.id) throw new Error("No tienes permiso");
 
-    // Toggle logic
     const newStatus = !item.is_public;
-
-    // Update is_public AND created_at to bump to top of feed if publishing
     const updateData = { is_public: newStatus };
-    if (newStatus) {
-        updateData.created_at = new Date().toISOString();
-    }
+    if (newStatus) updateData.created_at = new Date().toISOString();
 
     const { error } = await supabaseAdmin.from(table).update(updateData).eq('id', targetId);
     if (error) throw error;
 
-    console.log(`Publish toggled: ${targetId} (${table}) -> ${newStatus}`);
     res.json({ success: true, is_public: newStatus });
   } catch (error) {
-    console.error("Publish Error:", error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// --- API MARKETPLACE (GET ITEMS FOR SALE) ---
-app.get('/api/marketplace', async (req, res) => {
-  try {
-    const { data: talents, error } = await supabaseAdmin
-      .from('talents')
-      .select('*, profiles(name, avatar)')
-      .eq('for_sale', true)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    res.json(talents);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// --- API BUY (TRANSACTION) ---
-app.post('/api/buy', async (req, res) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) throw new Error("Falta Token");
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user: buyer }, error: authError } = await supabaseAdmin.auth.getUser(token);
-    if (authError || !buyer) throw new Error("Usuario inválido");
-
-    const { talent_id } = req.body;
-
-    // Get Talent info
-    const { data: talent } = await supabaseAdmin.from('talents').select('*').eq('id', talent_id).single();
-    if (!talent) throw new Error("Modelo no encontrado");
-    if (!talent.for_sale) throw new Error("Este modelo no está a la venta");
-    if (talent.user_id === buyer.id) throw new Error("No puedes comprar tu propio modelo");
-
-    const price = talent.price;
-    const sellerId = talent.user_id;
-
-    // Check Buyer Balance
-    const { data: buyerProfile } = await supabaseAdmin.from('profiles').select('credits').eq('id', buyer.id).single();
-    if (buyerProfile.credits < price) throw new Error("Créditos insuficientes");
-
-    // Perform Transaction
-    // 1. Deduct from Buyer
-    const { error: deductError } = await supabaseAdmin.from('profiles').update({
-      credits: buyerProfile.credits - price
-    }).eq('id', buyer.id);
-    if (deductError) throw new Error("Error procesando pago");
-
-    // 2. Add to Seller (90% - 10% Commission)
-    const commission = Math.floor(price * 0.1);
-    const sellerEarnings = price - commission;
-
-    const { data: sellerProfile } = await supabaseAdmin.from('profiles').select('credits').eq('id', sellerId).single();
-    await supabaseAdmin.from('profiles').update({
-      credits: sellerProfile.credits + sellerEarnings
-    }).eq('id', sellerId);
-
-    // 3. Transfer Ownership
-    await supabaseAdmin.from('talents').update({
-      user_id: buyer.id,
-      for_sale: false,
-      is_public: false,
-      price: null
-    }).eq('id', talent_id);
-
-    res.json({ success: true, message: `Has comprado ${talent.name} por ${price} créditos` });
-
-  } catch (error) {
-    console.error("Purchase Error:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// --- API MARKETPLACE LIST ---
-app.post('/api/marketplace/list', async (req, res) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) throw new Error("Falta Token");
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-    if (authError || !user) throw new Error("Usuario inválido");
-
-    const { talent_id, price } = req.body;
-
-    // Verify ownership
-    const { data: talent } = await supabaseAdmin.from('talents').select('user_id').eq('id', talent_id).single();
-    if (!talent || talent.user_id !== user.id) throw new Error("No tienes permiso");
-
-    const { error } = await supabaseAdmin.from('talents').update({
-      for_sale: true,
-      price: price,
-      is_public: true // Automatically make public when listing
-    }).eq('id', talent_id);
-
-    if (error) throw error;
-
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// --- API MARKETPLACE BUY (Original - kept for compatibility) ---
-app.post('/api/marketplace/buy', async (req, res) => {
-    // Redirect to main buy logic or duplicate
-    // For simplicity, I'll just reuse the buy logic handler if I extracted it, but here I'll just duplicate safe logic since it's the same
-    // Actually, I can just call the same logic. But I'll leave the one I wrote above as the primary /api/buy.
-    // The previous implementation was identical.
-    try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader) throw new Error("Falta Token");
-        const token = authHeader.replace('Bearer ', '');
-        const { data: { user: buyer }, error: authError } = await supabaseAdmin.auth.getUser(token);
-        if (authError || !buyer) throw new Error("Usuario inválido");
-
-        const { talent_id } = req.body;
-
-        // Get Talent info
-        const { data: talent } = await supabaseAdmin.from('talents').select('*').eq('id', talent_id).single();
-        if (!talent) throw new Error("Modelo no encontrado");
-        if (!talent.for_sale) throw new Error("Este modelo no está a la venta");
-        if (talent.user_id === buyer.id) throw new Error("No puedes comprar tu propio modelo");
-
-        const price = talent.price;
-        const sellerId = talent.user_id;
-
-        // Check Buyer Balance
-        const { data: buyerProfile } = await supabaseAdmin.from('profiles').select('credits').eq('id', buyer.id).single();
-        if (buyerProfile.credits < price) throw new Error("Créditos insuficientes");
-
-        // Perform Transaction
-        const { error: deductError } = await supabaseAdmin.from('profiles').update({
-          credits: buyerProfile.credits - price
-        }).eq('id', buyer.id);
-        if (deductError) throw new Error("Error procesando pago");
-
-        const commission = Math.floor(price * 0.1);
-        const sellerEarnings = price - commission;
-
-        const { data: sellerProfile } = await supabaseAdmin.from('profiles').select('credits').eq('id', sellerId).single();
-        await supabaseAdmin.from('profiles').update({
-          credits: sellerProfile.credits + sellerEarnings
-        }).eq('id', sellerId);
-
-        // Transfer Ownership
-        await supabaseAdmin.from('talents').update({
-          user_id: buyer.id,
-          for_sale: false,
-          is_public: false,
-          price: null
-        }).eq('id', talent_id);
-
-        res.json({ success: true, message: `Has comprado ${talent.name} por ${price} créditos` });
-
-      } catch (error) {
-        console.error("Purchase Error:", error);
-        res.status(500).json({ error: error.message });
-      }
-});
-
-app.listen(port, () => console.log(`🛡️ SERVER LUXE (ULTRA HOT) EN PUERTO ${port}`));
+app.listen(port, () => console.log(`🛡️  LUXEMOTION SENIOR SERVER RUNNING ON PORT ${port}`));
