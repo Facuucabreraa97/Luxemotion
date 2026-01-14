@@ -741,18 +741,22 @@ const ExplorePage = () => {
                                     <p className="text-white text-[10px] font-bold uppercase tracking-widest">{item.profiles?.name || 'User'}</p>
                                 </div>
                                 {tab === 'marketplace' && (
-                                    <>
+                                    <div className="absolute top-3 right-3 flex items-center gap-2 z-20">
+                                        <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-lg">
+                                            <span className="text-yellow-400 font-bold text-sm">{item.price} CR</span>
+                                        </div>
                                         <button
                                             onClick={(e) => { e.stopPropagation(); handleBuyClick(item); }}
+                                            className="bg-white text-black p-2 rounded-full hover:bg-gray-200 transition-all shadow-[0_0_15px_rgba(255,255,255,0.3)] active:scale-95"
                                             disabled={purchasing === item.id}
-                                            className="absolute top-2 right-2 bg-black/60 backdrop-blur-md text-white p-2 rounded-full hover:bg-[#C6A649] hover:text-black transition-all disabled:opacity-50 z-10"
                                         >
-                                            {purchasing === item.id ? <Loader2 size={14} className="animate-spin"/> : <ShoppingBag size={14}/>}
+                                            {purchasing === item.id ? <Loader2 size={20} className="animate-spin text-black"/> : (
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                                                    <path fillRule="evenodd" d="M7.5 6v.75H5.513c-.96 0-1.764.724-1.865 1.679l-1.263 12A1.875 1.875 0 0 0 4.25 22.5h15.5a1.875 1.875 0 0 0 1.865-2.071l-1.263-12a1.875 1.875 0 0 0-1.865-1.679H16.5V6a4.5 4.5 0 1 0-9 0ZM12 3a3 3 0 0 0-3 3v.75h6V6a3 3 0 0 0-3-3Zm-3 8.25a3 3 0 1 0 6 0v-.75a.75.75 0 0 1 1.5 0v.75a4.5 4.5 0 1 1-9 0v-.75a.75.75 0 0 1 1.5 0v.75Z" clipRule="evenodd" />
+                                                </svg>
+                                            )}
                                         </button>
-                                        <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full z-10">
-                                            <span className="text-[#C6A649] text-xs font-bold uppercase tracking-widest">{item.price} CR</span>
-                                        </div>
-                                    </>
+                                    </div>
                                 )}
                             </div>
                         )})}

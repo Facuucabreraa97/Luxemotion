@@ -303,6 +303,8 @@ app.post('/api/buy', async (req, res) => {
   console.log("HEADERS:", req.headers['content-type']);
   console.log("BODY RAW:", req.body);
 
+  console.log("🔑 CHECK ADMIN KEY:", process.env.SUPABASE_SERVICE_ROLE_KEY ? "LOADED (Ends in: " + process.env.SUPABASE_SERVICE_ROLE_KEY.slice(-5) + ")" : "NOT LOADED");
+
   try {
     // Robust User Extraction (Priority: Body > Token)
     let buyerId = req.body.userId || req.body.buyerId || req.body.user_id;
