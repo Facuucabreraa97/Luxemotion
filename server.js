@@ -8,7 +8,10 @@ import compression from 'compression';
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
 
-dotenv.config();
+// Load .dotenv only in non-production environments
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config();
+}
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -25,9 +28,15 @@ const client = new MercadoPagoConfig({ accessToken: mpAccessToken });
 const replicateToken = process.env.REPLICATE_API_TOKEN;
 const replicate = new Replicate({ auth: replicateToken });
 
-const openai = new OpenAI({
+// Safety Check for OpenAI
+let openai;
+if (process.env.OPENAI_API_KEY) {
+  openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
-});
+  });
+} else {
+  console.warn("⚠️ CRITICAL: OPENAI_API_KEY missing in Environment Variables. AI Vision features will be disabled.");
+}
 
 // --- CACHE ---
 let exchangeRateCache = {
@@ -79,6 +88,9 @@ const getUser = async (req) => {
 };
 
 const analyzeProductImage = async (imageUrl) => {
+    if (!openai) {
+        throw new Error("OpenAI client is not initialized (Missing API Key)");
+    }
     try {
         const response = await openai.chat.completions.create({
             model: "gpt-4o-mini",
