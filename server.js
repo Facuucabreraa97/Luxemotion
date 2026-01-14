@@ -299,16 +299,42 @@ app.post('/api/create-preference', async (req, res) => {
 
 // --- API BUY (ATOMIC TRANSACTION) ---
 app.post('/api/buy', async (req, res) => {
-  try {
-    const user = await getUser(req);
-    const { talent_id } = req.body;
+  console.log("💰 PURCHASE INTENT - Payload received:", req.body);
 
+  try {
+    // Robust User Extraction (Priority: Body > Token)
+    let buyerId = req.body.userId || req.body.buyerId || req.body.user_id;
+
+    if (!buyerId) {
+        try {
+            const user = await getUser(req);
+            buyerId = user.id;
+        } catch (e) {
+            console.warn("⚠️ Token extraction failed in /api/buy:", e.message);
+        }
+    }
+
+    if (!buyerId) throw new Error("Invalid User: ID is missing in request body");
+
+    // Existence Verification
+    const { data: userProfile, error: userError } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('id', buyerId)
+        .single();
+
+    if (userError || !userProfile) {
+         console.error("❌ User Verification Failed:", userError?.message);
+         throw new Error("Invalid User: User not found in database");
+    }
+
+    const { talent_id } = req.body;
     if (!talent_id) throw new Error("Talent ID required");
 
     // Attempt Atomic RPC Call
     const { data: result, error: rpcError } = await supabaseAdmin.rpc('buy_talent', {
         p_talent_id: talent_id,
-        p_buyer_id: user.id
+        p_buyer_id: buyerId
     });
 
     if (rpcError) {
