@@ -81,16 +81,25 @@ async function getUsdToArsRate() {
 app.use(helmet());
 app.use(compression());
 
-// 1. Middleware Configuration (Permissive to recover service)
+// 1. Middleware Configuration
+const allowedOrigins = [
+  'https://mivideoai.com',
+  'https://www.mivideoai.com',
+  'https://mivideoia.com',
+  'https://www.mivideoia.com',
+  'http://localhost:5173',
+  'http://localhost:3000'
+];
+
 app.use(cors({
-  origin: true, // Accept requests from any origin (Vercel/Localhost)
+  origin: allowedOrigins,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   credentials: true
 }));
 
-// 2. Safe Pre-flight (WITHOUT THE ASTERISK)
+// 2. Safe Pre-flight
 // This enables OPTIONS on all routes without breaking the router
-app.options(/(.*)/, cors());
+app.options(/(.*)/, cors({ origin: allowedOrigins, credentials: true }));
 
 app.use(express.json({ limit: '50mb' }));
 
