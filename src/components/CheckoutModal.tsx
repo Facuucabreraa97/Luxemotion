@@ -34,8 +34,8 @@ export const CheckoutModal = ({ planKey, annual, onClose }: { planKey: string, a
     ? S.panel
     : 'bg-white border border-gray-200 shadow-2xl text-black';
 
-  const textPrimary = mode === 'velvet' ? 'text-white' : 'text-gray-900';
-  const textSecondary = mode === 'velvet' ? 'text-white/50' : 'text-gray-500';
+  const textPrimary = mode === 'velvet' ? 'text-white' : 'text-black';
+  const textSecondary = mode === 'velvet' ? 'text-white/50' : 'text-gray-700';
   const textAccent = mode === 'velvet' ? 'text-[#C6A649]' : 'text-blue-600';
   const closeBtn = mode === 'velvet' ? 'text-white/30 hover:text-white' : 'text-gray-400 hover:text-black';
   const summaryBox = mode === 'velvet' ? 'bg-white/5' : 'bg-gray-50 border border-gray-100';
@@ -45,8 +45,8 @@ export const CheckoutModal = ({ planKey, annual, onClose }: { planKey: string, a
   const currencyActive = mode === 'velvet' ? 'bg-[#C6A649] text-black' : 'bg-black text-white';
   const currencyInactive = mode === 'velvet' ? 'text-gray-500' : 'text-gray-400 hover:bg-white/50';
   const divider = mode === 'velvet' ? 'border-white/10' : 'border-gray-200';
-  const totalLabel = mode === 'velvet' ? 'text-white/40' : 'text-gray-400';
-  const priceColor = mode === 'velvet' ? 'text-white' : 'text-gray-900';
+  const totalLabel = mode === 'velvet' ? 'text-white/40' : 'text-gray-600';
+  const priceColor = mode === 'velvet' ? 'text-white' : 'text-black';
 
   // Button Style Override for Agency Mode
   const actionBtn = mode === 'velvet'

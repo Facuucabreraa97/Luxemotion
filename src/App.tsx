@@ -434,9 +434,9 @@ const CheckoutModal = ({ planKey, annual: initialAnnual, onClose }: CheckoutModa
                   <Crown size={32} className="text-black fill-black/20"/>
               </div>
 
-              <h2 className={`text-3xl font-bold uppercase tracking-widest mb-2 ${mode==='velvet'?'text-white':'text-gray-900'}`}>{planName}</h2>
+              <h2 className={`text-3xl font-bold uppercase tracking-widest mb-2 ${mode==='velvet'?'text-white':'text-black'}`}>{planName}</h2>
               <div className="flex items-center justify-center gap-2 mb-8">
-                <span className={`text-[10px] font-bold uppercase tracking-[0.2em] ${mode==='velvet'?'text-white/40':'text-gray-400'}`}>Premium Access</span>
+                <span className={`text-[10px] font-bold uppercase tracking-[0.2em] ${mode==='velvet'?'text-white/40':'text-gray-600'}`}>Premium Access</span>
               </div>
 
               <div className="flex justify-center gap-2 mb-8 p-1 rounded-full bg-black/20 inline-flex backdrop-blur-sm border border-white/5">
@@ -450,7 +450,7 @@ const CheckoutModal = ({ planKey, annual: initialAnnual, onClose }: CheckoutModa
                   <span className={`text-[10px] font-bold uppercase tracking-widest ${isAnnual ? 'text-[#C6A649]' : 'text-white/30'}`}>{t('billing.annual')} <span className="bg-[#C6A649] text-black px-1.5 py-0.5 rounded text-[8px] ml-1">{t('billing.discount')}</span></span>
               </div>
 
-              <div className={`text-6xl font-serif font-bold mb-8 flex items-start justify-center gap-1 ${mode==='velvet'?'text-white':'text-gray-900'}`}>
+              <div className={`text-6xl font-serif font-bold mb-8 flex items-start justify-center gap-1 ${mode==='velvet'?'text-white':'text-black'}`}>
                 <span className="text-2xl mt-2 opacity-50">$</span>
                 {displayPrice}
                 <span className="text-sm font-sans font-normal self-end mb-2 opacity-40">/mo</span>
@@ -458,7 +458,7 @@ const CheckoutModal = ({ planKey, annual: initialAnnual, onClose }: CheckoutModa
 
               <div className={`rounded-2xl p-6 mb-8 text-left border ${mode==='velvet'?'bg-white/5 border-white/5':'bg-gray-50 border-gray-100'}`}>
                 <ul className="space-y-3">
-                    {features.map(f=><li key={f} className={`flex items-center gap-3 text-[10px] font-bold uppercase tracking-wider ${mode==='velvet'?'text-gray-300':'text-gray-600'}`}><div className="w-4 h-4 rounded-full bg-[#C6A649]/20 flex items-center justify-center"><Check size={8} className="text-[#C6A649]"/></div> {f}</li>)}
+                    {features.map(f=><li key={f} className={`flex items-center gap-3 text-[10px] font-bold uppercase tracking-wider ${mode==='velvet'?'text-gray-300':'text-black'}`}><div className="w-4 h-4 rounded-full bg-[#C6A649]/20 flex items-center justify-center"><Check size={8} className="text-[#C6A649]"/></div> {f}</li>)}
                 </ul>
               </div>
 
@@ -1120,11 +1120,11 @@ const BillingPage = ({ onSelect }: any) => {
   return (
     <div className="p-6 lg:p-12 pb-32 max-w-7xl mx-auto animate-in fade-in">
       <div className="text-center mb-16">
-          <h2 className={`text-4xl lg:text-5xl font-bold uppercase tracking-[0.2em] mb-4 ${isVelvet ? 'text-white' : 'text-gray-900'}`}>{t('billing.title')}</h2>
+          <h2 className={`text-4xl lg:text-5xl font-bold uppercase tracking-[0.2em] mb-4 ${isVelvet ? 'text-white' : 'text-black'}`}>{t('billing.title')}</h2>
           <div className="flex items-center justify-center gap-4 mt-8">
-              <span className={`text-[10px] font-bold uppercase tracking-widest ${!annual ? (isVelvet ? 'text-[#C6A649]' : 'text-blue-600') : (isVelvet ? 'text-white/40' : 'text-gray-400')}`}>{t('billing.monthly')}</span>
+              <span className={`text-[10px] font-bold uppercase tracking-widest ${!annual ? (isVelvet ? 'text-[#C6A649]' : 'text-blue-600') : (isVelvet ? 'text-white/40' : 'text-gray-600')}`}>{t('billing.monthly')}</span>
               <button onClick={()=>setAnnual(!annual)} className={`w-12 h-6 rounded-full relative p-1 transition-colors ${isVelvet ? 'bg-white/10 hover:bg-white/20' : 'bg-gray-200 hover:bg-gray-300'}`}><div className={`w-4 h-4 rounded-full shadow-lg transition-transform duration-300 ${annual ? 'translate-x-6' : ''} ${isVelvet ? 'bg-[#C6A649]' : 'bg-white'}`}></div></button>
-              <span className={`text-[10px] font-bold uppercase tracking-widest ${annual ? (isVelvet ? 'text-[#C6A649]' : 'text-blue-600') : (isVelvet ? 'text-white/40' : 'text-gray-400')}`}>{t('billing.annual')} <span className={`${isVelvet ? 'bg-[#C6A649] text-black' : 'bg-blue-600 text-white'} px-2 py-0.5 rounded text-[8px] ml-1`}>{t('billing.discount')}</span></span>
+              <span className={`text-[10px] font-bold uppercase tracking-widest ${annual ? (isVelvet ? 'text-[#C6A649]' : 'text-blue-600') : (isVelvet ? 'text-white/40' : 'text-gray-600')}`}>{t('billing.annual')} <span className={`${isVelvet ? 'bg-[#C6A649] text-black' : 'bg-blue-600 text-white'} px-2 py-0.5 rounded text-[8px] ml-1`}>{t('billing.discount')}</span></span>
           </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
@@ -1135,14 +1135,14 @@ const BillingPage = ({ onSelect }: any) => {
                   <div key={k} className={`p-10 rounded-[40px] text-center flex flex-col items-center relative overflow-hidden group hover:scale-105 transition-transform duration-500 ${isVelvet ? S.panel : 'bg-white border border-gray-200 shadow-xl'} ${p.popular ? (isVelvet ? 'border-[#C6A649]/50 shadow-[0_0_50px_rgba(198,166,73,0.15)]' : 'border-blue-500 shadow-lg scale-105') : ''}`}>
                       {p.popular && <div className={`absolute top-0 inset-x-0 h-1.5 ${isVelvet ? 'bg-gradient-to-r from-[#C6A649] to-[#FBF5B7]' : 'bg-blue-500'}`}/>}
                       {p.popular && <div className={`${isVelvet ? 'bg-[#C6A649]/20 text-[#C6A649] border-[#C6A649]/30' : 'bg-blue-50 text-blue-600 border-blue-200'} text-[8px] font-bold px-4 py-1 rounded-full uppercase tracking-widest mb-6 border`}>{t('billing.recommended')}</div>}
-                      <h3 className={`text-xl font-bold uppercase tracking-[0.2em] mb-2 ${isVelvet ? 'text-white' : 'text-gray-900'}`}>{t(`pricing.${k}.name`)}</h3>
-                      <div className={`text-3xl md:text-5xl font-bold mb-8 tracking-tighter ${isVelvet ? 'text-white' : 'text-gray-900'}`}>${price}<span className={`text-sm font-normal ml-2 ${isVelvet ? 'text-white/30' : 'text-gray-400'}`}>/mo</span></div>
+                      <h3 className={`text-xl font-bold uppercase tracking-[0.2em] mb-2 ${isVelvet ? 'text-white' : 'text-black'}`}>{t(`pricing.${k}.name`)}</h3>
+                      <div className={`text-3xl md:text-5xl font-bold mb-8 tracking-tighter ${isVelvet ? 'text-white' : 'text-black'}`}>${price}<span className={`text-sm font-normal ml-2 ${isVelvet ? 'text-white/30' : 'text-gray-600'}`}>/mo</span></div>
                       <div className={`w-full h-px mb-8 ${isVelvet ? 'bg-white/5' : 'bg-gray-100'}`}></div>
                       <div className="space-y-5 mb-10 w-full text-left">
-                          <div className={`p-3 rounded-xl flex items-center justify-center gap-3 border mb-6 ${isVelvet ? 'bg-white/5 border-white/5' : 'bg-gray-50 border-gray-100'}`}><Zap size={14} className={isVelvet ? 'text-[#C6A649]' : 'text-blue-500'}/><span className={`text-xs font-bold uppercase tracking-widest ${isVelvet ? 'text-white' : 'text-gray-900'}`}>{t('studio.credits_cost', { cost: p.creds })}</span></div>
-                          {features.map(f => <div key={f} className={`flex items-center gap-3 text-[10px] uppercase tracking-widest ${isVelvet ? 'text-white/60' : 'text-gray-500'}`}><Check size={10} className={isVelvet ? 'text-[#C6A649]' : 'text-blue-500'}/> {f}</div>)}
+                          <div className={`p-3 rounded-xl flex items-center justify-center gap-3 border mb-6 ${isVelvet ? 'bg-white/5 border-white/5' : 'bg-gray-50 border-gray-100'}`}><Zap size={14} className={isVelvet ? 'text-[#C6A649]' : 'text-blue-500'}/><span className={`text-xs font-bold uppercase tracking-widest ${isVelvet ? 'text-white' : 'text-black'}`}>{t('studio.credits_cost', { cost: p.creds })}</span></div>
+                          {features.map(f => <div key={f} className={`flex items-center gap-3 text-[10px] uppercase tracking-widest ${isVelvet ? 'text-white/60' : 'text-black'}`}><Check size={10} className={isVelvet ? 'text-[#C6A649]' : 'text-blue-500'}/> {f}</div>)}
                       </div>
-                      <button onClick={()=>onSelect(k, annual)} className={`w-full py-5 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] ${p.popular ? (isVelvet ? S.btnGold : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg') : (isVelvet ? 'bg-white/5 text-white hover:bg-white hover:text-black transition-all' : 'bg-gray-100 text-gray-900 hover:bg-black hover:text-white transition-all')}`}>{t('billing.select_plan')}</button>
+                      <button onClick={()=>onSelect(k, annual)} className={`w-full py-5 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] ${p.popular ? (isVelvet ? S.btnGold : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg') : (isVelvet ? 'bg-white/5 text-white hover:bg-white hover:text-black transition-all' : 'bg-black text-white hover:bg-gray-800 transition-all')}`}>{t('billing.select_plan')}</button>
                   </div>
               );
           })}
