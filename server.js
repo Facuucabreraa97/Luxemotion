@@ -81,31 +81,16 @@ async function getUsdToArsRate() {
 app.use(helmet());
 app.use(compression());
 
-const allowedOrigins = [
-  'https://mivideoai.com',
-  'https://www.mivideoai.com',
-  'https://mivideoia.com',
-  'https://www.mivideoia.com'
-];
-
-if (process.env.CLIENT_URL) {
-  allowedOrigins.push(process.env.CLIENT_URL);
-}
-
+// Robust CORS Configuration
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-
-    // Check if origin is in the allowed list or is localhost
-    if (allowedOrigins.indexOf(origin) !== -1 || origin.includes('localhost')) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  methods: ['GET', 'POST']
+  origin: '*', // Allow all origins for maximum compatibility
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true
 }));
+
+// Enable Pre-Flight for all routes
+app.options('*', cors());
 
 app.use(express.json({ limit: '50mb' }));
 
@@ -504,7 +489,8 @@ app.post('/api/publish', async (req, res) => {
     if (!supabaseAdmin) throw new Error("ADMIN configuration is missing on the server.");
 
     const user = await getUser(req);
-    const { video_id, id, type } = req.body;
+    // Support 'public' field for explicit setting, defaulting to toggle if undefined
+    const { video_id, id, type, public: publicState } = req.body;
     const targetId = video_id || id;
     const table = (type === 'model' || type === 'talent') ? 'talents' : 'generations';
 
@@ -513,16 +499,26 @@ app.post('/api/publish', async (req, res) => {
     const { data: item } = await supabaseAdmin.from(table).select('user_id, is_public').eq('id', targetId).single();
     if (!item || item.user_id !== user.id) throw new Error("Permission denied");
 
-    const newStatus = !item.is_public;
+    // Determine new status: use explicit state if provided (checking strictly for boolean), else toggle
+    let newStatus;
+    if (typeof publicState === 'boolean') {
+        newStatus = publicState;
+    } else {
+        newStatus = !item.is_public;
+    }
+
     const updateData = { is_public: newStatus };
-    if (newStatus) updateData.created_at = new Date().toISOString();
+    // Only update created_at when publishing (switching to true)
+    if (newStatus && !item.is_public) {
+        updateData.created_at = new Date().toISOString();
+    }
 
     const { error } = await supabaseAdmin.from(table).update(updateData).eq('id', targetId);
     if (error) throw error;
 
     res.json({ success: true, is_public: newStatus });
   } catch (error) {
-    res.status(500).json({ error: true, message: error.message, stack: error.stack });
+    res.status(500).json({ error: true, message: error.message });
   }
 });
 
