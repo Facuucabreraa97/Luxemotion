@@ -416,27 +416,34 @@ app.post('/api/buy', async (req, res) => {
     }
 
     // Existence Verification
-    console.log(`🔍 Verifying user ${buyerId} in 'profiles' table...`);
-    const { data: userProfile, error: userError } = await supabaseAdmin
-        .from('profiles') // <--- KEY: Use the real table
-        .select('id, credits, email')
-        .eq('id', buyerId)
-        .single();
+    // console.log(`🔍 Verifying user ${buyerId} in 'profiles' table...`);
+    // const { data: userProfile, error: userError } = await supabaseAdmin
+    //     .from('profiles') // <--- KEY: Use the real table
+    //     .select('id, credits, email')
+    //     .eq('id', buyerId)
+    //     .single();
 
-    if (userError || !userProfile) {
-         console.error("❌ Error searching for profile:", userError);
-         throw new Error("Invalid User: User not found in database (Check table name 'profiles')");
-    }
+    // if (userError || !userProfile) {
+    //      console.error("❌ Error searching for profile:", userError);
+    //      throw new Error("Invalid User: User not found in database (Check table name 'profiles')");
+    // }
 
-    console.log(`✅ Valid Buyer: ${userProfile.email} | Credits: ${userProfile.credits}`);
+    // console.log(`✅ Valid Buyer: ${userProfile.email} | Credits: ${userProfile.credits}`);
 
     const talent_id = req.body.talent_id || req.body.assetId;
     if (!talent_id) throw new Error("Talent ID (assetId) required");
 
+    const cost = req.body.cost;
+    // We allow 0 cost if that's intended, but typically cost is required.
+    // If cost is undefined, let's treat it as an error or pass null if RPC handles it.
+    // The instructions say "Receives: assetId, buyerId, cost".
+    if (cost === undefined || cost === null) throw new Error("Cost is required");
+
     // Attempt Atomic RPC Call
-    const { data: result, error: rpcError } = await supabaseAdmin.rpc('buy_talent', {
-        p_talent_id: talent_id,
-        p_buyer_id: buyerId
+    const { data: result, error: rpcError } = await supabaseAdmin.rpc('purchase_asset', {
+        p_asset_id: talent_id,
+        p_buyer_id: buyerId,
+        p_cost: cost
     });
 
     if (rpcError) {
@@ -450,7 +457,8 @@ app.post('/api/buy', async (req, res) => {
     }
 
     if (!result.success) {
-        throw new Error(result.message || "Purchase failed");
+        // Return 400 Bad Request if success is false, as per instructions
+        return res.status(400).json({ error: result.message || "Purchase failed", success: false });
     }
 
     res.json(result);
@@ -465,12 +473,15 @@ app.post('/api/buy', async (req, res) => {
 app.post('/api/marketplace/buy', async (req, res) => {
     try {
         const user = await getUser(req);
-        const { talent_id } = req.body;
+        const { talent_id, cost } = req.body;
         if (!talent_id) throw new Error("Talent ID required");
+        // For compatibility, if cost is missing, we might fail or default to 0. But let's assume it should be provided now.
+        if (cost === undefined || cost === null) throw new Error("Cost is required");
 
-        const { data: result, error: rpcError } = await supabaseAdmin.rpc('buy_talent', {
-            p_talent_id: talent_id,
-            p_buyer_id: user.id
+        const { data: result, error: rpcError } = await supabaseAdmin.rpc('purchase_asset', {
+            p_asset_id: talent_id,
+            p_buyer_id: user.id,
+            p_cost: cost
         });
 
         if (rpcError) throw new Error("Transaction failed at database level");

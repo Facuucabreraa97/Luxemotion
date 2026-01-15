@@ -70,7 +70,7 @@ export const ExplorePage = () => {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${session.access_token}`
             },
-            body: JSON.stringify({ talent_id: item.id })
+            body: JSON.stringify({ talent_id: item.id, cost: item.price })
         });
 
         const result = await res.json();

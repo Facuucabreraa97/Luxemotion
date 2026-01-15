@@ -677,7 +677,8 @@ const ExplorePage = () => {
                 body: JSON.stringify({
                     userId: session.user.id,
                     assetId: item.id,
-                    talent_id: item.id
+                talent_id: item.id,
+                cost: item.price
                 })
             });
 
