@@ -5,7 +5,7 @@ import {
   Loader2, Play, Sparkles, ChevronDown, ChevronRight, Mail, Lock, Upload, X, Plus, User,
   Briefcase, Camera, ShoppingBag, Globe, Download, Zap, Check, Video, Users,
   Image as ImageIcon, CreditCard, Settings, LogOut, Crown, Film, Move, ZoomIn,
-  Heart, Smartphone, Monitor, Square, Flame, LayoutDashboard, Info, Mic
+  Heart, Smartphone, Monitor, Square, Flame, LayoutDashboard, Info, Mic, Activity
 } from 'lucide-react';
 import { createClient, Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { useTranslation } from 'react-i18next';
@@ -1200,6 +1200,9 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile }
   const [voiceScript, setVoiceScript] = useState('');
   const [voiceId, setVoiceId] = useState(VOICES[0].id);
 
+  // Cost State
+  const [totalCost, setTotalCost] = useState(0);
+
   const [loading, setLoading] = useState(false);
   const [resUrl, setResUrl] = useState<string|null>(null);
   const [modal, setModal] = useState(false);
@@ -1213,22 +1216,20 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile }
       if (mode === 'velvet') { setVelvetFilter(true); } else { setVelvetFilter(false); }
   }, [mode]);
 
-  const handleFile = (e:any, setter:any) => { const f = e.target.files[0]; if(f) { const r=new FileReader(); r.onload=()=>setter(r.result); r.readAsDataURL(f); } };
+  useEffect(() => {
+      let c = dur * 1;
+      if (voiceMode) c += 20;
+      if (mode === 'velvet' || velvetFilter) c += 10;
+      setTotalCost(c);
+  }, [dur, voiceMode, mode, velvetFilter]);
 
-  const calculateCost = () => {
-      let base = 5;
-      if (voiceMode && voiceScript.trim().length > 0) {
-          base += 20;
-      }
-      if (mode === 'velvet' || velvetFilter) base += 10;
-      return base;
-  };
+  const handleFile = (e:any, setter:any) => { const f = e.target.files[0]; if(f) { const r=new FileReader(); r.onload=()=>setter(r.result); r.readAsDataURL(f); } };
 
   const handlePromptInjection = (text: string) => { setPrompt(prev => prev + (prev ? ", " : "") + text); };
 
   const generate = async () => {
       if(!img && !vid) return;
-      const cost = calculateCost();
+      const cost = totalCost;
       if(!profile?.is_admin && credits < cost) { notify(t('studio.insufficient_credits')); onUp(); return; }
       setLoading(true); setResUrl(null);
       try {
@@ -1322,54 +1323,91 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile }
                 </div>
             )}
 
-            {/* LUXEVOICE MODE (+20 CR) */}
-            <div className={`p-6 rounded-3xl border mb-6 transition-all ${mode==='velvet'?'bg-black/40 border-white/10':'bg-gray-50 border-gray-200'}`}>
-                <div className="flex items-center justify-between mb-4">
+            {/* LUXEVOICE UI */}
+            <div className={`p-6 rounded-3xl border mb-6 transition-all overflow-hidden relative ${mode==='velvet'?'bg-[#050505] border-white/10':'bg-white border-gray-200'}`}>
+                {/* Header with Pulse Animation */}
+                <div className="flex items-center justify-between mb-6 relative z-10">
                     <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-full ${voiceMode ? (mode==='velvet' ? 'bg-[#C6A649] text-black' : 'bg-blue-600 text-white') : (mode==='velvet'?'bg-white/10 text-white/50':'bg-gray-200 text-gray-400')}`}>
-                            <Mic size={14}/>
+                        <div className={`p-2.5 rounded-xl border ${voiceMode ? (mode==='velvet'?'bg-[#C6A649]/20 border-[#C6A649]/50 text-[#C6A649]':'bg-blue-500/10 border-blue-500/50 text-blue-600') : 'bg-white/5 border-white/5 text-gray-500'}`}>
+                            <Mic size={16}/>
                         </div>
                         <div>
-                            <p className={`text-[10px] font-bold uppercase tracking-widest ${mode==='velvet'?'text-white':'text-gray-900'}`}>Voice Mode</p>
-                            <p className={`text-[8px] ${mode==='velvet'?'text-white/50':'text-gray-500'}`}>+20 Credits (LipSync)</p>
+                            <p className={`text-[10px] font-bold uppercase tracking-[0.2em] ${mode==='velvet'?'text-white':'text-gray-900'}`}>LuxeVoice™</p>
+                            <div className="flex items-center gap-2">
+                                <span className={`text-[8px] font-mono ${mode==='velvet'?'text-white/40':'text-gray-500'}`}>MODULE_V2.0</span>
+                                {voiceMode && <div className="flex gap-0.5 items-end h-2">
+                                    <div className="w-0.5 bg-[#C6A649] animate-[bounce_1s_infinite] h-full"></div>
+                                    <div className="w-0.5 bg-[#C6A649] animate-[bounce_1.2s_infinite] h-2/3"></div>
+                                    <div className="w-0.5 bg-[#C6A649] animate-[bounce_0.8s_infinite] h-1/2"></div>
+                                </div>}
+                            </div>
                         </div>
                     </div>
-
                     <button
                         onClick={() => setVoiceMode(!voiceMode)}
-                        className={`w-10 h-5 rounded-full relative transition-all duration-300 ${voiceMode ? (mode==='velvet'?'bg-[#C6A649]':'bg-blue-600') : 'bg-gray-300'}`}
+                        className={`w-12 h-6 rounded-full relative transition-all duration-300 border ${voiceMode ? (mode==='velvet'?'bg-[#C6A649]/10 border-[#C6A649]':'bg-blue-600 border-blue-600') : 'bg-transparent border-gray-600'}`}
                     >
-                        <div className={`absolute top-1 bottom-1 w-3 h-3 rounded-full bg-white transition-all duration-300 ${voiceMode ? 'right-1' : 'left-1'}`}/>
+                         <div className={`absolute top-0.5 bottom-0.5 w-5 rounded-full transition-all duration-300 shadow-lg ${voiceMode ? (mode==='velvet'?'right-0.5 bg-[#C6A649]':'right-0.5 bg-white') : 'left-0.5 bg-gray-500'}`}/>
                     </button>
                 </div>
 
                 {voiceMode && (
-                    <div className="animate-in fade-in slide-in-from-top-2 space-y-4 pt-2">
-                        {/* Voice Selection */}
-                        <div className="grid grid-cols-3 gap-2">
-                            {VOICES.map(v => (
+                    <div className="animate-in fade-in slide-in-from-top-4 space-y-6">
+                        {/* Card Grid Selector */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            {VOICES.map(v => {
+                                const active = voiceId === v.id;
+                                return (
                                 <button
                                     key={v.id}
                                     onClick={() => setVoiceId(v.id)}
-                                    className={`p-2 rounded-xl border text-center transition-all ${voiceId === v.id
-                                        ? (mode==='velvet' ? 'border-[#C6A649] text-[#C6A649] bg-[#C6A649]/10' : 'border-blue-600 text-blue-600 bg-blue-50')
-                                        : (mode==='velvet' ? 'border-white/10 text-white/40' : 'border-gray-200 text-gray-400')}`}
+                                    className={`relative p-4 rounded-2xl border transition-all duration-300 group overflow-hidden text-left ${active
+                                        ? (mode==='velvet' ? 'bg-[#C6A649]/10 border-[#C6A649] shadow-[0_0_30px_rgba(198,166,73,0.15)]' : 'bg-blue-50 border-blue-500 shadow-lg')
+                                        : (mode==='velvet' ? 'bg-white/5 border-white/5 hover:border-white/20' : 'bg-gray-50 border-gray-200 hover:border-gray-300')}`}
                                 >
-                                    <p className="text-[9px] font-bold uppercase">{v.name}</p>
-                                    <p className="text-[7px] opacity-60">{v.desc}</p>
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div className={`p-2 rounded-lg ${active ? (mode==='velvet'?'bg-[#C6A649] text-black':'bg-blue-600 text-white') : 'bg-black/20 text-gray-500'}`}>
+                                            <Activity size={14}/>
+                                        </div>
+                                        <div className="flex gap-1">
+                                            <span className="text-[10px] opacity-50">🇺🇸</span>
+                                            <div className={`w-4 h-4 rounded-full flex items-center justify-center border ${active ? 'border-current' : 'border-transparent'}`}>
+                                                <Play size={8} className={active ? 'fill-current' : 'opacity-50'}/>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p className={`text-[10px] font-bold uppercase tracking-wider mb-1 ${active ? (mode==='velvet'?'text-white':'text-blue-900') : (mode==='velvet'?'text-gray-400':'text-gray-600')}`}>{v.name}</p>
+                                    <p className={`text-[8px] font-mono opacity-60 ${active ? 'text-current' : 'text-gray-500'}`}>{v.desc}</p>
                                 </button>
-                            ))}
+                            )})}
                         </div>
 
-                        {/* Script Input */}
-                        <textarea
-                            value={voiceScript}
-                            onChange={e => setVoiceScript(e.target.value)}
-                            maxLength={200}
-                            placeholder="Enter script for voice synthesis (max 200 chars)..."
-                            className={`${inputClass} h-24`}
-                        />
-                        <div className={`flex justify-end text-[8px] ${mode==='velvet'?'text-white/30':'text-gray-400'}`}>{voiceScript.length}/200</div>
+                        {/* Terminal Script Input */}
+                        <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-[#0a0a0a] shadow-inner group focus-within:border-[#C6A649]/50 transition-colors">
+                            <div className="flex items-center justify-between px-4 py-2 bg-white/5 border-b border-white/5">
+                                <div className="flex gap-1.5">
+                                    <div className="w-2 h-2 rounded-full bg-red-500/50"></div>
+                                    <div className="w-2 h-2 rounded-full bg-yellow-500/50"></div>
+                                    <div className="w-2 h-2 rounded-full bg-green-500/50"></div>
+                                </div>
+                                <span className="text-[8px] font-mono text-white/30 uppercase">Script_Editor.exe</span>
+                            </div>
+                            <textarea
+                                value={voiceScript}
+                                onChange={e => setVoiceScript(e.target.value)}
+                                maxLength={200}
+                                placeholder="// Enter voice generation script..."
+                                className="w-full h-32 bg-transparent text-xs font-mono p-4 text-green-400 placeholder:text-green-900/50 outline-none resize-none selection:bg-green-900/30"
+                            />
+                            <div className="px-4 py-2 flex justify-between items-center border-t border-white/5 bg-white/5">
+                                <div className="flex gap-2">
+                                     <span className="text-[8px] font-mono text-white/20">LN 1, COL {voiceScript.length}</span>
+                                </div>
+                                <span className={`text-[8px] font-mono ${voiceScript.length > 180 ? 'text-red-500' : 'text-green-600'}`}>
+                                    {voiceScript.length}/200 CHARS
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>
@@ -1386,7 +1424,7 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile }
                 </div>
             </div>
         </div>
-        <button id="studio-generate-btn" onClick={generate} disabled={loading || (!img && !vid)} className={`w-full py-7 rounded-[32px] font-bold uppercase tracking-[0.3em] text-xs flex items-center justify-center gap-4 fixed bottom-6 left-4 right-4 lg:static lg:w-full z-50 shadow-2xl transition-all duration-300 ${mode==='velvet' ? (velvetFilter ? S.btnVelvet : S.btnGold) : 'bg-black text-white shadow-lg hover:bg-gray-800 hover:shadow-xl active:scale-95'}`}>{loading ? t('studio.processing') : <><Zap size={18}/> {t('studio.generate')} ({calculateCost()})</>}</button>
+        <button id="studio-generate-btn" onClick={generate} disabled={loading || (!img && !vid)} className={`w-full py-7 rounded-[32px] font-bold uppercase tracking-[0.3em] text-xs flex items-center justify-center gap-4 fixed bottom-6 left-4 right-4 lg:static lg:w-full z-50 shadow-2xl transition-all duration-300 ${mode==='velvet' ? (velvetFilter ? S.btnVelvet : S.btnGold) : 'bg-black text-white shadow-lg hover:bg-gray-800 hover:shadow-xl active:scale-95'}`}>{loading ? t('studio.processing') : <><Zap size={18}/> {t('studio.generate')} ({totalCost})</>}</button>
       </div>
       <div className="lg:col-span-3 relative z-10 flex flex-col pt-0 h-[calc(100vh-100px)] sticky top-8">
          <div className={`w-full h-full rounded-[40px] border overflow-hidden shadow-2xl relative transition-all duration-500 flex flex-col ${mode==='velvet' ? 'bg-black border-white/10' : 'bg-white border-gray-200'}`}>
