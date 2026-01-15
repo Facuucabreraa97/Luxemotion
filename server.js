@@ -81,17 +81,16 @@ async function getUsdToArsRate() {
 app.use(helmet());
 app.use(compression());
 
-// Robust CORS Configuration
-// Universal Configuration (Must go BEFORE the routes)
+// 1. Middleware Configuration (Permissive to recover service)
 app.use(cors({
-  origin: true, // Dynamically enable the origin (Vercel/Localhost)
-  credentials: true,
+  origin: true, // Accept requests from any origin (Vercel/Localhost)
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  credentials: true
 }));
 
-// Enable global Pre-Flight without using explicit wildcard
-app.options(cors());
+// 2. Safe Pre-flight (WITHOUT THE ASTERISK)
+// This enables OPTIONS on all routes without breaking the router
+app.options(/(.*)/, cors());
 
 app.use(express.json({ limit: '50mb' }));
 
