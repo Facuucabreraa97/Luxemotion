@@ -14,6 +14,12 @@ if (process.env.NODE_ENV !== 'production') {
   dotenv.config();
 }
 
+console.log("--- DEBUGGING ENV VARS ---");
+console.log("SUPABASE_URL detected:", process.env.SUPABASE_URL ? "YES (Hidden value)" : "NO (Undefined)");
+console.log("SUPABASE_SERVICE_ROLE_KEY detected:", process.env.SUPABASE_SERVICE_ROLE_KEY ? "YES (Hidden value)" : "NO (Undefined)");
+console.log("SUPABASE_KEY detected:", process.env.SUPABASE_KEY ? "YES (Hidden value)" : "NO (Undefined)");
+console.log("--------------------------");
+
 const app = express();
 
 // MOVE THIS TO THE BEGINNING OF THE FILE (After imports)
@@ -27,13 +33,15 @@ app.options(/.*/, cors()); // Enable pre-flight for EVERYTHING
 const port = process.env.PORT || 3001;
 
 // --- CONFIGURATION ---
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co';
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const sbUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const sbKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-// Only if the service key exists
-const supabaseAdmin = SUPABASE_SERVICE_ROLE_KEY
-  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
-  : null;
+if (!sbUrl || !sbKey) {
+  throw new Error("FATAL: Supabase credentials are not being read from the environment.");
+}
+
+// Initialize with the confirmed variables
+const supabaseAdmin = createClient(sbUrl, sbKey);
 
 const mpAccessToken = process.env.MP_ACCESS_TOKEN || 'TEST-TOKEN';
 const client = new MercadoPagoConfig({ accessToken: mpAccessToken });
