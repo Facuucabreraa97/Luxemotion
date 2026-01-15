@@ -15,6 +15,15 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 const app = express();
+
+// MOVE THIS TO THE BEGINNING OF THE FILE (After imports)
+app.use(cors({
+origin: true,
+credentials: true,
+methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+}));
+app.options(/.*/, cors()); // Enable pre-flight for EVERYTHING
+
 const port = process.env.PORT || 3001;
 
 // --- CONFIGURATION ---
@@ -80,26 +89,6 @@ async function getUsdToArsRate() {
 // --- MIDDLEWARE ---
 app.use(helmet());
 app.use(compression());
-
-// 1. Middleware Configuration
-const allowedOrigins = [
-  'https://mivideoai.com',
-  'https://www.mivideoai.com',
-  'https://mivideoia.com',
-  'https://www.mivideoia.com',
-  'http://localhost:5173',
-  'http://localhost:3000'
-];
-
-app.use(cors({
-  origin: allowedOrigins,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  credentials: true
-}));
-
-// 2. Safe Pre-flight
-// This enables OPTIONS on all routes without breaking the router
-app.options(/(.*)/, cors({ origin: allowedOrigins, credentials: true }));
 
 app.use(express.json({ limit: '50mb' }));
 
@@ -409,73 +398,43 @@ app.post('/api/create-preference', async (req, res) => {
 
 // --- API BUY (ATOMIC TRANSACTION) ---
 app.post('/api/buy', async (req, res) => {
-  console.log("💰 PURCHASE INTENT - Payload received:", req.body);
-  console.log("HEADERS:", req.headers['content-type']);
-  console.log("BODY RAW:", req.body);
+    try {
+    console.log("--> Starting purchase:", req.body); // LOG FOR DEBUG
 
-  console.log("🔑 CHECK ADMIN KEY:", process.env.SUPABASE_SERVICE_ROLE_KEY ? "LOADED (Ends in: " + process.env.SUPABASE_SERVICE_ROLE_KEY.slice(-5) + ")" : "NOT LOADED");
-
-  try {
-    // Robust User Extraction (Priority: Body > Token)
-    let buyerId = req.body.userId || req.body.buyerId || req.body.user_id;
-
-    if (!buyerId) {
-        console.error("❌ EMPTY BODY OR MISSING ID. Received:", req.body);
-        return res.status(400).json({ error: "Invalid User: ID is missing in request body", received: req.body });
-    }
-
-    // Existence Verification
-    // console.log(`🔍 Verifying user ${buyerId} in 'profiles' table...`);
-    // const { data: userProfile, error: userError } = await supabaseAdmin
-    //     .from('profiles') // <--- KEY: Use the real table
-    //     .select('id, credits, email')
-    //     .eq('id', buyerId)
-    //     .single();
-
-    // if (userError || !userProfile) {
-    //      console.error("❌ Error searching for profile:", userError);
-    //      throw new Error("Invalid User: User not found in database (Check table name 'profiles')");
-    // }
-
-    // console.log(`✅ Valid Buyer: ${userProfile.email} | Credits: ${userProfile.credits}`);
-
-    const talent_id = req.body.talent_id || req.body.assetId;
-    if (!talent_id) throw new Error("Talent ID (assetId) required");
-
+    // Support aliases for backward compatibility and destructure robustly
+    const assetId = req.body.assetId || req.body.talent_id;
+    const buyerId = req.body.buyerId || req.body.userId || req.body.user_id;
     const cost = req.body.cost;
-    // We allow 0 cost if that's intended, but typically cost is required.
-    // If cost is undefined, let's treat it as an error or pass null if RPC handles it.
-    // The instructions say "Receives: assetId, buyerId, cost".
-    if (cost === undefined || cost === null) throw new Error("Cost is required");
 
-    // Attempt Atomic RPC Call
-    const { data: result, error: rpcError } = await supabaseAdmin.rpc('purchase_asset', {
-        p_asset_id: talent_id,
-        p_buyer_id: buyerId,
-        p_cost: cost
+    // CRITICAL CHECK: Does 'supabase' or 'supabaseAdmin' exist?
+    // Make sure you use the correct instance you have initialized above
+    if (!supabaseAdmin) throw new Error("Supabase client not initialized");
+
+    const { data, error } = await supabaseAdmin.rpc('purchase_asset', {
+    p_asset_id: assetId,
+    p_buyer_id: buyerId,
+    p_cost: cost
     });
 
-    if (rpcError) {
-        // Log detailed error for debugging
-        console.error("RPC Error:", rpcError);
-        throw new Error("Transaction failed. Please contact support.");
+    if (error) {
+    console.error("Supabase RPC error:", error);
+    return res.status(400).json({ success: false, message: error.message });
     }
 
-    if (!result) {
-        throw new Error("No response from transaction processor.");
+    console.log("Purchase result:", data);
+
+    // If the DB says logical error (insufficient balance, etc.)
+    if (!data.success) {
+    return res.status(400).json(data);
     }
 
-    if (!result.success) {
-        // Return 400 Bad Request if success is false, as per instructions
-        return res.status(400).json({ error: result.message || "Purchase failed", success: false });
+    return res.status(200).json(data);
+
+    } catch (err) {
+    console.error("CRITICAL CRASH AT /api/buy:", err);
+    // IMPORTANT: Return JSON even in crash to avoid CORS error due to timeout
+    res.status(500).json({ success: false, message: "Internal Server Error", error: err.message });
     }
-
-    res.json(result);
-
-  } catch (error) {
-    console.error("Purchase Error:", error.message);
-    res.status(500).json({ error: error.message, code: 'TRANSACTION_FAILED' });
-  }
 });
 
 // Alias for compatibility
