@@ -82,15 +82,16 @@ app.use(helmet());
 app.use(compression());
 
 // Robust CORS Configuration
+// Universal Configuration (Must go BEFORE the routes)
 app.use(cors({
-  origin: '*', // Allow all origins for maximum compatibility
+  origin: true, // Dynamically enable the origin (Vercel/Localhost)
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  credentials: true
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
-// Enable Pre-Flight for all routes
-app.options('*', cors());
+// Enable global Pre-Flight without using explicit wildcard
+app.options(cors());
 
 app.use(express.json({ limit: '50mb' }));
 
