@@ -80,7 +80,33 @@ async function getUsdToArsRate() {
 // --- MIDDLEWARE ---
 app.use(helmet());
 app.use(compression());
-app.use(cors({ origin: process.env.CLIENT_URL || '*', methods: ['GET', 'POST'] }));
+
+const allowedOrigins = [
+  'https://mivideoai.com',
+  'https://www.mivideoai.com',
+  'https://mivideoia.com',
+  'https://www.mivideoia.com'
+];
+
+if (process.env.CLIENT_URL) {
+  allowedOrigins.push(process.env.CLIENT_URL);
+}
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+
+    // Check if origin is in the allowed list or is localhost
+    if (allowedOrigins.indexOf(origin) !== -1 || origin.includes('localhost')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST']
+}));
+
 app.use(express.json({ limit: '50mb' }));
 
 // --- UTILS ---
