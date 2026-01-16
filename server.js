@@ -198,24 +198,8 @@ app.post('/api/generate', async (req, res) => {
             const visionOutput = await analyzeProductImage(product_image_url);
             console.log(`👁️ Vision Output: "${visionOutput}"`);
 
-            // Map action_type to phrase
-            const action = action_type || 'holding';
-            const actionMap = {
-                'holding': `holding ${visionOutput}`,
-                'drinking': `drinking from ${visionOutput}`,
-                'using': `using ${visionOutput}`,
-                'wearing': `wearing ${visionOutput}`
-            };
-
-            // Default to 'holding' + output if key not found
-            const actionPhrase = actionMap[action] || `holding ${visionOutput}`;
-
-            // Inject into prompt
-            // "Subject description, [actionPhrase], style..."
-            // Remove trailing period from base prompt if present
-            if (effectivePrompt.endsWith('.')) effectivePrompt = effectivePrompt.slice(0, -1);
-
-            effectivePrompt = `${effectivePrompt}, ${actionPhrase}`;
+            // Inject into prompt (New Logic: Product Context First)
+            effectivePrompt = `A high-quality cinematic shot featuring a product prominently displayed: ${visionOutput}. ${effectivePrompt}`;
 
         } catch (visionError) {
             console.warn("⚠️ Vision Middleware failed, falling back to original prompt.", visionError.message);
@@ -258,9 +242,19 @@ app.post('/api/generate', async (req, res) => {
 
     if (inputVideo) {
         inputPayload.video = inputVideo;
-        if (image) inputPayload.start_image = image;
+        // Prioritize product image as start_image if available (Remix Mode Fix)
+        if (product_image_url) {
+            inputPayload.start_image = product_image_url;
+        } else if (image) {
+            inputPayload.start_image = image;
+        }
     } else {
-        inputPayload.start_image = image;
+        // Prioritize product image as start_image if available
+        if (product_image_url) {
+            inputPayload.start_image = product_image_url;
+        } else {
+            inputPayload.start_image = image;
+        }
         if (endImage) inputPayload.tail_image = endImage;
     }
 
