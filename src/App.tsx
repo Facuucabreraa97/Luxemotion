@@ -10,6 +10,7 @@ import {
 import { createClient, Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { useTranslation } from 'react-i18next';
 import './i18n';
+import AdminPage from './pages/Admin';
 
 // --- CONFIGURATION ---
 const getApiUrl = () => {
@@ -62,6 +63,7 @@ export interface UserProfile {
   credits?: number;
   plan?: 'starter' | 'creator' | 'agency';
   is_admin?: boolean;
+  role?: string;
 }
 
 export interface Talent {
@@ -1523,6 +1525,12 @@ function ProtectedLayout({ session, credits, handleLogout, setSelPlan, profile, 
     );
 }
 
+const AdminGuard = ({ children, profile }: { children: any, profile: UserProfile }) => {
+    const isAdmin = profile?.is_admin === true || profile?.role === 'admin';
+    if (!isAdmin) return <Navigate to="/" replace />;
+    return children;
+};
+
 function AppContent() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1628,6 +1636,7 @@ function AppContent() {
         <Routes>
             <Route path="/" element={!session ? <LandingPage /> : <Navigate to="/app" replace />} />
             <Route path="/login" element={!session ? <LoginScreen onLogin={() => {}} /> : <Navigate to="/app" replace />} />
+            <Route path="/admin" element={!session ? <Navigate to="/" replace /> : <AdminGuard profile={profile}><AdminPage /></AdminGuard>} />
             <Route path="/app" element={<ProtectedLayout session={session} credits={credits} handleLogout={handleLogout} setSelPlan={setSelPlan} profile={profile} mode={mode} selPlan={selPlan} notify={notify} />}>
                 <Route index element={<StudioPage onGen={handleVideoSaved} influencers={influencers} credits={credits} notify={notify} onUp={()=>setSelPlan({key:'creator', annual:true})} userPlan={userPlan} talents={influencers} profile={profile}/>}/>
                 <Route path="explore" element={<ExplorePage />} />
