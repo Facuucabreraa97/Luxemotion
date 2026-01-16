@@ -605,6 +605,7 @@ const Sidebar = ({ credits, onLogout, onUp, userProfile, onUpgrade, notify }: an
 
 const ExplorePage = () => {
     const { mode } = useMode();
+    const navigate = useNavigate();
     const { t } = useTranslation();
     const [searchParams] = useSearchParams();
     const { showToast } = useToast();
@@ -747,24 +748,42 @@ const ExplorePage = () => {
                                 <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none">
                                     <p className="text-white text-[10px] font-bold uppercase tracking-widest">{item.profiles?.name || 'User'}</p>
                                 </div>
-                                {tab === 'marketplace' && (
-                                    <div className="absolute top-3 right-3 flex items-center gap-2 z-20">
-                                        <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-lg">
-                                            <span className="text-yellow-400 font-bold text-sm">{item.price} CR</span>
-                                        </div>
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); handleBuyClick(item); }}
-                                            className="bg-white text-black p-2 rounded-full hover:bg-gray-200 transition-all shadow-[0_0_15px_rgba(255,255,255,0.3)] active:scale-95"
-                                            disabled={purchasing === item.id}
-                                        >
-                                            {purchasing === item.id ? <Loader2 size={20} className="animate-spin text-black"/> : (
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                                                    <path fillRule="evenodd" d="M7.5 6v.75H5.513c-.96 0-1.764.724-1.865 1.679l-1.263 12A1.875 1.875 0 0 0 4.25 22.5h15.5a1.875 1.875 0 0 0 1.865-2.071l-1.263-12a1.875 1.875 0 0 0-1.865-1.679H16.5V6a4.5 4.5 0 1 0-9 0ZM12 3a3 3 0 0 0-3 3v.75h6V6a3 3 0 0 0-3-3Zm-3 8.25a3 3 0 1 0 6 0v-.75a.75.75 0 0 1 1.5 0v.75a4.5 4.5 0 1 1-9 0v-.75a.75.75 0 0 1 1.5 0v.75Z" clipRule="evenodd" />
-                                                </svg>
-                                            )}
-                                        </button>
-                                    </div>
-                                )}
+                                <div className="absolute top-3 right-3 flex items-center gap-2 z-20">
+                                    {tab === 'marketplace' ? (
+                                        <>
+                                            <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-lg">
+                                                <span className="text-yellow-400 font-bold text-sm">{item.price} CR</span>
+                                            </div>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleBuyClick(item); }}
+                                                className="bg-white text-black p-2 rounded-full hover:bg-gray-200 transition-all shadow-[0_0_15px_rgba(255,255,255,0.3)] active:scale-95"
+                                                disabled={purchasing === item.id}
+                                            >
+                                                {purchasing === item.id ? <Loader2 size={20} className="animate-spin text-black"/> : (
+                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                                                        <path fillRule="evenodd" d="M7.5 6v.75H5.513c-.96 0-1.764.724-1.865 1.679l-1.263 12A1.875 1.875 0 0 0 4.25 22.5h15.5a1.875 1.875 0 0 0 1.865-2.071l-1.263-12a1.875 1.875 0 0 0-1.865-1.679H16.5V6a4.5 4.5 0 1 0-9 0ZM12 3a3 3 0 0 0-3 3v.75h6V6a3 3 0 0 0-3-3Zm-3 8.25a3 3 0 1 0 6 0v-.75a.75.75 0 0 1 1.5 0v.75a4.5 4.5 0 1 1-9 0v-.75a.75.75 0 0 1 1.5 0v.75Z" clipRule="evenodd" />
+                                                    </svg>
+                                                )}
+                                            </button>
+                                        </>
+                                    ) : (
+                                        // Community / Remix Logic
+                                        (item.for_sale || item.is_for_sale) ? (
+                                           <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-lg flex items-center gap-1">
+                                                <Lock size={12} className="text-white/70"/>
+                                                <span className="text-white/70 font-bold text-[9px] uppercase tracking-wider">Private Prompt</span>
+                                           </div>
+                                        ) : (
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); navigate('/app', { state: { remixPrompt: item.prompt } }); }}
+                                                className="bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 shadow-lg flex items-center gap-2 hover:bg-white hover:text-black transition-all group"
+                                            >
+                                                <span className="text-lg group-hover:rotate-180 transition-transform duration-500">🌪️</span>
+                                                <span className="font-bold text-[10px] uppercase tracking-wider">Remix</span>
+                                            </button>
+                                        )
+                                    )}
+                                </div>
                             </div>
                         )})}
                     </div>
@@ -1184,6 +1203,7 @@ const SettingsPage = ({ profile, setProfile, notify }: any) => {
 
 const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile }: any) => {
   const { mode } = useMode();
+  const location = useLocation();
   const { t } = useTranslation();
   const [img, setImg] = useState<string|null>(null);
   const [prod, setProd] = useState<string|null>(null);
@@ -1214,9 +1234,17 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile }
   const DEMO_PROD = "https://images.unsplash.com/photo-1541643600914-78b084683601?q=80&w=800&auto=format&fit=crop";
 
   useEffect(() => {
-      if(!init.current) { setImg(DEMO_IMG); setProd(DEMO_PROD); setPrompt("Cinematic slow motion shot, elegant lighting, 8k resolution"); init.current=true; }
+      if(!init.current) {
+          if (location.state?.remixPrompt) {
+              setPrompt(location.state.remixPrompt);
+              notify(t('studio.remix_loaded'));
+          } else {
+              setImg(DEMO_IMG); setProd(DEMO_PROD); setPrompt("Cinematic slow motion shot, elegant lighting, 8k resolution");
+          }
+          init.current=true;
+      }
       if (mode === 'velvet') { setVelvetFilter(true); } else { setVelvetFilter(false); }
-  }, [mode]);
+  }, [mode, location.state]);
 
   useEffect(() => {
       let c = dur * 1;
@@ -1228,7 +1256,7 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile }
   const getEstimatedTime = () => {
       let seconds = 45; // Base
       if (voiceMode) seconds += 30;
-      if (mode === 'velvet' || velvetFilter) seconds += 15; // High Quality / Remix
+      if (mode === 'velvet' || velvetFilter) seconds += 20; // High Quality / Remix
 
       const m = Math.floor(seconds / 60);
       const s = seconds % 60;
@@ -1237,16 +1265,16 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile }
 
   useEffect(() => {
       if (!loading) return;
-      const msgs = ["Generating script...", "Rendering video...", "Applying magic..."];
+      const msgs = ["Writing script...", "Rendering lights...", "Applying magic..."];
       if (voiceMode) {
-          msgs.splice(1, 0, "Synthesizing speech...");
+          msgs.splice(1, 0, "Lip syncing...");
       }
       let i = 0;
       setStatusMsg(msgs[0]);
       const interval = setInterval(() => {
           i = (i + 1) % msgs.length;
           setStatusMsg(msgs[i]);
-      }, 3000);
+      }, 10000);
       return () => clearInterval(interval);
   }, [loading, voiceMode]);
 

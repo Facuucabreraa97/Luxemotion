@@ -203,7 +203,7 @@ app.post('/api/generate', async (req, res) => {
             console.log(`👁️ Vision Output: "${visionOutput}"`);
 
             // Inject into prompt (Enhanced Logic)
-            effectivePrompt = `Professional cinematic product shot. A fashion model interacting naturally with a ${visionOutput}. The product is clearly visible, in focus, and elegantly displayed. ${effectivePrompt}`;
+            effectivePrompt = `Commercial cinematic shot. A model holding and interacting with a ${visionOutput} naturally. The product is the main focus, clearly visible and sharp. ${effectivePrompt}`;
 
         } catch (visionError) {
             console.warn("⚠️ Vision Middleware failed, falling back to original prompt.", visionError.message);
@@ -328,7 +328,7 @@ app.post('/api/generate', async (req, res) => {
             console.log("🗣️ LipSync Complete:", finalVideoUrl);
 
         } catch (voiceError) {
-            console.error("⚠️ Voice Layer Failed (Soft-Fail Active):", voiceError.message);
+            console.warn("Voice Failure -> Downgrading to mute video");
             voiceWarning = true;
 
             // Revert to original video if voice failed
