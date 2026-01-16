@@ -454,6 +454,16 @@ app.post('/api/buy', async (req, res) => {
     try {
         console.log("--> Starting purchase (Zero Trust):", req.body);
 
+        // STEP 1: KEY VERIFICATION (DEBUG)
+        const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        console.log('🔑 SYSTEM CHECK:');
+        console.log('- Service Key Defined:', serviceKey ? 'YES' : 'NO');
+        console.log('- Service Key First 5 chars:', serviceKey ? serviceKey.substring(0, 5) : 'NULL');
+
+        if (!serviceKey) {
+            throw new Error("FATAL: SUPABASE_SERVICE_ROLE_KEY is missing on server.");
+        }
+
         // 1. "ZERO TRUST" BUG FIX (CRITICAL)
         // The Frontend is sending the wrong talent_id. IGNORE IT.
         const { assetId, cost } = req.body;
@@ -463,19 +473,30 @@ app.post('/api/buy', async (req, res) => {
         if (!buyerId) throw new Error("Buyer ID is required");
         if (cost === undefined || cost === null) throw new Error("Cost is required");
 
-        if (!supabaseAdmin) throw new Error("Supabase client not initialized");
+        // STEP 2: COMPLETE QUERY REWRITE (REMOVE "TALENT ID")
+        // 1. NEW CLIENT instance with Service Role (Bypass RLS)
+        // We re-instantiate here to guarantee fresh config and no pollution
+        const adminSupabase = createClient(
+            process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL,
+            serviceKey,
+            { auth: { autoRefreshToken: false, persistSession: false } }
+        );
 
-        // Find the video using ONLY the assetId
-        const { data: video, error: videoError } = await supabaseAdmin
+        // 2. CLEAN QUERY (Only search by video ID)
+        const { data: video, error } = await adminSupabase
             .from('generations')
-            .select('*')
+            .select('*') // Fetch everything to see who the owner is
             .eq('id', assetId)
             .single();
 
-        if (videoError || !video) {
-            // If it doesn't exist -> Error 404
-            console.error("Video lookup failed:", videoError);
-            return res.status(404).json({ success: false, message: "Video not found" });
+        // STEP 3: DETAILED ERROR LOG
+        if (error) {
+            console.error('❌ QUERY FAILED:', JSON.stringify(error, null, 2));
+            return res.status(404).json({ success: false, message: "Video lookup failed or video not found." });
+        }
+
+        if (!video) {
+             return res.status(404).json({ success: false, message: "Video not found" });
         }
 
         // Retrieve the actual seller from the DB
@@ -493,7 +514,7 @@ app.post('/api/buy', async (req, res) => {
         // Step A (Money):
 
         // Check Buyer Balance
-        const { data: buyer, error: buyerError } = await supabaseAdmin
+        const { data: buyer, error: buyerError } = await adminSupabase
             .from('profiles')
             .select('credits, is_admin')
             .eq('id', buyerId)
@@ -507,7 +528,7 @@ app.post('/api/buy', async (req, res) => {
 
         // Subtract cost from userId (Buyer)
         if (!buyer.is_admin) {
-            const { error: deductError } = await supabaseAdmin
+            const { error: deductError } = await adminSupabase
                 .from('profiles')
                 .update({ credits: buyer.credits - cost })
                 .eq('id', buyerId);
@@ -516,14 +537,14 @@ app.post('/api/buy', async (req, res) => {
         }
 
         // Add cost to sellerId (Seller)
-        const { data: seller, error: sellerError } = await supabaseAdmin
+        const { data: seller, error: sellerError } = await adminSupabase
             .from('profiles')
             .select('credits')
             .eq('id', sellerId)
             .single();
 
         if (seller) {
-            const { error: addError } = await supabaseAdmin
+            const { error: addError } = await adminSupabase
                 .from('profiles')
                 .update({ credits: seller.credits + cost })
                 .eq('id', sellerId);
@@ -537,7 +558,7 @@ app.post('/api/buy', async (req, res) => {
 
         // Step B (Asset Transfer):
         // Execute an UPDATE on the generations table for the original record.
-        const { error: transferError } = await supabaseAdmin
+        const { error: transferError } = await adminSupabase
             .from('generations')
             .update({
                 user_id: buyerId, // Change to userId (The Buyer's ID)
