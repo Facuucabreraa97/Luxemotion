@@ -110,6 +110,27 @@ const getUser = async (req) => {
     return user;
 };
 
+const requireAdmin = async (req, res, next) => {
+    try {
+        const user = await getUser(req);
+        // Check admin status in DB. We check BOTH 'is_admin' (boolean) and 'role' (string) to be safe.
+        // We select both columns; if one doesn't exist, Supabase might return null for it, which is handled.
+        const { data: profile } = await supabaseAdmin.from('profiles').select('*').eq('id', user.id).single();
+
+        const hasAdminRole = (profile.role === 'admin');
+        const hasAdminFlag = (profile.is_admin === true);
+
+        if (!profile || (!hasAdminFlag && !hasAdminRole)) {
+            return res.status(403).json({ error: "Unauthorized: Admin Access Required" });
+        }
+        req.user = user;
+        next();
+    } catch (e) {
+        console.error("Admin Check Failed:", e);
+        return res.status(401).json({ error: "Unauthorized" });
+    }
+};
+
 const analyzeProductImage = async (imageUrl) => {
     if (!openai) {
         throw new Error("OpenAI client is not initialized (Missing API Key)");
@@ -523,6 +544,74 @@ app.post('/api/publish', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: true, message: error.message });
   }
+});
+
+// --- API ADMIN ---
+app.get('/api/admin/users', requireAdmin, async (req, res) => {
+    try {
+        const { email } = req.query;
+        if (!email) return res.json([]);
+
+        // Search in profiles
+        const { data: profiles, error } = await supabaseAdmin
+            .from('profiles')
+            .select('*')
+            .ilike('email', `%${email}%`)
+            .limit(20);
+
+        if (error) throw error;
+        res.json(profiles);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/admin/credits', requireAdmin, async (req, res) => {
+    try {
+        const { userId, credits } = req.body;
+        const { error } = await supabaseAdmin.from('profiles').update({ credits }).eq('id', userId);
+        if (error) throw error;
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/admin/plan', requireAdmin, async (req, res) => {
+    try {
+        const { userId, plan } = req.body;
+        const { error } = await supabaseAdmin.from('profiles').update({ plan }).eq('id', userId);
+        if (error) throw error;
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/admin/velvet', requireAdmin, async (req, res) => {
+    try {
+        const { userId, status } = req.body;
+        // Assuming 'velvet_access' column exists. If not, this might fail or do nothing depending on Supabase config.
+        const { error } = await supabaseAdmin.from('profiles').update({ velvet_access: status }).eq('id', userId);
+        if (error) throw error;
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/admin/ban', requireAdmin, async (req, res) => {
+    try {
+        const { userId } = req.body;
+        // Ban logic: Set ban_duration to a very long time (e.g., 100 years)
+        const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+            ban_duration: "876000h" // ~100 years
+        });
+        if (error) throw error;
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 app.listen(port, () => console.log(`🛡️  LUXEMOTION SENIOR SERVER RUNNING ON PORT ${port}`));
