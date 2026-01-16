@@ -1226,7 +1226,7 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile }
   // Cost State
   const [totalCost, setTotalCost] = useState(0);
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState('Generating script...');
   const [resUrl, setResUrl] = useState<string|null>(null);
   const [modal, setModal] = useState(false);
@@ -1337,7 +1337,7 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile }
       <div className="lg:col-span-2 space-y-6">
         <div className={`p-8 rounded-[40px] border transition-all duration-300 ${panelClass}`}>
             <div className="flex justify-between items-center mb-8">
-                <h2 className="text-xs font-bold uppercase tracking-[0.2em] flex gap-3"><span className={mode==='velvet'?"text-[#C6A649]":"text-blue-600"}>01</span> {t('studio.source')} <Tooltip txt="Base asset"/></h2>
+                <h2 className="text-xs font-bold uppercase tracking-[0.2em] flex gap-3"><span className={mode==='velvet'?"text-[#C6A649]":"text-blue-600"}>01</span> Reference Image <Tooltip txt="Upload the photo you want to animate."/></h2>
                 <div className={`p-1.5 rounded-full border flex ${mode==='velvet'?'bg-black/40 border-white/10':'bg-gray-100 border-gray-200'}`}>
                     <button onClick={()=>{setType('img'); setVid(null);}} className={`px-6 py-2 rounded-full text-[9px] font-bold uppercase transition-all ${toggleClass(type==='img')}`}>{t('studio.tabs.photo')}</button>
                     <button onClick={()=>{setType('vid'); setImg(null);}} className={`px-6 py-2 rounded-full text-[9px] font-bold uppercase transition-all ${toggleClass(type==='vid')}`}>{t('studio.tabs.remix')}</button>
@@ -1483,7 +1483,21 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile }
                 </div>
             </div>
         </div>
-        <button id="studio-generate-btn" onClick={generate} disabled={loading || (!img && !vid)} className={`w-full py-7 rounded-[32px] font-bold uppercase tracking-[0.3em] text-xs flex items-center justify-center gap-4 fixed bottom-6 left-4 right-4 lg:static lg:w-full z-50 shadow-2xl transition-all duration-300 ${mode==='velvet' ? (velvetFilter ? S.btnVelvet : S.btnGold) : 'bg-black text-white shadow-lg hover:bg-gray-800 hover:shadow-xl active:scale-95'}`}>{loading ? t('studio.processing') : <><Zap size={18}/> {t('studio.generate')} ({totalCost})</>}</button>
+        {/* CRITICAL UI: DO NOT MODIFY */}
+        <button
+          id="studio-generate-btn"
+          onClick={generate}
+          disabled={loading || (!img && !vid) || (!profile?.is_admin && credits < totalCost)}
+          className={`w-full py-7 rounded-[32px] font-bold uppercase tracking-[0.3em] text-xs flex items-center justify-center gap-4 fixed bottom-6 left-4 right-4 lg:static lg:w-full z-50 shadow-2xl transition-all duration-300 ${mode==='velvet' ? (velvetFilter ? S.btnVelvet : S.btnGold) : 'bg-black text-white shadow-lg hover:bg-gray-800 hover:shadow-xl active:scale-95'}`}
+        >
+          {loading ? (
+            <span className="flex items-center gap-2">
+              <Loader2 className="animate-spin" size={18} /> Creating magic...
+            </span>
+          ) : (
+            <span>Generate Video ({totalCost} CR)</span>
+          )}
+        </button>
       </div>
       <div className="lg:col-span-3 relative z-10 flex flex-col pt-0 h-[calc(100vh-100px)] sticky top-8">
          <div className={`w-full h-full rounded-[40px] border overflow-hidden shadow-2xl relative transition-all duration-500 flex flex-col ${mode==='velvet' ? 'bg-black border-white/10' : 'bg-white border-gray-200'}`}>
