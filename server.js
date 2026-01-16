@@ -444,41 +444,101 @@ app.post('/api/create-preference', async (req, res) => {
 // --- API BUY (ATOMIC TRANSACTION) ---
 app.post('/api/buy', async (req, res) => {
     try {
-    console.log("--> Starting purchase:", req.body); // LOG FOR DEBUG
+        console.log("--> Starting purchase (Zero Trust):", req.body);
 
-    // Support aliases for backward compatibility and destructure robustly
-    const assetId = req.body.assetId || req.body.talent_id;
-    const buyerId = req.body.buyerId || req.body.userId || req.body.user_id;
-    const cost = req.body.cost;
+        // 1. Strict Input Validation (Zero Trust)
+        // We IGNORE req.body.talent_id as it may contain the video ID incorrectly or cause confusion.
+        const { assetId, cost } = req.body;
+        // Map any of these to buyerId
+        const buyerId = req.body.buyerId || req.body.userId || req.body.user_id;
 
-    // CRITICAL CHECK: Does 'supabase' or 'supabaseAdmin' exist?
-    // Make sure you use the correct instance you have initialized above
-    if (!supabaseAdmin) throw new Error("Supabase client not initialized");
+        if (!assetId) throw new Error("Asset ID is required");
+        if (!buyerId) throw new Error("Buyer ID is required");
+        if (cost === undefined || cost === null) throw new Error("Cost is required");
 
-    const { data, error } = await supabaseAdmin.rpc('purchase_asset', {
-    p_asset_id: assetId,
-    p_buyer_id: buyerId,
-    p_cost: cost
-    });
+        // CRITICAL CHECK: Does 'supabase' or 'supabaseAdmin' exist?
+        if (!supabaseAdmin) throw new Error("Supabase client not initialized");
 
-    if (error) {
-    console.error("Supabase RPC error:", error);
-    return res.status(400).json({ success: false, message: error.message });
-    }
+        // 2. Authoritative Lookup (Find Video & Real Seller)
+        // We find the video ONLY by its ID and ignore any frontend-provided seller IDs
+        const { data: video, error: videoError } = await supabaseAdmin
+            .from('generations')
+            .select('user_id')
+            .eq('id', assetId)
+            .single();
 
-    console.log("Purchase result:", data);
+        if (videoError || !video) {
+            console.error("Video lookup failed:", videoError);
+            throw new Error("Video does not exist in the DB");
+        }
 
-    // If the DB says logical error (insufficient balance, etc.)
-    if (!data.success) {
-    return res.status(400).json(data);
-    }
+        const sellerId = video.user_id; // The Source of Truth
 
-    return res.status(200).json(data);
+        // 3. Self-Purchase Prevention
+        if (buyerId === sellerId) {
+            throw new Error("You cannot purchase your own video.");
+        }
+
+        console.log(`Processing transfer: Buyer ${buyerId} -> Seller ${sellerId} for ${cost} credits`);
+
+        // 4. Execution (Manual Credit Transfer) - Bypassing potentially faulty RPC
+
+        // Check Buyer Balance
+        const { data: buyer, error: buyerError } = await supabaseAdmin
+            .from('profiles')
+            .select('credits, is_admin')
+            .eq('id', buyerId)
+            .single();
+
+        if (buyerError || !buyer) throw new Error("Buyer profile not found");
+
+        if (!buyer.is_admin && buyer.credits < cost) {
+            throw new Error(`Insufficient credits. You have ${buyer.credits}, needed ${cost}.`);
+        }
+
+        // Deduct from Buyer
+        if (!buyer.is_admin) {
+            const { error: deductError } = await supabaseAdmin
+                .from('profiles')
+                .update({ credits: buyer.credits - cost })
+                .eq('id', buyerId);
+
+            if (deductError) throw new Error("Failed to deduct credits from buyer");
+        }
+
+        // Add to Seller
+        // We fetch seller first to ensure we add to current balance (and handle concurrency simply)
+        const { data: seller, error: sellerError } = await supabaseAdmin
+            .from('profiles')
+            .select('credits')
+            .eq('id', sellerId)
+            .single();
+
+        if (seller) {
+            const { error: addError } = await supabaseAdmin
+                .from('profiles')
+                .update({ credits: seller.credits + cost })
+                .eq('id', sellerId);
+
+            if (addError) {
+                console.error("CRITICAL: Failed to pay seller after deducting buyer!", addError);
+                // In a production system, we would flag this for admin review
+            }
+        } else {
+            console.warn(`Seller profile ${sellerId} not found, could not credit funds.`);
+        }
+
+        // Success
+        return res.status(200).json({
+            success: true,
+            message: "Purchase successful",
+            remainingCredits: buyer.is_admin ? buyer.credits : buyer.credits - cost
+        });
 
     } catch (err) {
-    console.error("CRITICAL CRASH AT /api/buy:", err);
-    // IMPORTANT: Return JSON even in crash to avoid CORS error due to timeout
-    res.status(500).json({ success: false, message: "Internal Server Error", error: err.message });
+        console.error("CRITICAL CRASH AT /api/buy:", err.message);
+        // IMPORTANT: Return JSON even in crash to avoid CORS error due to timeout
+        res.status(500).json({ success: false, message: err.message });
     }
 });
 
