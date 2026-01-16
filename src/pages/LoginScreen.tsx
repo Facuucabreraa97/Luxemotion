@@ -57,7 +57,7 @@ export const LoginScreen = ({ onLogin, initialMode }: LoginScreenProps) => {
     <div className="fixed inset-0 bg-black flex items-center justify-center z-[100]">
       <video src={LOGIN_VID} autoPlay loop muted className="absolute inset-0 w-full h-full object-cover opacity-40"/>
       <div className={`relative z-10 w-full max-w-xs p-10 rounded-[40px] text-center ${S.panel}`}>
-        <div className="mb-10"><div className="w-16 h-16 bg-[#C6A649]/10 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-[#C6A649]/20 shadow-lg"><Play fill="#C6A649" className="text-[#C6A649] w-8 h-8 ml-1"/></div><h1 className={S.titleLuxe}>LUXE</h1><p className={S.subLuxe}>MOTION PRO</p></div>
+        <div className="mb-10"><div className="w-16 h-16 bg-[#C6A649]/10 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-[#C6A649]/20 shadow-lg"><Play fill="#C6A649" className="text-[#C6A649] w-8 h-8 ml-1"/></div><h1 className={S.titleLuxe}>MivideoAI</h1><p className={S.subLuxe}>PRO</p></div>
 
         {errorMsg && <div className="mb-4 text-red-500 text-[10px] font-bold uppercase">{errorMsg}</div>}
 
