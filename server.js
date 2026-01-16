@@ -34,7 +34,7 @@ const port = process.env.PORT || 3001;
 
 // --- CONFIGURATION ---
 const sbUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-const sbKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const sbKey = process.env.SUPABASE_SERVICE_ROLE_KEY; // CRITICAL: Must use Service Role for Admin/God Mode
 
 if (!sbUrl || !sbKey) {
   throw new Error("FATAL: Supabase credentials are not being read from the environment.");
