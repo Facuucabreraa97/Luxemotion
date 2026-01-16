@@ -10,7 +10,7 @@ import {
 import { createClient, Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { useTranslation } from 'react-i18next';
 import './i18n';
-import AdminPage from './pages/Admin';
+import Admin from './pages/Admin';
 
 // --- CONFIGURATION ---
 const getApiUrl = () => {
@@ -1539,9 +1539,11 @@ function ProtectedLayout({ session, credits, handleLogout, setSelPlan, profile, 
     );
 }
 
-const AdminGuard = ({ children, profile }: { children: any, profile: UserProfile }) => {
-    const isAdmin = profile?.is_admin === true || profile?.role === 'admin';
-    if (!isAdmin) return <Navigate to="/" replace />;
+const ProtectedRoute = ({ children, requireAdmin, profile }: { children: any, requireAdmin?: boolean, profile?: UserProfile }) => {
+    if (requireAdmin) {
+        const isAdmin = profile?.is_admin === true || profile?.role === 'admin';
+        if (!isAdmin) return <Navigate to="/" replace />;
+    }
     return children;
 };
 
@@ -1650,7 +1652,14 @@ function AppContent() {
         <Routes>
             <Route path="/" element={!session ? <LandingPage /> : <Navigate to="/app" replace />} />
             <Route path="/login" element={!session ? <LoginScreen onLogin={() => {}} /> : <Navigate to="/app" replace />} />
-            <Route path="/admin" element={!session ? <Navigate to="/" replace /> : <AdminGuard profile={profile}><AdminPage /></AdminGuard>} />
+            <Route
+                path="/admin"
+                element={
+                    <ProtectedRoute requireAdmin={true} profile={profile}>
+                        <Admin />
+                    </ProtectedRoute>
+                }
+            />
             <Route path="/app" element={<ProtectedLayout session={session} credits={credits} handleLogout={handleLogout} setSelPlan={setSelPlan} profile={profile} mode={mode} selPlan={selPlan} notify={notify} />}>
                 <Route index element={<StudioPage onGen={handleVideoSaved} influencers={influencers} credits={credits} notify={notify} onUp={()=>setSelPlan({key:'creator', annual:true})} userPlan={userPlan} talents={influencers} profile={profile}/>}/>
                 <Route path="explore" element={<ExplorePage />} />
