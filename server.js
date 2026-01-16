@@ -454,42 +454,43 @@ app.post('/api/buy', async (req, res) => {
     try {
         console.log("--> Starting purchase (Zero Trust):", req.body);
 
-        // 1. Strict Input Validation (Zero Trust)
-        // We IGNORE req.body.talent_id as it may contain the video ID incorrectly or cause confusion.
+        // 1. "ZERO TRUST" BUG FIX (CRITICAL)
+        // The Frontend is sending the wrong talent_id. IGNORE IT.
         const { assetId, cost } = req.body;
-        // Map any of these to buyerId
         const buyerId = req.body.buyerId || req.body.userId || req.body.user_id;
 
         if (!assetId) throw new Error("Asset ID is required");
         if (!buyerId) throw new Error("Buyer ID is required");
         if (cost === undefined || cost === null) throw new Error("Cost is required");
 
-        // CRITICAL CHECK: Does 'supabase' or 'supabaseAdmin' exist?
         if (!supabaseAdmin) throw new Error("Supabase client not initialized");
 
-        // 2. Authoritative Lookup (Find Video & Real Seller)
-        // We find the video ONLY by its ID and ignore any frontend-provided seller IDs
+        // Find the video using ONLY the assetId
         const { data: video, error: videoError } = await supabaseAdmin
             .from('generations')
-            .select('user_id')
+            .select('*')
             .eq('id', assetId)
             .single();
 
         if (videoError || !video) {
+            // If it doesn't exist -> Error 404
             console.error("Video lookup failed:", videoError);
-            throw new Error("Video does not exist in the DB");
+            return res.status(404).json({ success: false, message: "Video not found" });
         }
 
-        const sellerId = video.user_id; // The Source of Truth
+        // Retrieve the actual seller from the DB
+        const sellerId = video.user_id;
 
-        // 3. Self-Purchase Prevention
+        // Self-Purchase Prevention
         if (buyerId === sellerId) {
-            throw new Error("You cannot purchase your own video.");
+             return res.status(400).json({ success: false, message: "You cannot purchase your own video." });
         }
 
         console.log(`Processing transfer: Buyer ${buyerId} -> Seller ${sellerId} for ${cost} credits`);
 
-        // 4. Execution (Manual Credit Transfer) - Bypassing potentially faulty RPC
+        // 2. PROPERTY TRANSFER LOGIC (ATOMIC)
+
+        // Step A (Money):
 
         // Check Buyer Balance
         const { data: buyer, error: buyerError } = await supabaseAdmin
@@ -504,7 +505,7 @@ app.post('/api/buy', async (req, res) => {
             throw new Error(`Insufficient credits. You have ${buyer.credits}, needed ${cost}.`);
         }
 
-        // Deduct from Buyer
+        // Subtract cost from userId (Buyer)
         if (!buyer.is_admin) {
             const { error: deductError } = await supabaseAdmin
                 .from('profiles')
@@ -514,8 +515,7 @@ app.post('/api/buy', async (req, res) => {
             if (deductError) throw new Error("Failed to deduct credits from buyer");
         }
 
-        // Add to Seller
-        // We fetch seller first to ensure we add to current balance (and handle concurrency simply)
+        // Add cost to sellerId (Seller)
         const { data: seller, error: sellerError } = await supabaseAdmin
             .from('profiles')
             .select('credits')
@@ -530,22 +530,35 @@ app.post('/api/buy', async (req, res) => {
 
             if (addError) {
                 console.error("CRITICAL: Failed to pay seller after deducting buyer!", addError);
-                // In a production system, we would flag this for admin review
             }
         } else {
-            console.warn(`Seller profile ${sellerId} not found, could not credit funds.`);
+             console.warn(`Seller profile ${sellerId} not found, could not credit funds.`);
+        }
+
+        // Step B (Asset Transfer):
+        // Execute an UPDATE on the generations table for the original record.
+        const { error: transferError } = await supabaseAdmin
+            .from('generations')
+            .update({
+                user_id: buyerId, // Change to userId (The Buyer's ID)
+                is_for_sale: false // Change to false (Asset removed from marketplace)
+            })
+            .eq('id', assetId);
+
+        if (transferError) {
+             console.error("CRITICAL: Failed to transfer asset ownership!", transferError);
+             throw new Error("Failed to transfer asset ownership");
         }
 
         // Success
         return res.status(200).json({
             success: true,
-            message: "Purchase successful",
+            message: "Purchase and transfer successful",
             remainingCredits: buyer.is_admin ? buyer.credits : buyer.credits - cost
         });
 
     } catch (err) {
         console.error("CRITICAL CRASH AT /api/buy:", err.message);
-        // IMPORTANT: Return JSON even in crash to avoid CORS error due to timeout
         res.status(500).json({ success: false, message: err.message });
     }
 });
