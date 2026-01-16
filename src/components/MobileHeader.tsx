@@ -36,7 +36,7 @@ export const MobileHeader = ({ credits, userProfile, onUpgrade }: MobileHeaderPr
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${mode === 'velvet' ? 'bg-[#C6A649] text-black' : 'bg-blue-600 text-white'}`}>
               <Play fill={mode === 'velvet' ? "black" : "white"} size={14}/>
             </div>
-            <span className={`text-sm font-bold tracking-[0.2em] ${mode === 'velvet' ? 'text-white' : 'text-gray-900'}`}>LUXE</span>
+            <span className={`text-sm font-bold tracking-[0.2em] ${mode === 'velvet' ? 'text-white' : 'text-gray-900'}`}>MivideoAI</span>
           </div>
 
           <div className="flex items-center gap-3">

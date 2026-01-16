@@ -70,9 +70,9 @@ export const Sidebar = ({ credits, onLogout, onUp, userProfile, onUpgrade, notif
         <div className="p-8 pb-4">
           {/* ADAPTIVE LOGO */}
           {mode === 'velvet' ? (
-             <h1 className="text-2xl font-bold tracking-[0.2em] uppercase mb-1 text-white">Luxe<span className="text-[#C6A649]">Motion</span></h1>
+             <h1 className="text-2xl font-bold tracking-[0.2em] uppercase mb-1 text-white">Mivideo<span className="text-[#C6A649]">AI</span></h1>
           ) : (
-             <h1 className="text-2xl font-bold tracking-[0.2em] uppercase mb-1 text-black">LuxeMotion</h1>
+             <h1 className="text-2xl font-bold tracking-[0.2em] uppercase mb-1 text-black">MivideoAI</h1>
           )}
 
           <div className="flex items-center justify-between">

@@ -394,7 +394,7 @@ const CheckoutModal = ({ planKey, annual: initialAnnual, onClose }: CheckoutModa
         const res = await fetch(`${CONFIG.API_URL}/create-preference`, {
             method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
             body: JSON.stringify({
-                title: `LuxeMotion ${planName}`,
+                title: `MivideoAI ${planName}`,
                 price: payloadPrice,
                 quantity: 1,
                 type: planKey,
@@ -497,7 +497,7 @@ const MobileHeader = ({ credits, userProfile, onUpgrade }: any) => {
       <div className={`lg:hidden fixed top-0 w-full p-4 border-b z-50 flex justify-between items-center transition-colors ${mode === 'velvet' ? 'bg-[#0a0a0a]/90 backdrop-blur-md border-white/5' : 'bg-white/90 backdrop-blur-md border-gray-200'}`}>
           <div className="flex items-center gap-3">
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${mode === 'velvet' ? 'bg-[#C6A649] text-black' : 'bg-blue-600 text-white'}`}><Play fill={mode === 'velvet' ? "black" : "white"} size={14}/></div>
-            <span className={`text-sm font-bold tracking-[0.2em] ${mode === 'velvet' ? 'text-white' : 'text-gray-900'}`}>LUXE</span>
+            <span className={`text-sm font-bold tracking-[0.2em] ${mode === 'velvet' ? 'text-white' : 'text-gray-900'}`}>MivideoAI</span>
           </div>
           <div className="flex items-center gap-3">
              <button id="mobile-mode-toggle" onClick={handleModeToggle} className={`relative w-12 h-6 rounded-full border transition-all ${mode==='velvet'?'bg-black border-white/20':'bg-gray-200 border-gray-300'}`}>
@@ -560,7 +560,7 @@ const Sidebar = ({ credits, onLogout, onUp, userProfile, onUpgrade, notify }: an
       {showVelvetBenefits && <VelvetBenefitsModal onClose={() => setShowVelvetBenefits(false)} onUnlock={() => { setShowVelvetBenefits(false); onUpgrade(); }} />}
       <aside className={`fixed left-0 top-0 h-screen w-80 flex flex-col hidden lg:flex border-r transition-all duration-500 z-50 ${mode === 'velvet' ? 'bg-black/95 border-white/5 backdrop-blur-xl' : 'bg-[#F8F9FA] border-gray-200'}`}>
         <div className="p-8 pb-4">
-          {mode === 'velvet' ? <h1 className="text-2xl font-bold tracking-[0.2em] uppercase mb-1 text-white">Luxe<span className="text-[#C6A649]">Motion</span></h1> : <h1 className="text-2xl font-bold tracking-[0.2em] uppercase mb-1 text-black">LuxeMotion</h1>}
+          {mode === 'velvet' ? <h1 className="text-2xl font-bold tracking-[0.2em] uppercase mb-1 text-white">Mivideo<span className="text-[#C6A649]">AI</span></h1> : <h1 className="text-2xl font-bold tracking-[0.2em] uppercase mb-1 text-black">MivideoAI</h1>}
           <div className="flex items-center justify-between"><p className="text-[9px] text-gray-500 uppercase tracking-[0.4em] font-bold">AI Video Generator</p><button onClick={handleLang} className={`text-[9px] font-bold uppercase px-2 py-1 rounded border transition-colors ${mode==='velvet'?'border-white/10 text-gray-400 hover:text-white':'border-gray-300 text-gray-500 hover:text-black hover:border-gray-400'}`}>{i18n.language.toUpperCase()}</button></div>
         </div>
         <div className="px-8 mb-6">
@@ -823,7 +823,7 @@ const LandingPage = () => {
   return (
     <div className="bg-black min-h-screen text-white font-sans overflow-x-hidden">
       <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4 flex justify-between items-center bg-black/80 backdrop-blur-md border-b border-white/5">
-        <div className="flex items-center gap-2"><div className="w-8 h-8 bg-[#C6A649]/10 rounded-lg flex items-center justify-center border border-[#C6A649]/20"><Play fill="#C6A649" className="text-[#C6A649] w-4 h-4 ml-0.5"/></div><div><h1 className="text-sm font-bold tracking-widest text-[#C6A649]">LUXE</h1></div></div>
+        <div className="flex items-center gap-2"><div className="w-8 h-8 bg-[#C6A649]/10 rounded-lg flex items-center justify-center border border-[#C6A649]/20"><Play fill="#C6A649" className="text-[#C6A649] w-4 h-4 ml-0.5"/></div><div><h1 className="text-sm font-bold tracking-widest text-[#C6A649]">MivideoAI</h1></div></div>
         <div className="flex items-center gap-4">
             <button onClick={toggleLang} className="text-[10px] font-bold uppercase px-2 py-1 rounded border border-white/10 text-gray-400 hover:text-white transition-colors">{i18n.language?.substring(0, 2).toUpperCase() || 'EN'}</button>
             <button onClick={() => navigate('/login')} className="text-xs uppercase tracking-widest text-white/70 hover:text-white transition-colors">{t('landing.hero.login')}</button>
@@ -834,7 +834,7 @@ const LandingPage = () => {
         <div className="absolute inset-0 z-0"><video src={LANDING_VID} autoPlay loop muted className="w-full h-full object-cover"/><div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black"></div></div>
         <div className="relative z-10 container mx-auto px-6 text-center mt-20">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 mb-6 backdrop-blur-sm"><Sparkles size={12} className="text-[#C6A649]" /><span className="text-[10px] uppercase tracking-[0.2em] text-[#C6A649]">{t('landing.hero.badge')}</span></div>
-            <h1 className="text-5xl md:text-7xl lg:text-8xl font-serif font-medium text-white mb-6 leading-tight">Luxe<span className="text-[#C6A649] italic">{t('landing.hero.title_suffix')}</span></h1>
+            <h1 className="text-5xl md:text-7xl lg:text-8xl font-serif font-medium text-white mb-6 leading-tight">Mivideo<span className="text-[#C6A649] italic">{t('landing.hero.title_suffix')}</span></h1>
             <p className="text-xl md:text-2xl text-white/80 max-w-2xl mx-auto mb-10 font-light leading-relaxed">{t('landing.hero.subtitle')}</p>
             <div className="flex flex-col md:flex-row items-center justify-center gap-4">
                 <button onClick={() => navigate('/login?mode=register')} className={`px-8 py-4 rounded-xl text-xs font-bold uppercase tracking-widest ${S.btnGold} min-w-[200px]`}>{t('landing.hero.start_btn')}</button>
@@ -891,7 +891,7 @@ const LoginScreen = ({ onLogin }: { onLogin: () => void }) => {
     <div className="fixed inset-0 bg-black flex items-center justify-center z-[100]">
       <video src={LOGIN_VID} autoPlay loop muted className="absolute inset-0 w-full h-full object-cover opacity-40"/>
       <div className={`relative z-10 w-full max-w-xs p-10 rounded-[40px] text-center ${S.panel}`}>
-        <div className="mb-10"><div className="w-16 h-16 bg-[#C6A649]/10 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-[#C6A649]/20 shadow-lg"><Play fill="#C6A649" className="text-[#C6A649] w-8 h-8 ml-1"/></div><h1 className={S.titleLuxe}>LUXE</h1><p className={S.subLuxe}>MOTION PRO</p></div>
+        <div className="mb-10"><div className="w-16 h-16 bg-[#C6A649]/10 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-[#C6A649]/20 shadow-lg"><Play fill="#C6A649" className="text-[#C6A649] w-8 h-8 ml-1"/></div><h1 className={S.titleLuxe}>MivideoAI</h1><p className={S.subLuxe}>PRO</p></div>
         {errorMsg && <div className="mb-4 text-red-500 text-[10px] font-bold uppercase">{errorMsg}</div>}
         {mode !== 'forgot' ? (
             <div className="space-y-4 mb-8">
@@ -1265,7 +1265,7 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile }
 
   useEffect(() => {
       if (!loading) return;
-      const msgs = ["Writing script...", "Rendering lights...", "Applying magic..."];
+      const msgs = ["Writing script...", "Rendering lights...", "Creating magic in MivideoAI..."];
       if (voiceMode) {
           msgs.splice(1, 0, "Lip syncing...");
       }

@@ -18,7 +18,7 @@ export const LandingPage = () => {
                 <Play fill="#C6A649" className="text-[#C6A649] w-4 h-4 ml-0.5"/>
             </div>
             <div>
-                <h1 className="text-sm font-bold tracking-widest text-[#C6A649]">LUXE</h1>
+                <h1 className="text-sm font-bold tracking-widest text-[#C6A649]">MivideoAI</h1>
             </div>
         </div>
         <div className="flex items-center gap-4">
@@ -59,7 +59,7 @@ export const LandingPage = () => {
             </div>
 
             <h1 className="text-5xl md:text-7xl lg:text-8xl font-serif font-medium text-white mb-6 leading-tight">
-                Luxe<span className="text-[#C6A649] italic">Motion</span>
+                Mivideo<span className="text-[#C6A649] italic">AI</span>
             </h1>
 
             <p className="text-xl md:text-2xl text-white/80 max-w-2xl mx-auto mb-10 font-light leading-relaxed">
@@ -124,7 +124,7 @@ export const LandingPage = () => {
 
       {/* Footer */}
       <footer className="py-10 border-t border-white/5 text-center text-white/20 text-[10px] uppercase tracking-widest">
-        <p>&copy; {new Date().getFullYear()} LuxeMotion. All rights reserved.</p>
+        <p>&copy; {new Date().getFullYear()} MivideoAI. All rights reserved.</p>
       </footer>
     </div>
   );
