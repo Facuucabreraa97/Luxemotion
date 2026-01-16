@@ -1258,7 +1258,9 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile }
           const d = await r.json();
           if(d.videoUrl) {
               setResUrl(d.videoUrl);
-              onGen({url: d.videoUrl, cost, id: Date.now().toString(), date: new Date().toLocaleDateString(), prompt, aspectRatio: ratio});
+              // Use returned ID if available, fallback to timestamp only if null (though backend should return ID now)
+              const realId = d.id || Date.now().toString();
+              onGen({url: d.videoUrl, cost, id: realId, date: new Date().toLocaleDateString(), prompt, aspectRatio: ratio});
               if (d.voiceWarning) notify(`Video generado (Voz falló: se cobraron ${cost - 20}cr)`);
               else notify(t('studio.generated_success'));
           } else throw new Error(d.error);

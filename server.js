@@ -330,16 +330,26 @@ app.post('/api/generate', async (req, res) => {
             console.log("🗣️ LipSync Complete:", finalVideoUrl);
 
         } catch (voiceError) {
-            console.error("⚠️ Voice Layer Failed:", voiceError.message);
+            console.error("⚠️ Voice Layer Failed (Soft-Fail Active):", voiceError.message);
             voiceWarning = true;
 
-            // Refund the extra cost (20 credits)
+            // Revert to original video if voice failed
+            finalVideoUrl = remoteUrl;
+
+            // Refund the extra cost (20 credits) - Wrapped to prevent crash
             if (!isAdmin) {
-                await supabaseAdmin.from('profiles').update({ credits: profile.credits - 5 }).eq('id', user.id); // Refund 20, keeping 5 base
-                cost = 5; // Update cost variable for record keeping
+                try {
+                    await supabaseAdmin.from('profiles').update({ credits: profile.credits - 5 }).eq('id', user.id); // Refund 20, keeping 5 base
+                    cost = 5; // Update cost variable for record keeping
+                    console.log("♻️ Credits refunded due to voice failure.");
+                } catch (refundError) {
+                    console.error("⚠️ Refund failed:", refundError.message);
+                }
             }
         }
     }
+
+    console.log("💾 Proceeding to save generation...");
 
     // 5. Upload Final Result to Storage
     const videoRes = await fetch(finalVideoUrl);
@@ -355,15 +365,23 @@ app.post('/api/generate', async (req, res) => {
     const { data: { publicUrl } } = supabaseAdmin.storage.from('videos').getPublicUrl(fileName);
 
     // 6. Save Record
-    await supabaseAdmin.from('generations').insert({
+    const { data: genRecord, error: insertError } = await supabaseAdmin.from('generations').insert({
         user_id: user.id,
         video_url: publicUrl,
         prompt: finalPrompt, // Save the actual used prompt
         aspect_ratio: aspectRatio,
         cost: cost
-    });
+    }).select('id').single();
+
+    if (insertError) {
+        console.error("❌ DB Insert Failed:", insertError.message);
+        // We do not throw here to allow the user to at least see the generated video
+    } else {
+        console.log("✅ Generation saved to DB:", genRecord.id);
+    }
 
     res.json({
+        id: genRecord ? genRecord.id : null,
         videoUrl: publicUrl,
         cost,
         remainingCredits: isAdmin ? profile.credits : (voiceWarning ? profile.credits - 5 : profile.credits - cost),
