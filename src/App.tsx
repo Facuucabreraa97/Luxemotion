@@ -1204,7 +1204,8 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile }
   // Cost State
   const [totalCost, setTotalCost] = useState(0);
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [statusMsg, setStatusMsg] = useState('Generating script...');
   const [resUrl, setResUrl] = useState<string|null>(null);
   const [modal, setModal] = useState(false);
 
@@ -1223,6 +1224,31 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile }
       if (mode === 'velvet' || velvetFilter) c += 10;
       setTotalCost(c);
   }, [dur, voiceMode, mode, velvetFilter]);
+
+  const getEstimatedTime = () => {
+      let seconds = 45; // Base
+      if (voiceMode) seconds += 30;
+      if (mode === 'velvet' || velvetFilter) seconds += 15; // High Quality / Remix
+
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      return `~${m > 0 ? `${m} min ` : ''}${s} sec`;
+  };
+
+  useEffect(() => {
+      if (!loading) return;
+      const msgs = ["Generating script...", "Rendering video...", "Applying magic..."];
+      if (voiceMode) {
+          msgs.splice(1, 0, "Synthesizing speech...");
+      }
+      let i = 0;
+      setStatusMsg(msgs[0]);
+      const interval = setInterval(() => {
+          i = (i + 1) % msgs.length;
+          setStatusMsg(msgs[i]);
+      }, 3000);
+      return () => clearInterval(interval);
+  }, [loading, voiceMode]);
 
   const handleFile = (e:any, setter:any) => { const f = e.target.files[0]; if(f) { const r=new FileReader(); r.onload=()=>setter(r.result); r.readAsDataURL(f); } };
 
@@ -1435,7 +1461,13 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile }
                  <div className={`relative w-full max-h-full transition-all duration-500 shadow-2xl ${ratio==='16:9'?'aspect-video w-full':ratio==='1:1'?'aspect-square h-full':'aspect-[9/16] h-full'} ${mode==='velvet' ? 'bg-black' : 'bg-black'}`}>
                     <div className="absolute top-6 left-6 right-6 flex justify-between items-center z-20 pointer-events-none opacity-60"><div className="text-[10px] text-white font-mono flex items-center gap-2"><span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span> REC</div><div className="text-[10px] text-white font-mono">{dur}s • 4K</div></div>
                     {!resUrl && !loading && (<div className="absolute inset-0 flex flex-col items-center justify-center text-white/10 gap-6 border border-white/5"><div className="w-24 h-24 rounded-full border border-white/5 flex items-center justify-center"><Video size={40} strokeWidth={1}/></div><span className="text-[9px] uppercase tracking-[0.4em] font-light">Preview</span></div>)}
-                    {loading && (<div className="absolute inset-0 bg-[#050505] z-30 flex flex-col items-center justify-center"><div className={`w-20 h-20 border-t-2 border-r-2 rounded-full animate-spin mb-8 shadow-[0_0_30px_rgba(198,166,73,0.2)] ${mode==='velvet' ? 'border-[#C6A649]' : 'border-black shadow-lg'}`}></div><p className={`text-[10px] uppercase tracking-widest animate-pulse font-bold ${mode==='velvet'?'text-[#C6A649]':'text-black'}`}>{t('studio.processing')}</p></div>)}
+                    {loading && (
+                        <div className="absolute inset-0 bg-[#050505] z-30 flex flex-col items-center justify-center p-8 text-center">
+                            <div className={`w-20 h-20 border-t-2 border-r-2 rounded-full animate-spin mb-8 shadow-[0_0_30px_rgba(198,166,73,0.2)] ${mode==='velvet' ? 'border-[#C6A649]' : 'border-black shadow-lg'}`}></div>
+                            <p className={`text-[10px] uppercase tracking-widest animate-pulse font-bold mb-4 ${mode==='velvet'?'text-[#C6A649]':'text-black'}`}>{statusMsg}</p>
+                            <p className={`text-[9px] uppercase tracking-widest font-bold opacity-50 ${mode==='velvet'?'text-white':'text-gray-600'}`}>Estimated time: {getEstimatedTime()}</p>
+                        </div>
+                    )}
                     {resUrl && <video src={resUrl} className="w-full h-full object-cover" controls preload="metadata" playsInline crossOrigin="anonymous"/>}
                  </div>
             </div>

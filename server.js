@@ -195,11 +195,15 @@ app.post('/api/generate', async (req, res) => {
     if (product_image_url) {
         console.log(`👁️ Vision Middleware Active for ${user.email}`);
         try {
+            // Check if product image exists and inject specific prompt
+            // "Professional cinematic product shot. A fashion model interacting naturally with a [product/bottle/item]. The product is clearly visible, in focus, and elegantly displayed."
+
+            // We still analyze the image to know WHAT it is (bottle, bag, etc.)
             const visionOutput = await analyzeProductImage(product_image_url);
             console.log(`👁️ Vision Output: "${visionOutput}"`);
 
-            // Inject into prompt (New Logic: Product Context First)
-            effectivePrompt = `A high-quality cinematic shot featuring a product prominently displayed: ${visionOutput}. ${effectivePrompt}`;
+            // Inject into prompt (Enhanced Logic)
+            effectivePrompt = `Professional cinematic product shot. A fashion model interacting naturally with a ${visionOutput}. The product is clearly visible, in focus, and elegantly displayed. ${effectivePrompt}`;
 
         } catch (visionError) {
             console.warn("⚠️ Vision Middleware failed, falling back to original prompt.", visionError.message);
@@ -279,7 +283,7 @@ app.post('/api/generate', async (req, res) => {
                 `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
                 {
                     text: voiceScript,
-                    model_id: "eleven_monolingual_v1",
+                    model_id: "eleven_multilingual_v2",
                     voice_settings: { stability: 0.5, similarity_boost: 0.5 }
                 },
                 {
