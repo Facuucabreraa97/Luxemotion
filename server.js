@@ -34,14 +34,22 @@ const port = process.env.PORT || 3001;
 
 // --- CONFIGURATION ---
 const sbUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-const sbKey = process.env.SUPABASE_SERVICE_ROLE_KEY; // CRITICAL: Must use Service Role for Admin/God Mode
 
-if (!sbUrl || !sbKey) {
-  throw new Error("FATAL: Supabase credentials are not being read from the environment.");
+// CRITICAL: Must use Service Role for Admin/God Mode to Bypass RLS
+if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  throw new Error("FATAL: SUPABASE_SERVICE_ROLE_KEY is missing. Admin operations will fail.");
+}
+
+if (!sbUrl) {
+  throw new Error("FATAL: Supabase URL is not being read from the environment.");
 }
 
 // Initialize with the confirmed variables
-const supabaseAdmin = createClient(sbUrl, sbKey);
+// CORRECT (Admin/Backend Mode):
+const supabaseAdmin = createClient(
+  sbUrl,
+  process.env.SUPABASE_SERVICE_ROLE_KEY // <--- Use the service role key
+);
 
 const mpAccessToken = process.env.MP_ACCESS_TOKEN || 'TEST-TOKEN';
 const client = new MercadoPagoConfig({ accessToken: mpAccessToken });
