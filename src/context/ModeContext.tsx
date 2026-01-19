@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { S } from '../styles';
 
-type Mode = 'velvet' | 'agency';
+export type Mode = 'velvet' | 'agency';
 
 interface ModeContextType {
   mode: Mode;

@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import './i18n';
 import Admin from './pages/Admin';
 import { VideoCard } from './components/VideoCard';
+import { ModeProvider, useMode } from './context/ModeContext';
 
 // --- CONFIGURATION ---
 const getApiUrl = () => {
@@ -141,48 +142,6 @@ const ONBOARDING_STEPS = [
 const supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
 
 // --- CONTEXTS ---
-type Mode = 'velvet' | 'agency';
-
-interface ModeContextType {
-  mode: Mode;
-  toggleMode: () => void;
-  setMode: (mode: Mode) => void;
-  theme: {
-    primary: string;
-    secondary: string;
-    accent: string;
-    bg: string;
-    panel: string;
-  };
-}
-
-const ModeContext = createContext<ModeContextType | undefined>(undefined);
-
-const ModeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [mode, setModeState] = useState<Mode>('agency');
-
-  const toggleMode = () => {
-    setModeState(prev => prev === 'velvet' ? 'agency' : 'velvet');
-  };
-
-  const setMode = (m: Mode) => setModeState(m);
-
-  const theme = mode === 'velvet'
-    ? { primary: '#C6A649', secondary: '#EC4899', accent: '#9333EA', bg: 'bg-[#030303]', panel: S.panel }
-    : { primary: '#3B82F6', secondary: '#64748B', accent: '#0F172A', bg: 'bg-white text-black', panel: 'bg-white border border-gray-200 shadow-xl text-black' };
-
-  return (
-    <ModeContext.Provider value={{ mode, toggleMode, setMode, theme }}>
-      {children}
-    </ModeContext.Provider>
-  );
-};
-
-const useMode = () => {
-  const context = useContext(ModeContext);
-  if (!context) throw new Error("useMode must be used within a ModeProvider");
-  return context;
-};
 
 // Toast Context
 type ToastType = 'success' | 'error' | 'info';
