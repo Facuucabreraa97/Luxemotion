@@ -1,214 +1,164 @@
 import React, { useState, useEffect } from 'react';
+import { useOutletContext, useNavigate, useSearchParams } from 'react-router-dom';
 import { useMode } from '../context/ModeContext';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../lib/supabase';
-import { Play, User, ShoppingCart, Loader2 } from 'lucide-react';
-import { useToast } from '../components/Toast';
-
-interface ExploreItem {
-  id: string;
-  created_at: string;
-  type: 'video' | 'model';
-  is_public: boolean;
-  video_url?: string;
-  image_url?: string;
-  prompt?: string;
-  name?: string; // Model name
-  price?: number;
-  for_sale?: boolean;
-  profiles: {
-    name: string;
-    avatar: string | null;
-  };
-}
+import { ShoppingCart, Loader2, Lock } from 'lucide-react';
+import { S } from '../styles';
 
 export const ExplorePage = () => {
-  const { mode } = useMode();
-  const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<'all' | 'videos' | 'models'>('all');
-  const [items, setItems] = useState<ExploreItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [purchasing, setPurchasing] = useState<string | null>(null);
-  const { showToast } = useToast();
+    const { mode } = useMode();
+    const navigate = useNavigate();
+    const { t } = useTranslation();
+    const [searchParams, setSearchParams] = useSearchParams();
 
-  const fetchItems = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/explore?type=${activeTab}`);
-      if (!res.ok) throw new Error('Failed to fetch');
-      const data = await res.json();
-      setItems(data);
-    } catch (error) {
-      console.error(error);
-      showToast(t('common.error'), 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
+    // Get handleOpenBuyModal from Outlet context
+    const { handleOpenBuyModal } = useOutletContext<any>();
 
-  useEffect(() => {
-    fetchItems();
-  }, [activeTab]);
+    const [tab, setTab] = useState<'community' | 'marketplace'>(
+        searchParams.get('tab') === 'marketplace' ? 'marketplace' : 'community'
+    );
+    const [items, setItems] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-  const handleBuy = async (item: ExploreItem) => {
-    if (!item.for_sale || !item.price) return;
-
-    // Confirm purchase
-    if (!window.confirm(t('explore.buy.confirm', { name: item.name, price: item.price }))) return;
-
-    setPurchasing(item.id);
-    try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-            showToast(t('explore.buy.login_required'), 'error');
-            return;
+    // Sync state with URL params
+    useEffect(() => {
+        const currentTab = searchParams.get('tab');
+        if (currentTab === 'marketplace' || currentTab === 'community') {
+            setTab(currentTab);
         }
+    }, [searchParams]);
 
-        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/marketplace/buy`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${session.access_token}`
-            },
-            body: JSON.stringify({ talent_id: item.id, cost: item.price })
-        });
+    const handleTabChange = (newTab: 'community' | 'marketplace') => {
+        setTab(newTab);
+        setSearchParams({ tab: newTab });
+    };
 
-        const result = await res.json();
-        if (!res.ok) throw new Error(result.error);
+    const isVideo = (url: string) => url?.match(/\.(mp4|webm|mov|mkv)$/i);
 
-        showToast(t('explore.buy.success'), 'success');
-        fetchItems(); // Refresh
-    } catch (error: any) {
-        showToast(t('explore.buy.error'), 'error');
-    } finally {
-        setPurchasing(null);
-    }
-  };
+    useEffect(() => {
+        let active = true;
+        setLoading(true);
+        setItems([]);
+        setError(null);
 
-  return (
-    <div className={`min-h-screen p-8 transition-colors duration-500 ${mode === 'velvet' ? 'bg-[#030303] text-white' : 'bg-gray-50 text-gray-900'}`}>
+        const fetchItems = async () => {
+            try {
+                if (tab === 'community') {
+                    // Fetch public generations
+                    let { data, error } = await supabase
+                        .from('generations')
+                        .select('*, profiles(name, avatar)')
+                        .eq('is_public', true)
+                        .order('created_at', { ascending: false });
 
-      {/* Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
-        <div>
-            <h1 className={`text-3xl font-bold uppercase tracking-widest mb-2 ${mode === 'velvet' ? 'text-white' : 'text-black'}`}>
-                {t('explore.title')} <span className={mode === 'velvet' ? 'text-[#C6A649]' : 'text-gray-400'}>{t('explore.suffix')}</span>
-            </h1>
-            <p className={`text-xs uppercase tracking-[0.2em] font-bold ${mode === 'velvet' ? 'text-gray-500' : 'text-gray-400'}`}>
-                {t('explore.subtitle')}
-            </p>
-        </div>
+                    if (error) throw error;
+                    if (active) setItems(data || []);
+                } else {
+                    // Fetch marketplace talents
+                    let { data, error } = await supabase
+                        .from('talents')
+                        .select('*')
+                        .eq('for_sale', true)
+                        .order('created_at', { ascending: false });
 
-        {/* Filters */}
-        <div className="flex gap-2">
-            {['all', 'videos', 'models'].map((tab) => (
-                <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab as any)}
-                    className={`px-6 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all
-                        ${activeTab === tab
-                            ? (mode === 'velvet' ? 'bg-[#C6A649] text-black' : 'bg-black text-white')
-                            : (mode === 'velvet' ? 'bg-white/5 text-gray-400 hover:text-white' : 'bg-white text-gray-500 hover:text-black border border-gray-200')
-                        }`}
-                >
-                    {t(`explore.tabs.${tab}`)}
-                </button>
-            ))}
-        </div>
-      </div>
+                    if (error) throw error;
+                    if (active) setItems(data || []);
+                }
+            } catch (err) {
+                console.error("ExplorePage Fetch Error:", err);
+                if (active) {
+                    setError(tab === 'community' ? t('explore.empty.community') : t('explore.empty.marketplace'));
+                }
+            } finally {
+                if (active) setLoading(false);
+            }
+        };
 
-      {/* Grid */}
-      {loading ? (
-          <div className="flex justify-center items-center h-64">
-              <Loader2 className={`animate-spin ${mode === 'velvet' ? 'text-[#C6A649]' : 'text-black'}`} size={32} />
-          </div>
-      ) : (
-        <>
-            {items.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-32 text-center animate-in fade-in">
-                    <p className={`text-xs uppercase tracking-[0.3em] font-bold mb-4 ${mode === 'velvet' ? 'text-white/30' : 'text-gray-400'}`}>
-                        {t(`explore.empty.${activeTab}`)}
-                    </p>
+        fetchItems();
+        return () => { active = false; };
+    }, [tab, t]);
+
+    const placeholders = Array(9).fill(0);
+
+    return (
+        <div className={`pt-24 px-4 md:px-6 animate-in fade-in pb-32 min-h-screen ${mode === 'velvet' ? 'bg-black text-white' : 'bg-gray-50 text-black'}`}>
+            <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-6 md:mb-12">
+                <h2 className={`text-3xl md:text-4xl font-bold uppercase tracking-[0.2em] ${mode==='velvet'?'text-white':'text-gray-900'}`}>{t('explore.title')}</h2>
+                <div className={`p-1 rounded-full border flex ${mode==='velvet'?'bg-black/40 border-white/10':'bg-gray-100 border-gray-200'}`}>
+                    <button onClick={()=>handleTabChange('community')} className={`px-6 py-2 rounded-full text-[9px] font-bold uppercase transition-all ${tab==='community' ? (mode==='velvet'?'bg-[#C6A649] text-black shadow-lg':'bg-black text-white shadow-lg') : 'text-gray-400 hover:text-white'}`}>{t('explore.tabs.community')}</button>
+                    <button onClick={()=>handleTabChange('marketplace')} className={`px-6 py-2 rounded-full text-[9px] font-bold uppercase transition-all ${tab==='marketplace' ? (mode==='velvet'?'bg-[#C6A649] text-black shadow-lg':'bg-black text-white shadow-lg') : 'text-gray-400 hover:text-white'}`}>{t('explore.tabs.marketplace')}</button>
+                </div>
+            </div>
+
+            {error ? (
+                <div className={`p-12 rounded-3xl border text-center ${mode === 'velvet' ? 'bg-white/5 border-white/10 text-white/50' : 'bg-gray-100 border-gray-200 text-gray-500'}`}>
+                    <p className="uppercase tracking-widest text-xs font-bold">{error}</p>
                 </div>
             ) : (
-              <div className="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6">
-                  {items.map((item) => (
-                      <div key={item.id} className={`break-inside-avoid rounded-2xl overflow-hidden relative group mb-6 border transition-all duration-300
-                          ${mode === 'velvet' ? 'bg-[#0a0a0a] border-white/10 hover:border-[#C6A649]/50' : 'bg-white border-gray-100 hover:shadow-xl'}`}>
+                <>
+                    {items.length === 0 && !loading && tab === 'marketplace' && (
+                         <div className={`p-12 rounded-3xl border text-center ${mode === 'velvet' ? 'bg-white/5 border-white/10 text-white/50' : 'bg-gray-100 border-gray-200 text-gray-500'}`}>
+                            <p className="uppercase tracking-widest text-xs font-bold">{t('explore.empty.marketplace')}</p>
+                        </div>
+                    )}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        {loading ? placeholders.map((_, i) => (
+                            <div key={i} className={`aspect-[9/16] rounded-[30px] animate-pulse ${mode==='velvet'?'bg-white/5':'bg-gray-200'}`}></div>
+                        )) : items.map((item: any) => {
+                             const assetUrl = item.video_url || item.image_url;
+                             const isVid = isVideo(assetUrl);
+                             // Handle name display for both generations (profiles.name) and talents (name)
+                             const displayName = item.profiles?.name || item.name || 'User';
 
-                          {/* Media */}
-                          <div className="relative aspect-[9/16] bg-black">
-                              {item.type === 'video' ? (
-                                  <video
-                                      src={item.video_url}
-                                      className="w-full h-full object-cover"
-                                      muted
-                                      loop
-                                      onMouseOver={(e) => e.currentTarget.play()}
-                                      onMouseOut={(e) => e.currentTarget.pause()}
-                                  />
-                              ) : (
-                                  <img src={item.image_url} className="w-full h-full object-cover" alt={item.name} />
-                              )}
-
-                              {/* Overlay Gradient */}
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 pointer-events-none" />
-
-                              {/* Type Badge */}
-                              <div className="absolute top-4 right-4 bg-black/50 backdrop-blur px-2 py-1 rounded text-[9px] font-bold uppercase tracking-widest text-white border border-white/10">
-                                  {item.type}
-                              </div>
-                          </div>
-
-                          {/* Info */}
-                          <div className="p-4">
-                              <div className="flex items-center gap-3 mb-3">
-                                  <div className="w-8 h-8 rounded-full bg-gray-800 overflow-hidden border border-white/10">
-                                      {item.profiles?.avatar ? (
-                                          <img src={item.profiles.avatar} className="w-full h-full object-cover" />
-                                      ) : (
-                                          <div className="w-full h-full flex items-center justify-center text-xs text-white">
-                                              {item.profiles?.name?.[0] || 'U'}
-                                          </div>
-                                      )}
-                                  </div>
-                                  <div>
-                                      <p className={`text-xs font-bold ${mode === 'velvet' ? 'text-white' : 'text-black'}`}>
-                                          {item.name || item.prompt?.slice(0, 30) + '...'}
-                                      </p>
-                                      <p className="text-[9px] text-gray-500 uppercase tracking-widest">
-                                          {t('explore.card.by')} {item.profiles?.name || 'Unknown'}
-                                      </p>
-                                  </div>
-                              </div>
-
-                              {/* Action */}
-                              {item.type === 'model' && item.for_sale && (
-                                  <button
-                                      onClick={() => handleBuy(item)}
-                                      disabled={purchasing === item.id}
-                                      className={`w-full py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all
-                                          ${mode === 'velvet'
-                                              ? 'bg-[#C6A649] text-black hover:bg-[#d4b55b]'
-                                              : 'bg-black text-white hover:bg-gray-800'}`}
-                                  >
-                                      {purchasing === item.id ? (
-                                          <Loader2 size={14} className="animate-spin" />
-                                      ) : (
-                                          <>
-                                              <ShoppingCart size={14} />
-                                              {t('explore.buy.button', { price: item.price })}
-                                          </>
-                                      )}
-                                  </button>
-                              )}
-                          </div>
-                      </div>
-                  ))}
-              </div>
+                             return (
+                             <div key={item.id} className={`rounded-[30px] overflow-hidden group relative hover:-translate-y-2 transition-all ${mode==='velvet'?S.panel:'bg-white shadow-lg border border-gray-100'}`}>
+                                {isVid ? (
+                                    <video src={assetUrl} className="aspect-[9/16] object-cover w-full" controls preload="metadata" playsInline crossOrigin="anonymous" />
+                                ) : (
+                                    <img src={assetUrl} className="aspect-[3/4] object-cover w-full" />
+                                )}
+                                <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none">
+                                    <p className="text-white text-[10px] font-bold uppercase tracking-widest">{displayName}</p>
+                                </div>
+                                <div className="absolute top-3 right-3 flex items-center gap-2 z-20">
+                                    {tab === 'marketplace' ? (
+                                        <>
+                                            <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-lg">
+                                                <span className="text-yellow-400 font-bold text-sm">{item.price} CR</span>
+                                            </div>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleOpenBuyModal(item); }}
+                                                className="bg-white text-black p-2 rounded-full hover:bg-gray-200 transition-all shadow-[0_0_15px_rgba(255,255,255,0.3)] active:scale-95 flex items-center gap-1 px-3"
+                                            >
+                                                <ShoppingCart size={14} />
+                                                <span className="text-[10px] font-bold uppercase">{t('explore.buy.button', { price: item.price })}</span>
+                                            </button>
+                                        </>
+                                    ) : (
+                                        // Community / Remix Logic
+                                        (item.for_sale || item.is_for_sale) ? (
+                                           <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-lg flex items-center gap-1">
+                                                <Lock size={12} className="text-white/70"/>
+                                                <span className="text-white/70 font-bold text-[9px] uppercase tracking-wider">Private Prompt</span>
+                                           </div>
+                                        ) : (
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); navigate('/app', { state: { remixPrompt: item.prompt } }); }}
+                                                className="bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 shadow-lg flex items-center gap-2 hover:bg-white hover:text-black transition-all group"
+                                            >
+                                                <span className="text-lg group-hover:rotate-180 transition-transform duration-500">🌪️</span>
+                                                <span className="font-bold text-[10px] uppercase tracking-wider">Remix</span>
+                                            </button>
+                                        )
+                                    )}
+                                </div>
+                            </div>
+                        )})}
+                    </div>
+                </>
             )}
-        </>
-      )}
-    </div>
-  );
+        </div>
+    );
 };
