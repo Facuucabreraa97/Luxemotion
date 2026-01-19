@@ -2,6 +2,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import { ModeProvider } from './context/ModeContext';
 import './index.css';
 import './i18n';
 
@@ -13,6 +14,8 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <App />
+    <ModeProvider>
+      <App />
+    </ModeProvider>
   </React.StrictMode>
 );
