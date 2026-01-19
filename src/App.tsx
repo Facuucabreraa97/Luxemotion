@@ -680,8 +680,9 @@ const ExplorePage = () => {
                 body: JSON.stringify({
                     userId: session.user.id,
                     assetId: item.id,
-                talent_id: item.id,
-                cost: item.price
+                    talent_id: item.id,
+                    cost: item.price,
+                    assetType: tab === 'marketplace' ? 'model' : 'video'
                 })
             });
 

@@ -462,7 +462,7 @@ app.post('/api/buy', async (req, res) => {
         // If it's 'NO', the server will throw a critical error (handled by createClient or downstream)
 
         // 1. "ZERO TRUST" BUG FIX
-        const { assetId, cost } = req.body;
+        const { assetId, cost, assetType } = req.body;
         const buyerId = req.body.buyerId || req.body.userId || req.body.user_id;
 
         if (!assetId) throw new Error("Asset ID is required");
@@ -476,9 +476,15 @@ app.post('/api/buy', async (req, res) => {
           { auth: { autoRefreshToken: false, persistSession: false } }
         );
 
-        // 2. CLEAN QUERY (Only search by video ID)
-        const { data: video, error } = await adminSupabase
-            .from('generations')
+        // Determine Table & Column
+        const table = (assetType === 'model' || assetType === 'talent') ? 'talents' : 'generations';
+        const saleColumn = (table === 'talents') ? 'for_sale' : 'is_for_sale';
+
+        console.log(`Searching in table: ${table} for ID: ${assetId}`);
+
+        // 2. CLEAN QUERY (Search by ID in correct table)
+        const { data: item, error } = await adminSupabase
+            .from(table)
             .select('*') // Fetch everything to see who the owner is
             .eq('id', assetId)
             .single();
@@ -489,13 +495,13 @@ app.post('/api/buy', async (req, res) => {
              // Fall through to standard error handling or return 404
         }
 
-        if (error || !video) {
+        if (error || !item) {
             // If it doesn't exist -> Error 404
-            return res.status(404).json({ success: false, message: "Video not found", debug_error: error });
+            return res.status(404).json({ success: false, message: "Asset not found", debug_error: error });
         }
 
         // Retrieve the actual seller from the DB
-        const sellerId = video.user_id;
+        const sellerId = item.user_id;
 
         // Self-Purchase Prevention
         if (buyerId === sellerId) {
@@ -552,13 +558,16 @@ app.post('/api/buy', async (req, res) => {
         }
 
         // Step B (Asset Transfer):
-        // Execute an UPDATE on the generations table for the original record.
+        // Execute an UPDATE on the correct table for the original record.
+        const updatePayload = {
+            user_id: buyerId, // Change to userId (The Buyer's ID)
+        };
+        // Mark as not for sale using dynamic column name
+        updatePayload[saleColumn] = false;
+
         const { error: transferError } = await adminSupabase
-            .from('generations')
-            .update({
-                user_id: buyerId, // Change to userId (The Buyer's ID)
-                is_for_sale: false // Change to false (Asset removed from marketplace)
-            })
+            .from(table)
+            .update(updatePayload)
             .eq('id', assetId);
 
         if (transferError) {
