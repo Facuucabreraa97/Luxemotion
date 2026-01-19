@@ -41,6 +41,12 @@ export const VideoCard: React.FC<VideoCardProps> = ({
   // Logic for "Sold Out" / "Sold"
   const isSold = item.is_sold === true || (!isForSale && salesCount > 0);
 
+  // --- READ-ONLY LOGIC ---
+  // Critical Security Check
+  // Locked if SOLD or (FOR SALE and NOT OWNER)
+  const isLocked = isSold || (isForSale && !isOwner);
+  // -----------------------
+
   const isModel = type === 'model';
   const assetUrl = isModel ? item.image_url : (item.video_url || item.url);
   const isVideoAsset = type === 'video' || assetUrl?.match(/\.(mp4|webm|mov|mkv)(\?.*)?$/i);
@@ -64,12 +70,15 @@ export const VideoCard: React.FC<VideoCardProps> = ({
   }
 
   // Action Buttons Logic
-  const showViewDetails = isSold;
-  const showManage = !isSold && isForSale;
-  const showSell = !isSold && !isForSale;
-  const showPublish = onPublish && isOwner && !isSold && !isForSale && !isModel;
-  const showRemix = onRemix && !isSold && !isForSale;
-  const showDelete = onDelete && !isSold;
+  // Only allow Download and View if Locked (Sold)
+  const showViewDetails = isLocked || isSold; // Always show view details if locked/sold
+  const showManage = !isLocked && isForSale;
+  const showSell = !isLocked && !isForSale;
+
+  // Strict conditions: cannot publish/remix if locked
+  const showPublish = !isLocked && onPublish && isOwner && !isForSale && !isModel;
+  const showRemix = !isLocked && onRemix && !isForSale;
+  const showDelete = !isLocked && onDelete;
 
   return (
     <div className={`rounded-[30px] overflow-hidden group relative hover:-translate-y-2 transition-all ${isVelvet ? S.panel : 'bg-white shadow-lg border border-gray-100'}`}>
@@ -110,16 +119,12 @@ export const VideoCard: React.FC<VideoCardProps> = ({
             </div>
 
             <div className="flex gap-2 shrink-0 items-center">
-                {/* If Sold, display RED BADGE/LABEL instead of modification buttons (as per instruction)
-                    The instruction says "display a red badge/label that says 'SOLD' instead of the action buttons."
-                    We already have the overlay badge, but we can also put text here or replace buttons.
-                    We will show "SOLD" text and the View Details button.
-                */}
+                {/* Visual Badge (Status) - Text in Action Bar */}
                 {isSold && (
                     <span className="text-red-500 text-[10px] font-bold uppercase tracking-widest mr-2">SOLD</span>
                 )}
 
-                {/* View Details (Sold Out) */}
+                {/* View Details */}
                 {showViewDetails && (
                     <button
                         onClick={() => onViewDetails ? onViewDetails(item) : null}
