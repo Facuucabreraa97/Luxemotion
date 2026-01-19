@@ -1,15 +1,17 @@
 import React from 'react';
-import { Download, Globe, Trash2, ShoppingBag, Settings, Eye, Lock, Loader2, Play } from 'lucide-react';
+import { Download, Globe, Trash2, ShoppingBag, Settings, Eye, Lock, Loader2, Play, Sparkles } from 'lucide-react';
 import { useMode } from '../context/ModeContext';
 import { S } from '../styles';
 
 interface VideoCardProps {
   item: any;
   type: 'video' | 'model';
+  isOwner?: boolean;
   onPublish?: (item: any) => void;
   onDelete?: (id: string) => void;
   onSell?: (id: string) => void;
   onManage?: (id: string) => void;
+  onRemix?: (item: any) => void;
   onDownload?: (url: string) => void;
   onViewDetails?: (item: any) => void;
   publishing?: boolean;
@@ -19,10 +21,12 @@ interface VideoCardProps {
 export const VideoCard: React.FC<VideoCardProps> = ({
   item,
   type,
+  isOwner = false,
   onPublish,
   onDelete,
   onSell,
   onManage,
+  onRemix,
   onDownload,
   onViewDetails,
   publishing = false,
@@ -35,16 +39,14 @@ export const VideoCard: React.FC<VideoCardProps> = ({
   const salesCount = item.sales_count || 0;
 
   // Logic for "Sold Out" / "Sold"
-  // If it's not for sale anymore but has sales, we consider it "Sold" (e.g. exclusive sold or removed from market but kept in history)
-  const isSold = !isForSale && salesCount > 0;
+  const isSold = item.is_sold === true || (!isForSale && salesCount > 0);
 
   const isModel = type === 'model';
   const assetUrl = isModel ? item.image_url : (item.video_url || item.url);
-  // Relaxed regex to handle query params (removed $) and respect explicit type
   const isVideoAsset = type === 'video' || assetUrl?.match(/\.(mp4|webm|mov|mkv)(\?.*)?$/i);
   const aspectRatioClass = isModel ? 'aspect-[3/4]' : 'aspect-[9/16]';
 
-  // Badge Logic
+  // Badge Logic (Overlay)
   let statusBadge = null;
   let statusColor = '';
 
@@ -63,8 +65,11 @@ export const VideoCard: React.FC<VideoCardProps> = ({
 
   // Action Buttons Logic
   const showViewDetails = isSold;
-  const showManage = isForSale; // Active Model/Video
-  const showSell = !isForSale && !isSold; // Draft
+  const showManage = !isSold && isForSale;
+  const showSell = !isSold && !isForSale;
+  const showPublish = onPublish && isOwner && !isSold && !isForSale && !isModel;
+  const showRemix = onRemix && !isSold && !isForSale;
+  const showDelete = onDelete && !isSold;
 
   return (
     <div className={`rounded-[30px] overflow-hidden group relative hover:-translate-y-2 transition-all ${isVelvet ? S.panel : 'bg-white shadow-lg border border-gray-100'}`}>
@@ -90,7 +95,6 @@ export const VideoCard: React.FC<VideoCardProps> = ({
                  </div>
              )}
 
-             {/* Hover Overlay (Optional, for play button or details) */}
              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"/>
         </div>
 
@@ -105,15 +109,35 @@ export const VideoCard: React.FC<VideoCardProps> = ({
                  </span>
             </div>
 
-            <div className="flex gap-2 shrink-0">
+            <div className="flex gap-2 shrink-0 items-center">
+                {/* If Sold, display RED BADGE/LABEL instead of modification buttons (as per instruction)
+                    The instruction says "display a red badge/label that says 'SOLD' instead of the action buttons."
+                    We already have the overlay badge, but we can also put text here or replace buttons.
+                    We will show "SOLD" text and the View Details button.
+                */}
+                {isSold && (
+                    <span className="text-red-500 text-[10px] font-bold uppercase tracking-widest mr-2">SOLD</span>
+                )}
+
                 {/* View Details (Sold Out) */}
                 {showViewDetails && (
                     <button
-                        onClick={() => onViewDetails ? onViewDetails(item) : alert("Sold Out")}
+                        onClick={() => onViewDetails ? onViewDetails(item) : null}
                         className={`p-2 rounded-full transition-all ${isVelvet?'bg-white/5 text-white hover:text-[#C6A649]':'bg-gray-100 text-gray-500 hover:text-black'}`}
                         title="View Details"
                     >
                         <Eye size={14}/>
+                    </button>
+                )}
+
+                {/* Remix */}
+                {showRemix && (
+                    <button
+                        onClick={() => onRemix && onRemix(item)}
+                        className={`p-2 rounded-full transition-all ${isVelvet?'bg-white/5 text-white hover:text-[#C6A649]':'bg-gray-100 text-gray-500 hover:text-black'}`}
+                        title="Remix"
+                    >
+                        <Sparkles size={14}/>
                     </button>
                 )}
 
@@ -140,9 +164,9 @@ export const VideoCard: React.FC<VideoCardProps> = ({
                 )}
 
                 {/* Publish (Video) */}
-                {onPublish && !isSold && !isModel && (
+                {showPublish && (
                     <button
-                        onClick={() => onPublish(item)}
+                        onClick={() => onPublish && onPublish(item)}
                         disabled={publishing}
                         className={`p-2 rounded-full transition-all
                             ${isVelvet
@@ -168,9 +192,9 @@ export const VideoCard: React.FC<VideoCardProps> = ({
                 )}
 
                 {/* Delete */}
-                {onDelete && (
+                {showDelete && (
                     <button
-                        onClick={() => onDelete(item.id)}
+                        onClick={() => onDelete && onDelete(item.id)}
                         className={`p-2 rounded-full transition-all ${isVelvet?'bg-white/5 text-red-400/50 hover:text-red-500 hover:bg-red-500/10':'bg-gray-100 text-gray-400 hover:text-red-500'}`}
                         title="Delete"
                     >

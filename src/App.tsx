@@ -1020,6 +1020,7 @@ const TalentPage = ({ list, add, del, notify, videos, profile }: any) => {
                     key={inf.id}
                     type="model"
                     item={inf}
+                isOwner={true}
                     onDelete={del}
                     onSell={(id) => setSellingId(sellingId === id ? null : id)}
                 >
@@ -1086,7 +1087,9 @@ const GalleryPage = ({ videos, setVideos }: any) => {
                 key={v.id}
                 type="video"
                 item={v}
+                isOwner={true}
                 onPublish={togglePublish}
+                onRemix={() => navigate('/app', { state: { remixPrompt: v.prompt } })}
                 publishing={publishing === v.id}
                 onDownload={(url) => {
                     const a = document.createElement('a');
