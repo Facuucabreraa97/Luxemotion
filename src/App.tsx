@@ -11,6 +11,7 @@ import { createClient, Session, User as SupabaseUser } from '@supabase/supabase-
 import { useTranslation } from 'react-i18next';
 import './i18n';
 import Admin from './pages/Admin';
+import { VideoCard } from './components/VideoCard';
 
 // --- CONFIGURATION ---
 const getApiUrl = () => {
@@ -1056,17 +1057,15 @@ const TalentPage = ({ list, add, del, notify, videos, profile }: any) => {
         )}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
             {list.map((inf:Talent) => (
-                <div key={inf.id} className={`rounded-[30px] overflow-hidden relative group transition-all duration-500 hover:-translate-y-2 ${isVelvet ? S.panel : 'bg-white shadow-lg border border-gray-100'}`}>
-                    {isVideo(inf.image_url) ? <video src={inf.image_url} className="aspect-[3/4] object-cover w-full group-hover:scale-105 transition-transform duration-700" controls preload="metadata" playsInline crossOrigin="anonymous"/> : <img src={inf.image_url} className="aspect-[3/4] object-cover w-full group-hover:scale-105 transition-transform duration-700"/>}
-                    <div className="absolute bottom-0 inset-x-0 p-6 pt-20 flex justify-between items-end bg-gradient-to-t from-black/90 via-black/50 to-transparent">
-                        <div><span className="text-[10px] font-bold uppercase tracking-widest text-white block">{inf.name}</span>{(inf as any).for_sale && <span className="text-[8px] font-bold uppercase bg-[#C6A649] text-black px-2 py-0.5 rounded-full mt-1 inline-block ml-2">{t('talent.for_sale_badge')}</span>}</div>
-                        <div className="flex gap-2">
-                            {!(inf as any).for_sale && <button onClick={()=>setSellingId(sellingId === inf.id ? null : inf.id)} className="bg-white/10 p-2 rounded-full text-white/50 hover:text-[#C6A649] hover:bg-white/20"><ShoppingBag size={12}/></button>}
-                            <button onClick={()=>del(inf.id)} className="bg-white/10 p-2 rounded-full text-white/50 hover:text-red-500 hover:bg-white/20"><X size={12}/></button>
-                        </div>
-                    </div>
+                <VideoCard
+                    key={inf.id}
+                    type="model"
+                    item={inf}
+                    onDelete={del}
+                    onSell={(id) => setSellingId(sellingId === id ? null : id)}
+                >
                     {sellingId === inf.id && (
-                        <div className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center p-6 text-center animate-in fade-in">
+                        <div className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center p-6 text-center animate-in fade-in z-20">
                             <h3 className="text-white text-xs font-bold uppercase mb-4">{t('talent.sell_modal.title', {name: inf.name})}</h3>
                             <input type="number" placeholder={t('talent.sell_modal.price_placeholder')} value={sellPrice} onChange={(e)=>setSellPrice(e.target.value)} className="w-full bg-white/10 border border-white/20 rounded p-2 text-white text-xs mb-4 text-center outline-none"/>
 
@@ -1088,7 +1087,7 @@ const TalentPage = ({ list, add, del, notify, videos, profile }: any) => {
                             <div className="flex gap-2 w-full"><button onClick={()=>setSellingId(null)} className="flex-1 py-2 bg-white/10 text-white text-[10px] font-bold uppercase rounded">{t('common.cancel')}</button><button onClick={()=>handleSell(inf.id)} className="flex-1 py-2 bg-[#C6A649] text-black text-[10px] font-bold uppercase rounded">{t('talent.list_btn')}</button></div>
                         </div>
                     )}
-                </div>
+                </VideoCard>
             ))}
         </div>
     </div>
@@ -1124,18 +1123,21 @@ const GalleryPage = ({ videos, setVideos }: any) => {
     <h2 className={`text-4xl font-bold uppercase tracking-[0.2em] mb-12 border-b pb-8 ${mode==='velvet'?'text-white border-white/10':'text-gray-900 border-gray-200'}`}>{t('gallery.title')}</h2>
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
         {videos.map((v:any) => (
-            <div key={v.id} className={`rounded-[30px] overflow-hidden group relative hover:-translate-y-2 transition-all ${mode==='velvet'?S.panel:'bg-white shadow-lg border border-gray-100'}`}>
-                <video src={v.video_url || v.url} className="aspect-[9/16] object-cover w-full" controls preload="metadata" playsInline crossOrigin="anonymous"/>
-                <div className={`p-5 flex justify-between items-center ${mode==='velvet'?'bg-[#0a0a0a]':'bg-white'}`}>
-                    <span className={`text-[9px] font-bold uppercase tracking-widest ${mode==='velvet'?'text-white/40':'text-gray-400'}`}>{v.date}</span>
-                    <div className="flex gap-2">
-                         <button onClick={() => togglePublish(v)} disabled={publishing === v.id} className={`p-2 rounded-full transition-all ${mode==='velvet' ? (v.is_public ? 'bg-[#C6A649] text-black hover:bg-white' : 'bg-white/5 text-gray-400 hover:text-[#C6A649]') : (v.is_public ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-500')}`}>
-                            {publishing === v.id ? <Loader2 size={14} className="animate-spin"/> : <Globe size={14}/>}
-                         </button>
-                         <a href={v.url} download className={`p-2 rounded-full transition-all ${mode==='velvet'?'bg-white/5 text-[#C6A649] hover:bg-[#C6A649] hover:text-black':'bg-gray-100 text-black hover:bg-black hover:text-white'}`}><Download size={14}/></a>
-                    </div>
-                </div>
-            </div>
+            <VideoCard
+                key={v.id}
+                type="video"
+                item={v}
+                onPublish={togglePublish}
+                publishing={publishing === v.id}
+                onDownload={(url) => {
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'video.mp4';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                }}
+            />
         ))}
     </div>
   </div>
