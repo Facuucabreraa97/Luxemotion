@@ -701,7 +701,15 @@ const ExplorePage = () => {
 
     const [purchaseItem, setPurchaseItem] = useState<any>(null);
 
-    const handleBuyClick = (item: any) => {
+    // DEBUG: Monitor selected item
+    useEffect(() => {
+        if (purchaseItem) {
+            console.log('MODAL OPEN WITH ASSET ID:', purchaseItem.id);
+        }
+    }, [purchaseItem]);
+
+    const handleOpenBuyModal = (item: any) => {
+        console.log('CLICK VIDEO:', item.id);
         setPurchaseItem(item);
     };
 
@@ -757,7 +765,7 @@ const ExplorePage = () => {
                                                 <span className="text-yellow-400 font-bold text-sm">{item.price} CR</span>
                                             </div>
                                             <button
-                                                onClick={(e) => { e.stopPropagation(); handleBuyClick(item); }}
+                                                onClick={(e) => { e.stopPropagation(); handleOpenBuyModal(item); }}
                                                 className="bg-white text-black p-2 rounded-full hover:bg-gray-200 transition-all shadow-[0_0_15px_rgba(255,255,255,0.3)] active:scale-95"
                                                 disabled={purchasing === item.id}
                                             >
