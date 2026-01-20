@@ -675,7 +675,7 @@ app.post('/api/talents/create', async (req, res) => {
             }
 
             if (commercialCount > 0) {
-                throw new Error("This asset source has already been commercialized.");
+                return res.status(403).json({ success: false, error: "This asset source has already been commercialized." });
             }
 
             // Check Status
@@ -683,11 +683,11 @@ app.post('/api/talents/create', async (req, res) => {
             // But if it is listed for sale, they cannot use it.
             // CHECK BOTH PROPERTY NAMES (Backend vs Frontend Schema Convention)
             if (sourceVideo.is_for_sale || sourceVideo.for_sale) {
-                throw new Error("RESTRICTED: Cancel the sale listing before using this asset.");
+                 return res.status(403).json({ success: false, error: "This asset cannot be used because the original has been sold." });
             }
 
             if (sourceVideo.locked) {
-                 throw new Error("RESTRICTED: This asset is locked/archived and cannot be reused.");
+                 return res.status(403).json({ success: false, error: "This asset cannot be used because the original has been sold." });
             }
         }
 
@@ -750,17 +750,22 @@ app.post('/api/publish', async (req, res) => {
 
     // LINEAGE CHECK FOR PUBLISHING (If enabling public access)
     if (newStatus === true && table === 'generations') {
-        // If this is a video, check if it has commercialized children (talents)
-        const { count: commercialCount, error: lineageError } = await supabaseAdmin
-            .from('talents')
-            .select('*', { count: 'exact', head: true })
-            .eq('source_generation_id', targetId)
-            .or('for_sale.eq.true,sales_count.gt.0');
+        try {
+            // If this is a video, check if it has commercialized children (talents)
+            const { count: commercialCount, error: lineageError } = await supabaseAdmin
+                .from('talents')
+                .select('*', { count: 'exact', head: true })
+                .eq('source_generation_id', targetId)
+                .or('for_sale.eq.true,sales_count.gt.0');
 
-        if (lineageError) throw new Error("Security check failed.");
+            if (lineageError) throw new Error("Security check failed.");
 
-        if (commercialCount > 0) {
-            throw new Error("This asset has commercialized derivatives and cannot be published to the community.");
+            if (commercialCount > 0) {
+                return res.status(403).json({ error: "This asset has commercialized derivatives and cannot be published to the community." });
+            }
+        } catch (lineageEx) {
+             console.error("Lineage Check Error:", lineageEx.message);
+             return res.status(403).json({ error: "This asset cannot be used because the original has been sold." });
         }
     }
 
@@ -777,6 +782,56 @@ app.post('/api/publish', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: true, message: error.message });
   }
+});
+
+// --- API MARKETPLACE & CASTING (GET) ---
+app.get('/api/marketplace', async (req, res) => {
+    try {
+        // Fetch talents that are for sale
+        const { data: talents, error } = await supabaseAdmin
+            .from('talents')
+            .select('*, generations(id, locked, is_for_sale, user_id)')
+            .eq('for_sale', true);
+
+        if (error) throw error;
+
+        // SANITY FILTER: Exclude zombie assets
+        const cleanTalents = talents.filter(t => {
+            if (!t.generations) return true; // Independent asset (if any)
+            // Filter out if source is locked (sold/archived) or for sale
+            if (t.generations.locked === true) return false;
+            if (t.generations.is_for_sale === true) return false;
+            return true;
+        });
+
+        res.json(cleanTalents);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.get('/api/casting', async (req, res) => {
+    try {
+        // Casting: Available models (talents), likely public ones?
+        const { data: talents, error } = await supabaseAdmin
+            .from('talents')
+            .select('*, generations(id, locked, is_for_sale, user_id)')
+            .eq('is_public', true);
+
+        if (error) throw error;
+
+        // SANITY FILTER
+        const cleanTalents = talents.filter(t => {
+            if (!t.generations) return true;
+            if (t.generations.locked === true) return false;
+            if (t.generations.is_for_sale === true) return false;
+            return true;
+        });
+
+        res.json(cleanTalents);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 // --- API ADMIN ---
