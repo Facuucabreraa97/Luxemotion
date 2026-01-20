@@ -18,6 +18,7 @@
       "talent": "Casting",
       "gallery": "Gallery",
       "billing": "Plan",
+      "earnings": "Earnings",
       "settings": "Settings"
     },
     "currency": {
@@ -112,7 +113,7 @@
       "login_required": "Please log in to purchase."
     },
     "card": {
-        "by": "by"
+      "by": "by"
     }
   },
   "talent": {
@@ -135,12 +136,12 @@
       "error_price": "Price must be greater than 0"
     },
     "sell_modal": {
-        "title": "Sell {{name}}",
-        "price_placeholder": "Price (Credits)",
-        "list": "List",
-        "selling_price": "Selling Price",
-        "royalty": "Royalty to Creator (10%)",
-        "you_receive": "You will receive"
+      "title": "Sell {{name}}",
+      "price_placeholder": "Price (Credits)",
+      "list": "List",
+      "selling_price": "Selling Price",
+      "royalty": "Royalty to Creator (10%)",
+      "you_receive": "You will receive"
     },
     "list_price": "Price (Credits)",
     "list_btn": "List",
@@ -171,15 +172,15 @@
     "pay_mp": "Pay with Mercado Pago",
     "crypto_disabled": "Crypto payments temporarily disabled. Use Mercado Pago.",
     "checkout": {
-        "title": "Checkout",
-        "summary_title": "Summary:",
-        "access": "Immediate access to {{credits}} credits",
-        "unlock": "Unlock {{plan}} features",
-        "cancel": "Cancel anytime",
-        "total": "Total",
-        "vat_included": "VAT Included",
-        "confirm_pay": "Confirm & Pay",
-        "secure": "Payments processed securely. By continuing you accept the terms."
+      "title": "Checkout",
+      "summary_title": "Summary:",
+      "access": "Immediate access to {{credits}} credits",
+      "unlock": "Unlock {{plan}} features",
+      "cancel": "Cancel anytime",
+      "total": "Total",
+      "vat_included": "VAT Included",
+      "confirm_pay": "Confirm & Pay",
+      "secure": "Payments processed securely. By continuing you accept the terms."
     }
   },
   "settings": {
@@ -225,22 +226,51 @@
   "pricing": {
     "starter": {
       "name": "Starter",
-      "features": ["HD Quality", "1 Model", "Watermark", "Basic Support"]
+      "features": [
+        "HD Quality",
+        "1 Model",
+        "Watermark",
+        "Basic Support"
+      ]
     },
     "creator": {
       "name": "Influencer",
-      "features": ["4K Ultra", "Velvet Mode", "5 Models", "Commercial License", "No Watermark"]
+      "features": [
+        "4K Ultra",
+        "Velvet Mode",
+        "5 Models",
+        "Commercial License",
+        "No Watermark"
+      ]
     },
     "agency": {
       "name": "Agency",
-      "features": ["Unlimited Everything", "API Access", "Total Priority", "Account Manager", "24/7 Support"]
+      "features": [
+        "Unlimited Everything",
+        "API Access",
+        "Total Priority",
+        "Account Manager",
+        "24/7 Support"
+      ]
     }
   },
   "cams": {
-    "static": { "label": "TRIPOD", "desc": "Fixed camera. Ideal for highlighting details." },
-    "zoom": { "label": "ZOOM IN", "desc": "Slow and dramatic zoom." },
-    "eye": { "label": "GAZE", "desc": "Intense eye contact." },
-    "hand": { "label": "HANDHELD", "desc": "Organic vlog-style movement." }
+    "static": {
+      "label": "TRIPOD",
+      "desc": "Fixed camera. Ideal for highlighting details."
+    },
+    "zoom": {
+      "label": "ZOOM IN",
+      "desc": "Slow and dramatic zoom."
+    },
+    "eye": {
+      "label": "GAZE",
+      "desc": "Intense eye contact."
+    },
+    "hand": {
+      "label": "HANDHELD",
+      "desc": "Organic vlog-style movement."
+    }
   },
   "ratios": {
     "stories": "Stories",
@@ -248,8 +278,38 @@
     "square": "Square"
   },
   "velvet_styles": {
-    "leaked": { "name": "Leaked Tape", "desc": "Raw & Amateur" },
-    "boudoir": { "name": "Glamour", "desc": "Cinematic & Spicy" },
-    "cosplay": { "name": "Cosplay", "desc": "Anime Realism" }
+    "leaked": {
+      "name": "Leaked Tape",
+      "desc": "Raw & Amateur"
+    },
+    "boudoir": {
+      "name": "Glamour",
+      "desc": "Cinematic & Spicy"
+    },
+    "cosplay": {
+      "name": "Cosplay",
+      "desc": "Anime Realism"
+    }
+  },
+  "earnings": {
+    "title": "Earnings & Assets",
+    "total_revenue": "Total Revenue",
+    "assets_sold": "Assets Sold",
+    "pipeline_value": "Pipeline Value",
+    "projected": "Projected",
+    "empty_state": "No earnings yet. Create and sell talents to start earning.",
+    "go_casting": "Go to Casting",
+    "sold": "SOLD",
+    "example": "Example",
+    "subtitle": "Financial Overview",
+    "portfolio": "Sold Assets Portfolio",
+    "locked": "Locked Asset",
+    "performance": "Performance",
+    "empty_title": "No Assets Sold Yet",
+    "empty_desc": "Your portfolio is empty. Start casting models to generate revenue streams."
+  },
+  "badges": {
+    "sold": "SOLD",
+    "royalty": "Royalty Asset"
   }
 }

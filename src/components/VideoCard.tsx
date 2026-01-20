@@ -1,6 +1,7 @@
 import React from 'react';
 import { Download, Globe, Trash2, ShoppingBag, Settings, Eye, Lock, Loader2, Play, Sparkles, Crown } from 'lucide-react';
 import { useMode } from '../context/ModeContext';
+import { useTranslation } from 'react-i18next';
 import { S } from '../styles';
 
 interface VideoCardProps {
@@ -33,6 +34,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({
     children
 }) => {
     const { mode } = useMode();
+    const { t } = useTranslation();
     const isVelvet = mode === 'velvet';
 
     // --- ABSOLUTE LOCK LOGIC ---
@@ -118,7 +120,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({
                     <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/20">
                         <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl border border-white/20 flex items-center gap-2">
                             <Lock size={12} className="text-white/70" />
-                            <span className="text-white text-[10px] font-bold tracking-[0.2em] uppercase">Vendido / Sold</span>
+                            <span className="text-white text-[10px] font-bold tracking-[0.2em] uppercase">{t('badges.sold')}</span>
                         </div>
                     </div>
                 )}
