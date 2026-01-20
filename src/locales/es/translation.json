@@ -299,10 +299,17 @@
     "locked": "Activo Bloqueado",
     "performance": "Rendimiento",
     "empty_title": "Sin Activos Vendidos",
-    "empty_desc": "Tu portafolio está vacío. Comienza a vender talentos para generar ingresos."
+    "empty_desc": "Tu portafolio está vacío. Comienza a vender talentos para generar ingresos.",
+    "history_title": "Historial de Movimientos",
+    "col_date": "Fecha",
+    "col_concept": "Concepto",
+    "col_amount": "Monto",
+    "col_status": "Estado",
+    "status_completed": "Completado"
   },
   "badges": {
     "sold": "VENDIDO",
-    "royalty": "Activo Royalty"
+    "royalty": "Activo Royalty",
+    "acquired": "ADQUIRIDO"
   }
 }

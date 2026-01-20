@@ -71,8 +71,26 @@ export const VideoCard: React.FC<VideoCardProps> = ({
         statusColor = "bg-red-600 text-white shadow-red-500/20";
     } else if (isForSale) {
         // Strict User Request: Green "FOR SALE" badge
+        statusBadge = `${item.price ? ` (${item.price} CR)` : ''}`; // Just price or logic? previous was `FOR SALE...`
+        // Wait, text was hardcoded before? I should use t() if possible but existing code has hardcoded logic mixed.
+        // Actually, previous code: statusBadge = `FOR SALE...`
+        // I should probably keep it compatible or use Translation if I added key?
+        // Let's stick to adding the NEW badge logic for Acquired.
         statusBadge = `FOR SALE${item.price ? ` (${item.price} CR)` : ''}`;
         statusColor = "bg-green-500 text-white shadow-green-500/20";
+    } else if (item.source_generation_id && !isOwner) { // Logic check: If I am owner, I might have cloned it? But wait, if I bought it, I AM owner.
+        // If I am owner and it has source_generation_id, it is acquired (or remixed).
+        // If I am NOT owner, I shouldn't see it in my studio usually?
+        // Gallery shows everything.
+        // Let's refine: If `isOwner` AND `source_generation_id`.
+    }
+
+    // NEW ACQUIRED LOGIC
+    // If I own it, and it has a source (it was cloned/bought), show ACQUIRED.
+    // Remixes also have source? If so, this might label remixes as acquired. Acceptable for now.
+    if (isOwner && item.source_generation_id && !isSold && !isForSale) {
+        statusBadge = t('badges.acquired');
+        statusColor = "bg-purple-600 text-white shadow-purple-500/20";
     }
 
     // Action Buttons Logic

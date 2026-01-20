@@ -306,10 +306,17 @@
     "locked": "Locked Asset",
     "performance": "Performance",
     "empty_title": "No Assets Sold Yet",
-    "empty_desc": "Your portfolio is empty. Start casting models to generate revenue streams."
+    "empty_desc": "Your portfolio is empty. Start casting models to generate revenue streams.",
+    "history_title": "Transaction History",
+    "col_date": "Date",
+    "col_concept": "Concept",
+    "col_amount": "Amount",
+    "col_status": "Status",
+    "status_completed": "Completed"
   },
   "badges": {
     "sold": "SOLD",
-    "royalty": "Royalty Asset"
+    "royalty": "Royalty Asset",
+    "acquired": "ACQUIRED"
   }
 }
