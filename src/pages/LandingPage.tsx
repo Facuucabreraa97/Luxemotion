@@ -64,7 +64,7 @@ export const LandingPage = () => {
                 <div className="w-full max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 px-4 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-1000">
 
                     {/* PILLAR 1: CREATE */}
-                    <div className="p-8 rounded-3xl border border-white/5 bg-white/5 backdrop-blur-sm hover:bg-white/10 transition-colors group text-left">
+                    <div className="p-8 rounded-3xl border border-white/5 bg-white/5 backdrop-blur-sm hover:border-[#C6A649]/50 hover:-translate-y-1 transition-all duration-300 group text-left">
                         <div className="w-12 h-12 rounded-full bg-black border border-white/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                             <Sparkles className="text-white w-5 h-5" />
                         </div>
@@ -75,7 +75,7 @@ export const LandingPage = () => {
                     </div>
 
                     {/* PILLAR 2: TRADE (CRITICAL) */}
-                    <div className="p-8 rounded-3xl border border-[#C6A649]/20 bg-gradient-to-b from-[#C6A649]/10 to-transparent backdrop-blur-sm hover:border-[#C6A649]/40 transition-colors group text-left relative overflow-hidden">
+                    <div className="p-8 rounded-3xl border border-[#C6A649]/20 bg-gradient-to-b from-[#C6A649]/10 to-transparent backdrop-blur-sm hover:border-[#C6A649]/50 hover:-translate-y-1 transition-all duration-300 group text-left relative overflow-hidden">
                         <div className="absolute inset-0 bg-yellow-500/5 blur-3xl rounded-full opacity-20 group-hover:opacity-40 transition-opacity"></div>
                         <div className="relative z-10 w-12 h-12 rounded-full bg-black border border-[#C6A649]/30 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                             {/* Using Hexagon as generic tech icon if ArrowLeftRight is not imported. I'll import Arrow. */}
@@ -89,7 +89,7 @@ export const LandingPage = () => {
                     </div>
 
                     {/* PILLAR 3: PROFIT */}
-                    <div className="p-8 rounded-3xl border border-white/5 bg-white/5 backdrop-blur-sm hover:bg-white/10 transition-colors group text-left">
+                    <div className="p-8 rounded-3xl border border-white/5 bg-white/5 backdrop-blur-sm hover:border-[#C6A649]/50 hover:-translate-y-1 transition-all duration-300 group text-left">
                         <div className="w-12 h-12 rounded-full bg-black border border-white/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" /></svg>
                         </div>
