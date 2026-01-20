@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Video, Users, Image as ImageIcon, CreditCard, Settings, LogOut, Zap, Crown, ChevronRight, Globe, TrendingUp } from 'lucide-react';
+import { Video, Users, Image as ImageIcon, CreditCard, Settings, LogOut, Zap, Crown, ChevronRight, Globe, TrendingUp, DollarSign } from 'lucide-react';
 import { useMode } from '../context/ModeContext';
 import { useTranslation } from 'react-i18next';
 import { UserProfile } from '../types';
@@ -28,7 +28,7 @@ export const Sidebar = ({ credits, onLogout, onUp, userProfile, onUpgrade, notif
     { icon: Globe, label: 'Explore', path: '/app/explore' },
     { icon: Users, label: t('common.nav.talent'), path: '/app/talent' },
     { icon: ImageIcon, label: t('common.nav.gallery'), path: '/app/gallery' },
-    { icon: TrendingUp, label: 'Earnings', path: '/app/earnings' },
+    { icon: DollarSign, label: 'Ganancias', path: '/app/earnings' },
     { icon: CreditCard, label: t('common.nav.billing'), path: '/app/billing' },
     { icon: Settings, label: t('common.nav.settings'), path: '/app/settings' },
   ];
