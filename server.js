@@ -562,26 +562,49 @@ app.post('/api/buy', async (req, res) => {
 
         // 5. ASSET TRANSFER (ATOMIC UPDATE)
         // We do NOT use 'sold' or 'is_sold'. We use 'is_for_sale = false' and change owner.
-        // 5. ASSET TRANSFER (ATOMIC UPDATE)
-        // FORCE UPDATE: Mark as sold explicitly as requested.
-        const updatePayload = {
-            user_id: buyerId, // New Owner
-            is_for_sale: false, // Remove from market
-            is_sold: true, // STRICT: Sold
-            sales_count: (item.sales_count || 0) + 1
-        };
-
-        console.log("Transferring ownership and marking SOLD...", updatePayload);
-
-        const { error: transferError } = await adminSupabase
+        // 5. ASSET CLONING (BUSINESS LOGIC: COPY NOT TRANSFER)
+        // A. Update Original (Seller's History) -> Mark as SOLD
+        console.log("Marking Original as SOLD for Seller...");
+        const { error: markSoldError } = await adminSupabase
             .from(table)
-            .update(updatePayload)
+            .update({
+                is_for_sale: false,
+                is_sold: true, // STRICT: Sold
+                sales_count: (item.sales_count || 0) + 1
+                // user_id REMAINS SELLER (History)
+            })
             .eq('id', assetId);
 
-        if (transferError) {
-            console.error("CRITICAL: Failed to transfer asset ownership!", transferError);
-            throw new Error("Failed to transfer asset ownership. Please contact support.");
+        if (markSoldError) {
+            console.error("CRITICAL: Failed to update original asset!", markSoldError);
+            throw new Error("Failed to process transaction (Seller Update).");
         }
+
+        // B. Create Clone (Buyer's Fresh Copy)
+        console.log("Cloning Asset for Buyer...");
+        const { id: _id, created_at: _created, user_id: _oldUser, is_sold: _oldSold, is_for_sale: _oldSale, sales_count: _oldSales, ...baseItem } = item;
+
+        const clonePayload = {
+            ...baseItem,
+            user_id: buyerId, // New Owner
+            is_for_sale: false, // Fresh clean state
+            is_sold: false,     // Usable!
+            sales_count: 0      // Reset stats
+        };
+
+        const { data: newClone, error: cloneError } = await adminSupabase
+            .from(table)
+            .insert(clonePayload)
+            .select()
+            .single();
+
+        if (cloneError) {
+            console.error("CRITICAL: Failed to clone asset!", cloneError);
+            // In a perfect world we would rollback Step A, but here we throw to stop.
+            throw new Error("Failed to process transaction (Clone Creation).");
+        }
+
+        console.log(`✅ Asset Cloned! New ID: ${newClone.id}`);
 
         // 6. LINEAGE SECURITY (Lock Source)
         // If a Talent was sold, lock the source generation.
