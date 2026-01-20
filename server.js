@@ -635,6 +635,23 @@ app.post('/api/talents/create', async (req, res) => {
                 throw new Error("Source video not found or access denied.");
             }
 
+            // 1. DUPLICATION CHECK (INTEGRITY 10/10)
+            const { data: existingTalent, error: dupError } = await supabaseAdmin
+                .from('talents')
+                .select('id')
+                .eq('source_generation_id', source_video_id)
+                .maybeSingle(); // Use maybeSingle to avoid error if none found
+
+            if (dupError) throw new Error("Database check failed.");
+
+            if (existingTalent) {
+                console.warn(`⚠️ Blocked duplicate creation for source ${source_video_id}`);
+                return res.status(409).json({
+                    success: false,
+                    error: "CONFLICT: A talent already exists for this original video. One Original = One Talent."
+                });
+            }
+
             // GUARD CLAUSE: Strict Status Check
             // A video can't create a talent if it's already locked (is_sold: true) or currently for sale (is_for_sale: true)
             // Per CONTEXTO.md: "Zombis: Si un video original (generation) tiene is_sold: true o is_for_sale: true, NADIE puede crear nuevos modelos"
