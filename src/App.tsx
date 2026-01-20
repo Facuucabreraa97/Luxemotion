@@ -886,6 +886,7 @@ const TalentPage = ({ list, add, del, notify, videos, profile }: any) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [img, setImg] = useState<string|null>(null);
+  const [sourceVideoId, setSourceVideoId] = useState<string|null>(null); // NEW STATE for Source ID
   const [name, setName] = useState('');
   const [notes, setNotes] = useState('');
   const [role, setRole] = useState('model');
@@ -938,15 +939,17 @@ const TalentPage = ({ list, add, del, notify, videos, profile }: any) => {
         role,
         notes,
         for_sale: finalForSale,
-        price: finalPrice
+        price: finalPrice,
+        source_video_id: sourceVideoId // Pass state variable
       });
       setOpen(false);
       setImg(null);
+      setSourceVideoId(null);
       setName('');
       setNotes('');
       setIsForSale(false);
       setCreatePrice('');
-      notify(t('talent.created_success'));
+      // Notification is handled in 'add' function
       navigate('/app/explore?tab=marketplace');
   };
   const handleSell = async (id: string) => {
@@ -1002,11 +1005,27 @@ const TalentPage = ({ list, add, del, notify, videos, profile }: any) => {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         {localVideos && localVideos.map((v:any) => {
                              const assetUrl = v.video_url || v.url;
+                             const isLocked = v.locked || v.is_sold || (v.is_for_sale);
+
                              return (
-                                <div key={v.id} onClick={()=>{setImg(assetUrl); setShowGallery(false);}} className="cursor-pointer group relative aspect-[9/16] rounded-xl overflow-hidden border border-transparent hover:border-[#C6A649]">
+                                <button
+                                    key={v.id}
+                                    onClick={()=>{
+                                        if(isLocked) {
+                                            notify(t('explore.buy.error') || "Asset Locked");
+                                            return;
+                                        }
+                                        setImg(assetUrl);
+                                        // Store the Source Video ID
+                                        setSourceVideoId(v.id);
+                                        setShowGallery(false);
+                                    }}
+                                    className={`cursor-pointer group relative aspect-[9/16] rounded-xl overflow-hidden border transition-all ${isLocked ? 'border-red-500/50 opacity-50' : 'border-transparent hover:border-[#C6A649]'}`}
+                                >
                                     {isVideo(assetUrl) ? <video src={assetUrl} className="w-full h-full object-cover" controls preload="metadata" playsInline crossOrigin="anonymous"/> : <img src={assetUrl} className="w-full h-full object-cover" />}
                                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all"/>
-                                </div>
+                                    {isLocked && <div className="absolute inset-0 flex items-center justify-center"><Lock className="text-red-500" /></div>}
+                                </button>
                              );
                         })}
                          {(!localVideos || localVideos.length === 0) && <p className="col-span-4 text-center text-gray-500 py-10">No generations found.</p>}
@@ -1538,25 +1557,48 @@ function AppContent() {
           const user = session?.user;
           if(!user) return;
           const tempId = `temp_${Date.now()}`;
+          // Optimistic UI Update
           const newTalent = { ...inf, id: tempId, user_id: user.id };
           setInfluencers([newTalent, ...influencers]);
 
-          const payload = {
-            name: inf.name,
-            image_url: typeof inf.image_url === 'string' ? inf.image_url : '',
-            role: inf.role || 'model',
-            dna_prompt: inf.dna_prompt || '',
-            user_id: user.id,
-            original_creator_id: user.id,
-            // User requested 'is_for_sale' but DB column is 'for_sale' per schema. Keeping 'for_sale' to avoid SQL error.
-            for_sale: inf.for_sale || false,
-            price: inf.price || 0,
-            is_public: inf.for_sale || false
-          };
+          try {
+              const { data: { session } } = await supabase.auth.getSession();
 
-          const { data, error } = await supabase.from('talents').insert(payload).select().single();
-          if(error) { console.error("Error adding talent:", error); notify("Error adding talent"); setInfluencers(prev => prev.filter(i => i.id !== tempId)); }
-          else if (data) { setInfluencers(prev => prev.map(i => i.id === tempId ? data : i)); }
+              const payload = {
+                  name: inf.name,
+                  image_url: typeof inf.image_url === 'string' ? inf.image_url : '',
+                  role: inf.role || 'model',
+                  dna_prompt: inf.dna_prompt || '',
+                  for_sale: inf.for_sale || false,
+                  price: inf.price || 0,
+                  source_video_id: inf.source_video_id // PASS THE SOURCE ID
+              };
+
+              const res = await fetch(`${CONFIG.API_URL}/talents/create`, {
+                  method: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${session?.access_token}`
+                  },
+                  body: JSON.stringify(payload)
+              });
+
+              const result = await res.json();
+
+              if (!result.success) {
+                  throw new Error(result.error || "Failed to create talent");
+              }
+
+              const data = result.talent;
+              setInfluencers(prev => prev.map(i => i.id === tempId ? data : i));
+              notify(t('talent.created_success'));
+
+          } catch (error: any) {
+              console.error("Error adding talent:", error);
+              notify(error.message || "Error adding talent");
+              // Revert optimistic update
+              setInfluencers(prev => prev.filter(i => i.id !== tempId));
+          }
       },
       del: async (id: string) => {
           const old = [...influencers];
