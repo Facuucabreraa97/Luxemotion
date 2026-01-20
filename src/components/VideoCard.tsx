@@ -96,7 +96,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({
     const showDownload = !!onDownload && !isSold;
 
     return (
-        <div className={`rounded-[30px] overflow-hidden group relative hover:-translate-y-2 transition-all ${isVelvet ? S.panel : 'bg-white shadow-lg border border-gray-100'} ${isSold ? 'opacity-70 grayscale-[0.5]' : ''}`}>
+        <div className={`rounded-[30px] overflow-hidden group relative hover:-translate-y-2 transition-all ${isVelvet ? S.panel : 'bg-white shadow-lg border border-gray-100'} ${isSold ? 'grayscale opacity-75' : ''}`}>
             {/* Media Container */}
             <div className={`relative ${aspectRatioClass} w-full bg-black/5`}>
                 {isVideoAsset ? (
@@ -114,10 +114,10 @@ export const VideoCard: React.FC<VideoCardProps> = ({
 
                 {/* SOLD Overlay (Centered) */}
                 {isSold && (
-                    <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/10">
-                        <div className="bg-black/60 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/20 flex items-center gap-2">
-                            <Lock size={10} className="text-white/70" />
-                            <span className="text-white text-[10px] font-bold tracking-[0.2em]">SOLD</span>
+                    <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/20">
+                        <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl border border-white/20 flex items-center gap-2">
+                            <Lock size={12} className="text-white/70" />
+                            <span className="text-white text-[10px] font-bold tracking-[0.2em] uppercase">Vendido / Royalty Asset</span>
                         </div>
                     </div>
                 )}
