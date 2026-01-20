@@ -562,16 +562,16 @@ app.post('/api/buy', async (req, res) => {
 
         // 5. ASSET TRANSFER (ATOMIC UPDATE)
         // We do NOT use 'sold' or 'is_sold'. We use 'is_for_sale = false' and change owner.
+        // 5. ASSET TRANSFER (ATOMIC UPDATE)
+        // FORCE UPDATE: Mark as sold explicitly as requested.
         const updatePayload = {
             user_id: buyerId, // New Owner
             is_for_sale: false, // Remove from market
-            is_sold: true, // Mark as sold
+            is_sold: true, // STRICT: Sold
             sales_count: (item.sales_count || 0) + 1
         };
 
-        // Standardize: Ensure we don't accidentally write to 'for_sale' or 'sold' ghost columns.
-
-        console.log("Transferring ownership...", updatePayload);
+        console.log("Transferring ownership and marking SOLD...", updatePayload);
 
         const { error: transferError } = await adminSupabase
             .from(table)
@@ -584,13 +584,16 @@ app.post('/api/buy', async (req, res) => {
         }
 
         // 6. LINEAGE SECURITY (Lock Source)
-        // If a Talent was sold, lock the source generation so it can't be used to make MORE talents.
+        // If a Talent was sold, lock the source generation.
         if (table === 'talents' && item.source_generation_id) {
             console.log(`🔒 Locking source video ${item.source_generation_id} due to Talent sale.`);
-            await adminSupabase
+            // STRICT: Execute update as requested by User
+            const { error: lockError } = await adminSupabase
                 .from('generations')
-                .update({ is_sold: true, locked: true }) // Update both for safety/compatibility
+                .update({ is_sold: true, locked: true })
                 .eq('id', item.source_generation_id);
+
+            if (lockError) console.error("Failed to lock source video:", lockError);
         }
 
         return res.status(200).json({
