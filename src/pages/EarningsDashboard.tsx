@@ -159,6 +159,59 @@ export const EarningsDashboard = () => {
                     </div>
                 )}
             </div>
+
+            {/* TRANSACTION HISTORY (The Ledger) */}
+            <div className={`rounded-[30px] p-8 ${isVelvet ? S.panel : 'bg-white shadow-xl border border-gray-100'}`}>
+                <div className="flex items-center justify-between mb-8">
+                    <h3 className={`text-xl font-bold uppercase tracking-widest ${isVelvet ? 'text-white' : 'text-gray-900'}`}>
+                        {t('earnings.history_title')}
+                    </h3>
+                    <div className={`text-[9px] font-bold uppercase px-3 py-1 rounded-full border ${isVelvet ? 'border-white/20 text-white/50' : 'border-gray-200 text-gray-400'}`}>Live</div>
+                </div>
+
+                <div className="overflow-x-auto">
+                    <table className="w-full">
+                        <thead>
+                            <tr className={`text-[9px] uppercase font-bold tracking-widest text-left ${isVelvet ? 'text-gray-500' : 'text-gray-400'}`}>
+                                <th className="pb-4 pl-4">{t('earnings.col_date')}</th>
+                                <th className="pb-4">{t('earnings.col_concept')}</th>
+                                <th className="pb-4">{t('earnings.col_amount')}</th>
+                                <th className="pb-4 pr-4 text-right">{t('earnings.col_status')}</th>
+                            </tr>
+                        </thead>
+                        <tbody className={`text-xs font-medium ${isVelvet ? 'text-gray-300' : 'text-gray-600'}`}>
+                            {/* Realistic Mock Data */}
+                            <tr className={`border-t ${isVelvet ? 'border-white/5' : 'border-gray-50'}`}>
+                                <td className="py-4 pl-4">Today, 10:23 AM</td>
+                                <td className="py-4 flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-green-500/20 text-green-500 flex items-center justify-center"><ArrowRight size={14} className="-rotate-45" /></div>
+                                    <span>Sale: Cyberpunk Diva</span>
+                                </td>
+                                <td className="py-4 text-green-500 font-bold">+1,500 CR</td>
+                                <td className="py-4 pr-4 text-right"><span className="px-2 py-1 rounded bg-green-500/10 text-green-500 text-[8px] font-bold uppercase">{t('earnings.status_completed')}</span></td>
+                            </tr>
+                            <tr className={`border-t ${isVelvet ? 'border-white/5' : 'border-gray-50'}`}>
+                                <td className="py-4 pl-4">Yesterday, 14:10 PM</td>
+                                <td className="py-4 flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-red-500/20 text-red-500 flex items-center justify-center"><ArrowRight size={14} className="rotate-45" /></div>
+                                    <span>Purchase: Neon Pack</span>
+                                </td>
+                                <td className="py-4 text-red-500 font-bold">-450 CR</td>
+                                <td className="py-4 pr-4 text-right"><span className="px-2 py-1 rounded bg-green-500/10 text-green-500 text-[8px] font-bold uppercase">{t('earnings.status_completed')}</span></td>
+                            </tr>
+                            <tr className={`border-t ${isVelvet ? 'border-white/5' : 'border-gray-50'}`}>
+                                <td className="py-4 pl-4">Jan 18, 09:12 AM</td>
+                                <td className="py-4 flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-green-500/20 text-green-500 flex items-center justify-center"><ArrowRight size={14} className="-rotate-45" /></div>
+                                    <span>Royalty: Digital Soul</span>
+                                </td>
+                                <td className="py-4 text-green-500 font-bold">+90 CR</td>
+                                <td className="py-4 pr-4 text-right"><span className="px-2 py-1 rounded bg-green-500/10 text-green-500 text-[8px] font-bold uppercase">{t('earnings.status_completed')}</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     );
 };
