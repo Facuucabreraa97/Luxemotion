@@ -32,10 +32,10 @@ export const LandingPage = () => {
                     <span className="text-[9px] font-mono uppercase tracking-widest text-zinc-400">VydyLabs Engine v2.0 Live</span>
                 </div>
 
-                {/* Headline: MivideoAI */}
-                <h1 className="text-6xl md:text-8xl lg:text-9xl font-bold tracking-tighter leading-[0.9] text-transparent bg-clip-text bg-gradient-to-b from-white via-white to-gray-500 mb-8 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300">
-                    MivideoAI
-                </h1>
+                {/* Logo Image */}
+                <div className="mb-8 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300">
+                    <img src="/branding/logo-white.png" alt="MivideoAI" className="h-20 md:h-24 lg:h-32 w-auto mx-auto object-contain" />
+                </div>
 
                 {/* Subtitle */}
                 <p className="max-w-xl mx-auto text-xl md:text-2xl text-zinc-400 font-light tracking-wide mb-12 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-500">

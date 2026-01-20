@@ -529,7 +529,13 @@ const Sidebar = ({ credits, onLogout, onUp, userProfile, onUpgrade, notify }: an
             {showVelvetBenefits && <VelvetBenefitsModal onClose={() => setShowVelvetBenefits(false)} onUnlock={() => { setShowVelvetBenefits(false); onUpgrade(); }} />}
             <aside className={`fixed left-0 top-0 h-screen w-80 flex flex-col hidden lg:flex border-r transition-all duration-500 z-50 ${mode === 'velvet' ? 'bg-black/95 border-white/5 backdrop-blur-xl' : 'bg-[#F8F9FA] border-gray-200'}`}>
                 <div className="p-8 pb-4">
-                    {mode === 'velvet' ? <h1 className="text-2xl font-bold tracking-[0.2em] uppercase mb-1 text-white">Mivideo<span className="text-[#C6A649]">AI</span></h1> : <h1 className="text-2xl font-bold tracking-[0.2em] uppercase mb-1 text-black">MivideoAI</h1>}
+                    <div className="mb-4">
+                        {mode === 'velvet' ? (
+                            <img src="/branding/logo-white.png" alt="MivideoAI" className="h-8 w-auto object-contain" />
+                        ) : (
+                            <img src="/branding/logo-dark.png" alt="MivideoAI" className="h-8 w-auto object-contain" />
+                        )}
+                    </div>
                     <div className="flex items-center justify-between"><p className="text-[9px] text-gray-500 uppercase tracking-[0.4em] font-bold">AI Video Generator</p><button onClick={handleLang} className={`text-[9px] font-bold uppercase px-2 py-1 rounded border transition-colors ${mode === 'velvet' ? 'border-white/10 text-gray-400 hover:text-white' : 'border-gray-300 text-gray-500 hover:text-black hover:border-gray-400'}`}>{i18n.language.toUpperCase()}</button></div>
                 </div>
                 <div className="px-8 mb-6">
