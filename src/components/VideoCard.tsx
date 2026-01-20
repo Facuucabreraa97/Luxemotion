@@ -43,8 +43,8 @@ export const VideoCard: React.FC<VideoCardProps> = ({
 
   // --- READ-ONLY LOGIC ---
   // Critical Security Check
-  // Locked if SOLD or (FOR SALE and NOT OWNER)
-  const isLocked = isSold || (isForSale && !isOwner);
+  // Locked if NOT OWNER, or if SOLD, or if FOR SALE (even if owner)
+  const isLocked = !isOwner || isSold || isForSale;
   // -----------------------
 
   const isModel = type === 'model';
@@ -72,7 +72,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({
   // Action Buttons Logic
   // Only allow Download and View if Locked (Sold)
   const showViewDetails = isLocked || isSold; // Always show view details if locked/sold
-  const showManage = !isLocked && isForSale;
+  const showManage = isOwner && isForSale;
   const showSell = !isLocked && !isForSale;
 
   // Strict conditions: cannot publish/remix if locked
