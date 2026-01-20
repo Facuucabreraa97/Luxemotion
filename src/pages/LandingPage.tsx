@@ -44,7 +44,7 @@ export const LandingPage = () => {
                 </p>
 
                 {/* CTA Button: Pale Gold / White */}
-                <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-700">
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-700 mb-20">
                     <button
                         onClick={() => navigate('/register')}
                         className="group relative px-10 py-5 bg-white text-black rounded-full transition-all duration-300 hover:scale-105 hover:bg-[#F0EAD6]" // Pale gold hint
@@ -59,6 +59,54 @@ export const LandingPage = () => {
                         Application Required
                     </p>
                 </div>
+
+                {/* ECOSYSTEM GRID (3 PILLARS) */}
+                <div className="w-full max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 px-4 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-1000">
+
+                    {/* PILLAR 1: CREATE */}
+                    <div className="p-8 rounded-3xl border border-white/5 bg-white/5 backdrop-blur-sm hover:bg-white/10 transition-colors group text-left">
+                        <div className="w-12 h-12 rounded-full bg-black border border-white/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                            <Sparkles className="text-white w-5 h-5" />
+                        </div>
+                        <h3 className="text-lg font-bold text-white mb-4 uppercase tracking-wider">Generación de Activos</h3>
+                        <p className="text-sm text-zinc-400 leading-relaxed">
+                            Transforma texto en video cinematográfico con nuestro motor <span className="text-white">VydyLabs Engine v2.0</span>.
+                        </p>
+                    </div>
+
+                    {/* PILLAR 2: TRADE (CRITICAL) */}
+                    <div className="p-8 rounded-3xl border border-[#C6A649]/20 bg-gradient-to-b from-[#C6A649]/10 to-transparent backdrop-blur-sm hover:border-[#C6A649]/40 transition-colors group text-left relative overflow-hidden">
+                        <div className="absolute inset-0 bg-yellow-500/5 blur-3xl rounded-full opacity-20 group-hover:opacity-40 transition-opacity"></div>
+                        <div className="relative z-10 w-12 h-12 rounded-full bg-black border border-[#C6A649]/30 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                            {/* Using Hexagon as generic tech icon if ArrowLeftRight is not imported. I'll import Arrow. */}
+                            <Sparkles className="text-[#C6A649] w-5 h-5 hidden" /> {/* Placeholder fallback */}
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C6A649" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3 4 7l4 4" /><path d="M4 7h16" /><path d="m16 21 4-4-4-4" /><path d="M20 17H4" /></svg>
+                        </div>
+                        <h3 className="relative z-10 text-lg font-bold text-white mb-4 uppercase tracking-wider">Marketplace Descentralizado</h3>
+                        <p className="relative z-10 text-sm text-zinc-300 leading-relaxed">
+                            Compra y vende derechos de propiedad intelectual. Adquiere videos virales y hazlos tuyos.
+                        </p>
+                    </div>
+
+                    {/* PILLAR 3: PROFIT */}
+                    <div className="p-8 rounded-3xl border border-white/5 bg-white/5 backdrop-blur-sm hover:bg-white/10 transition-colors group text-left">
+                        <div className="w-12 h-12 rounded-full bg-black border border-white/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" /></svg>
+                        </div>
+                        <h3 className="text-lg font-bold text-white mb-4 uppercase tracking-wider">Monetización de Portfolio</h3>
+                        <p className="text-sm text-zinc-400 leading-relaxed">
+                            Cada activo es una fuente de ingresos. Gestiona tu cartera y escala tus ganancias (CR).
+                        </p>
+                    </div>
+                </div>
+
+                {/* CLOSING TAGLINE */}
+                <div className="mt-20 mb-10 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-1000">
+                    <p className="text-[10px] md:text-xs font-bold text-zinc-500 uppercase tracking-[0.4em]">
+                        EL PRIMER MERCADO DE VALORES DE VIDEO IA DEL MUNDO.
+                    </p>
+                </div>
+
             </main>
 
             {/* FOOTER */}
