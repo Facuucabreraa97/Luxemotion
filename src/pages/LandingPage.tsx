@@ -32,10 +32,10 @@ export const LandingPage = () => {
                     <span className="text-[9px] font-mono uppercase tracking-widest text-zinc-400">VydyLabs Engine v2.0 Live</span>
                 </div>
 
-                {/* Headline: Giant Sans Serif */}
+                {/* Headline: Giant Sans Serif - FORCED UPDATE CHECK */}
                 <h1 className="text-6xl md:text-8xl lg:text-9xl font-bold tracking-tighter leading-[0.9] text-white mix-blend-difference mb-8 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300">
-                    GENERATIVE<br />
-                    <span className="text-zinc-600">PRESTIGE.</span>
+                    VYDYLABS<br />
+                    <span className="text-zinc-600">FUTURE V1.</span>
                 </h1>
 
                 <p className="max-w-xl mx-auto text-lg text-zinc-500 font-light tracking-wide mb-12 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-500">
