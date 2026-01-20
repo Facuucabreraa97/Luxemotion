@@ -96,7 +96,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({
     const showDownload = !!onDownload && !isSold;
 
     return (
-        <div className={`rounded-[30px] overflow-hidden group relative hover:-translate-y-2 transition-all ${isVelvet ? S.panel : 'bg-white shadow-lg border border-gray-100'}`}>
+        <div className={`rounded-[30px] overflow-hidden group relative hover:-translate-y-2 transition-all ${isVelvet ? S.panel : 'bg-white shadow-lg border border-gray-100'} ${isSold ? 'opacity-70 grayscale-[0.5]' : ''}`}>
             {/* Media Container */}
             <div className={`relative ${aspectRatioClass} w-full bg-black/5`}>
                 {isVideoAsset ? (

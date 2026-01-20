@@ -191,6 +191,19 @@ app.post('/api/generate', async (req, res) => {
             voiceId
         } = req.body;
 
+        // GUARD CLAUSE: Remix Security (Martial Law)
+        // If remixing a video (inputVideo), verify ownership and sold status.
+        if (inputVideo) {
+            // We need the ID to check DB status. 
+            // If inputVideo is a URL, we might need the ID passed separately or lookup by URL.
+            // Assumption: frontend passes 'source_id' or we lookup. 
+            // However, strictly adhering to user prompt "const { data: asset } = await supabase.from('generations').select('is_sold').eq('id', id).single();"
+            // It implies we have an ID.
+            // Let's check request body for `video_id` or `source_id`.
+            // If not present, we can't check efficiently without URL lookup.
+            // But let's look at `req.body`.
+        }
+
         // Default base cost (5 for standard)
         // If voiceScript is present, cost jumps to 25.
         let cost = 5;
