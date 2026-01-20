@@ -560,13 +560,18 @@ app.post('/api/buy', async (req, res) => {
 
         // Step B (Asset Transfer):
         // Execute an UPDATE on the correct table for the original record.
+        // PHASE 3: TRANSACTIONAL INTEGRITY (ACID COMPLIANCE)
+        // Ensure atomic update of all 4 columns.
         const updatePayload = {
             user_id: buyerId, // Change to userId (The Buyer's ID)
-            is_for_sale: false, // Mark as not for sale (Standardized)
+            is_for_sale: false,
+            for_sale: false,
+            is_sold: true,
+            sold: true,
             sales_count: (item.sales_count || 0) + 1 // INCREMENT COUNT
         };
 
-        console.log("Updating sales_count to:", (item.sales_count || 0) + 1);
+        console.log("Updating asset status (ATOMIC):", updatePayload);
 
         const { error: transferError } = await adminSupabase
             .from(table)
@@ -804,10 +809,11 @@ app.get('/api/marketplace', async (req, res) => {
     try {
         // PRECISION TECHNICAL INSTRUCTION: Filtering in query, not JS.
         // Inner join with generations table (alias: source_video).
+        // PHASE 2: ABSTRACTION LAYER (Pessimistic Reading Strategy)
         const { data: talents, error } = await supabaseAdmin
             .from('talents')
             .select('*, source_video:generations!inner(*)')
-            .eq('is_for_sale', true)
+            .or('is_for_sale.eq.true,for_sale.eq.true') // Pessimistic check
             // Mandatory Clauses: The parent must NOT be sold or for sale
             .not('source_video.locked', 'eq', true)
             .not('source_video.is_for_sale', 'eq', true);
@@ -832,7 +838,7 @@ app.get('/api/casting', async (req, res) => {
         const { data: talents, error } = await supabaseAdmin
             .from('talents')
             .select('*, source_video:generations!inner(*)')
-            .eq('is_public', true)
+            .eq('is_public', true) // Casting uses public visibility
             // Mandatory Clauses
             .not('source_video.locked', 'eq', true)
             .not('source_video.is_for_sale', 'eq', true);
@@ -852,6 +858,79 @@ app.get('/api/casting', async (req, res) => {
 });
 
 // --- API ADMIN ---
+
+// PHASE 1: ATOMIC NORMALIZATION (AUTO-FIX)
+app.post('/api/admin/fix-schema', requireAdmin, async (req, res) => {
+    try {
+        console.log("🔧 Starting Schema Normalization...");
+        const logs = [];
+
+        // 1. Unify SALE: If marked in old OR new, mark in both.
+        // SQL: UPDATE talents SET is_for_sale = true, for_sale = true WHERE for_sale = true OR is_for_sale = true;
+        const { data: saleData, error: saleError } = await supabaseAdmin
+            .from('talents')
+            .select('id')
+            .or('for_sale.eq.true,is_for_sale.eq.true');
+
+        if (saleError) throw new Error("Sale fetch failed: " + saleError.message);
+
+        if (saleData.length > 0) {
+            const updates = saleData.map(t => ({ id: t.id, is_for_sale: true, for_sale: true }));
+            const { error: updateSaleError } = await supabaseAdmin.from('talents').upsert(updates);
+            if (updateSaleError) throw new Error("Sale update failed: " + updateSaleError.message);
+            logs.push(`✅ Unified SALE status for ${saleData.length} talents.`);
+        } else {
+            logs.push("ℹ️ No fragmented SALE records found.");
+        }
+
+        // 2. Unify SOLD: The strictest rule.
+        // SQL: UPDATE talents SET is_sold = true, sold = true, is_for_sale = false, for_sale = false WHERE sold = true OR is_sold = true;
+        const { data: soldData, error: soldError } = await supabaseAdmin
+            .from('talents')
+            .select('id, source_generation_id')
+            .or('sold.eq.true,is_sold.eq.true');
+
+        if (soldError) throw new Error("Sold fetch failed: " + soldError.message);
+
+        if (soldData.length > 0) {
+            const updates = soldData.map(t => ({
+                id: t.id,
+                is_sold: true,
+                sold: true,
+                is_for_sale: false,
+                for_sale: false
+            }));
+            const { error: updateSoldError } = await supabaseAdmin.from('talents').upsert(updates);
+            if (updateSoldError) throw new Error("Sold update failed: " + updateSoldError.message);
+            logs.push(`✅ Unified SOLD status for ${soldData.length} talents.`);
+
+            // 3. Clean up Zombies (Generations)
+            // If a parent generation has sold children, mark the generation as 'locked'.
+            const sourceIds = [...new Set(soldData.map(t => t.source_generation_id).filter(id => id))];
+
+            if (sourceIds.length > 0) {
+                // We cannot update with 'in' filter and different values, but here we update all to 'locked: true'
+                // However, Supabase .update() with .in() works.
+                const { error: lockError } = await supabaseAdmin
+                    .from('generations')
+                    .update({ locked: true })
+                    .in('id', sourceIds);
+
+                if (lockError) throw new Error("Zombie cleanup failed: " + lockError.message);
+                logs.push(`🧟 Locked ${sourceIds.length} parent videos (Zombies) associated with sold talents.`);
+            }
+        } else {
+            logs.push("ℹ️ No fragmented SOLD records found.");
+        }
+
+        res.json({ success: true, logs });
+
+    } catch (e) {
+        console.error("❌ Schema Fix Failed:", e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
 app.get('/api/admin/users', requireAdmin, async (req, res) => {
     try {
         const { email } = req.query;
