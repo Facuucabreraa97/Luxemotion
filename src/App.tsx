@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import './i18n';
 import Admin from './pages/Admin';
 import { VideoCard } from './components/VideoCard';
+import { EarningsDashboard } from './pages/EarningsDashboard';
 import { useMode } from './context/ModeContext';
 
 // --- CONFIGURATION ---
@@ -1686,6 +1687,7 @@ function AppContent() {
                     <Route path="gallery" element={<GalleryPage videos={videos} setVideos={setVideos} />} />
                     <Route path="billing" element={<BillingPage onSelect={(k: string, a: boolean) => setSelPlan({ key: k, annual: a })} />} />
                     <Route path="settings" element={<SettingsPage credits={credits} profile={profile} setProfile={handleUpdateProfile} notify={notify} />} />
+                    <Route path="earnings" element={<EarningsDashboard />} />
                     <Route path="*" element={<Navigate to="/app" replace />} />
                 </Route>
                 <Route path="*" element={<Navigate to="/" replace />} />
