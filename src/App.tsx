@@ -5,7 +5,7 @@ import {
     Loader2, Play, Sparkles, ChevronDown, ChevronRight, Mail, Lock, Upload, X, Plus, User,
     Briefcase, Camera, ShoppingBag, Globe, Download, Zap, Check, Video, Users,
     Image as ImageIcon, CreditCard, Settings, LogOut, Crown, Film, Move, ZoomIn,
-    Heart, Smartphone, Monitor, Square, Flame, LayoutDashboard, Info, Mic, Activity
+    Heart, Smartphone, Monitor, Square, Flame, LayoutDashboard, Info, Mic, Activity, DollarSign, TrendingUp
 } from 'lucide-react';
 import { createClient, Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { useTranslation } from 'react-i18next';
@@ -485,6 +485,7 @@ const MobileNav = () => {
             <NavLink to="/app/explore" className={({ isActive }) => `p-3 flex flex-col items-center gap-1 ${isActive ? 'text-[#C6A649]' : 'text-white/50'}`}><Globe size={20} /><span className="text-[8px] uppercase font-bold">{t('common.nav.explore')}</span></NavLink>
             <NavLink to="/app/talent" className={({ isActive }) => `p-3 flex flex-col items-center gap-1 ${isActive ? 'text-[#C6A649]' : 'text-white/50'}`}><Users size={20} /><span className="text-[8px] uppercase font-bold">{t('common.nav.talent')}</span></NavLink>
             <NavLink to="/app/gallery" className={({ isActive }) => `p-3 flex flex-col items-center gap-1 ${isActive ? 'text-[#C6A649]' : 'text-white/50'}`}><ImageIcon size={20} /><span className="text-[8px] uppercase font-bold">{t('common.nav.gallery')}</span></NavLink>
+            <NavLink to="/app/earnings" className={({ isActive }) => `p-3 flex flex-col items-center gap-1 ${isActive ? 'text-[#C6A649]' : 'text-white/50'}`}><DollarSign size={20} /><span className="text-[8px] uppercase font-bold">Ganancias</span></NavLink>
             <NavLink to="/app/billing" className={({ isActive }) => `p-3 flex flex-col items-center gap-1 ${isActive ? 'text-[#C6A649]' : 'text-white/50'}`}><CreditCard size={20} /><span className="text-[8px] uppercase font-bold">{t('common.nav.billing')}</span></NavLink>
             <NavLink to="/app/settings" className={({ isActive }) => `p-3 flex flex-col items-center gap-1 ${isActive ? 'text-[#C6A649]' : 'text-white/50'}`}><Settings size={20} /><span className="text-[8px] uppercase font-bold">{t('common.nav.settings')}</span></NavLink>
         </div>
@@ -502,6 +503,7 @@ const Sidebar = ({ credits, onLogout, onUp, userProfile, onUpgrade, notify }: an
         { icon: Globe, label: t('common.nav.explore'), path: '/app/explore' },
         { icon: Users, label: t('common.nav.talent'), path: '/app/talent' },
         { icon: ImageIcon, label: t('common.nav.gallery'), path: '/app/gallery' },
+        { icon: DollarSign, label: 'Ganancias', path: '/app/earnings' },
         { icon: CreditCard, label: t('common.nav.billing'), path: '/app/billing' },
         { icon: Settings, label: t('common.nav.settings'), path: '/app/settings' },
     ];
