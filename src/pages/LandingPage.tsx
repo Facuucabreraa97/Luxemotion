@@ -1,61 +1,73 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Sparkles } from 'lucide-react';
-import { S } from '../styles';
+import { ArrowRight, Sparkles, Hexagon } from 'lucide-react';
 
 export const LandingPage = () => {
     const navigate = useNavigate();
 
     return (
-        <div className="min-h-screen bg-[#050505] text-white flex flex-col font-sans selection:bg-purple-500/30">
-            {/* Nav (Minimal) */}
-            <nav className="p-8 flex justify-between items-center animate-in fade-in slide-in-from-top-4 duration-700">
-                <div className="text-xl font-bold tracking-tight">LUXEMOTION</div>
-                <button onClick={() => navigate('/login')} className="text-xs font-bold uppercase tracking-widest hover:text-purple-400 transition-colors">
+        <div className="min-h-screen bg-black text-white flex flex-col font-sans selection:bg-white/20 relative overflow-hidden">
+
+            {/* AMBIENT BACKGROUND (No Images, Pure Code) */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-zinc-900/20 via-black to-black pointer-events-none"></div>
+            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+
+            {/* NAV */}
+            <nav className="relative z-10 p-8 flex justify-between items-center animate-in fade-in slide-in-from-top-4 duration-1000">
+                <div className="flex items-center gap-2">
+                    <Hexagon size={16} className="text-white fill-white/10" />
+                    <span className="text-sm font-bold tracking-[0.2em]">LUXEMOTION</span>
+                </div>
+                <button onClick={() => navigate('/login')} className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 hover:text-white transition-colors">
                     Login
                 </button>
             </nav>
 
-            {/* Hero Section */}
-            <main className="flex-1 flex flex-col items-center justify-center text-center p-6 relative overflow-hidden">
-                {/* Background Glows */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-purple-900/10 blur-[120px] rounded-full pointer-events-none"></div>
+            {/* HERO */}
+            <main className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-4">
 
-                <div className="relative z-10 space-y-8 max-w-4xl mx-auto">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/5 backdrop-blur text-[10px] font-bold uppercase tracking-widest animate-in fade-in zoom-in duration-1000 delay-100">
-                        <Sparkles size={10} className="text-purple-400" />
-                        <span>VydyLabs Engine v2.0</span>
-                    </div>
+                {/* Badge */}
+                <div className="mb-8 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/5 backdrop-blur-md animate-in fade-in zoom-in duration-1000 delay-200">
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+                    <span className="text-[9px] font-mono uppercase tracking-widest text-zinc-400">VydyLabs Engine v2.0 Live</span>
+                </div>
 
-                    <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tighter leading-[0.9] bg-gradient-to-b from-white to-white/40 bg-clip-text text-transparent animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
-                        The New Era of<br />Video Generation.
-                    </h1>
+                {/* Headline: Giant Sans Serif */}
+                <h1 className="text-6xl md:text-8xl lg:text-9xl font-bold tracking-tighter leading-[0.9] text-white mix-blend-difference mb-8 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300">
+                    GENERATIVE<br />
+                    <span className="text-zinc-600">PRESTIGE.</span>
+                </h1>
 
-                    <p className="text-lg md:text-xl text-gray-400 font-light tracking-wide max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
-                        Create. Scale. Monetize. <br />
-                        Join the private network of elite creators.
+                <p className="max-w-xl mx-auto text-lg text-zinc-500 font-light tracking-wide mb-12 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-500">
+                    The platform for elite creators to create, scale, and monetize assets in the new digital economy.
+                </p>
+
+                {/* CTA Button: Pale Gold / White */}
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-700">
+                    <button
+                        onClick={() => navigate('/register')}
+                        className="group relative px-10 py-5 bg-white text-black rounded-full transition-all duration-300 hover:scale-105 hover:bg-[#F0EAD6]" // Pale gold hint
+                    >
+                        <div className="absolute inset-0 rounded-full bg-white blur-xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
+                        <span className="relative text-xs font-bold uppercase tracking-[0.2em] flex items-center gap-2">
+                            SOLICITAR ACCESO
+                            <ArrowRight size={14} />
+                        </span>
+                    </button>
+                    <p className="mt-6 text-[9px] text-zinc-700 uppercase tracking-[0.3em] font-mono">
+                        Application Required
                     </p>
-
-                    <div className="pt-8 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-400">
-                        <button
-                            onClick={() => navigate('/register')}
-                            className="group relative px-8 py-4 bg-white text-black rounded-full font-bold uppercase tracking-widest text-xs hover:scale-105 transition-all duration-300 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] hover:shadow-[0_0_60px_-10px_rgba(255,255,255,0.5)]"
-                        >
-                            Request Access
-                            <ArrowRight className="inline-block ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                        </button>
-                        <p className="mt-4 text-[10px] text-gray-600 uppercase tracking-widest">
-                            Limited Spots Available
-                        </p>
-                    </div>
                 </div>
             </main>
 
-            {/* Footer */}
-            <footer className="p-8 text-center animate-in fade-in duration-1000 delay-700">
-                <p className="text-[10px] text-gray-700 font-mono tracking-widest uppercase">
-                    Powered by VydyLabs © 2026
-                </p>
+            {/* FOOTER */}
+            <footer className="relative z-10 p-8 text-center animate-in fade-in duration-1000 delay-1000">
+                <div className="inline-flex flex-col items-center gap-2">
+                    <div className="w-px h-8 bg-gradient-to-b from-transparent via-zinc-800 to-transparent"></div>
+                    <p className="text-[10px] text-zinc-600 font-mono tracking-widest uppercase">
+                        Powered by VydyLabs © 2026
+                    </p>
+                </div>
             </footer>
         </div>
     );
