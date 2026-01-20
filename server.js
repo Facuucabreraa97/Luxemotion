@@ -397,7 +397,8 @@ app.post('/api/generate', async (req, res) => {
         video_url: publicUrl,
         prompt: finalPrompt, // Save the actual used prompt
         aspect_ratio: aspectRatio,
-        cost: cost
+        cost: cost,
+        locked: false // Default to unlocked
     }).select('id').single();
 
     if (insertError) {
@@ -575,6 +576,26 @@ app.post('/api/buy', async (req, res) => {
              throw new Error("Failed to transfer asset ownership");
         }
 
+        // 3. STATE SYNCHRONIZATION (Lock Original Video if Talent sold)
+        if (assetType === 'model' || assetType === 'talent') {
+            // We just sold a talent. We need to find its source video and lock it.
+            // Since we used adminSupabase to fetch 'item' earlier, we can check if it has source_generation_id
+
+            // 'item' is the talent record BEFORE update. It should have source_generation_id if it was created via our new endpoint.
+            if (item.source_generation_id) {
+                console.log(`🔒 Locking source video ${item.source_generation_id} due to Talent sale.`);
+                const { error: lockError } = await adminSupabase
+                    .from('generations')
+                    .update({ locked: true })
+                    .eq('id', item.source_generation_id);
+
+                if (lockError) {
+                    console.error("⚠️ Failed to lock source video:", lockError.message);
+                    // Non-fatal, but logged
+                }
+            }
+        }
+
         // Success
         return res.status(200).json({
             success: true,
@@ -612,6 +633,78 @@ app.post('/api/marketplace/buy', async (req, res) => {
     }
 });
 
+
+// --- API TALENT CREATION (CASTING) ---
+app.post('/api/talents/create', async (req, res) => {
+    try {
+        const user = await getUser(req);
+        const { name, image_url, role, notes, for_sale, price, source_video_id, dna_prompt } = req.body;
+
+        if (!name || !image_url) throw new Error("Name and Image are required");
+
+        // 1. SOURCE CHECK (The Golden Rule)
+        if (source_video_id) {
+            console.log(`🛡️ Validating source video: ${source_video_id}`);
+            const { data: sourceVideo, error: sourceError } = await supabaseAdmin
+                .from('generations')
+                .select('*')
+                .eq('id', source_video_id)
+                .single();
+
+            if (sourceError || !sourceVideo) {
+                // If provided but not found, strict security says fail.
+                throw new Error("Source video not found or access denied.");
+            }
+
+            // Check Ownership
+            if (sourceVideo.user_id !== user.id) {
+                throw new Error("ILLEGAL ACTION: You do not own the source asset.");
+            }
+
+            // Check Status
+            // "If sourceVideo.is_sold" -> In our logic, if user owns it, it's not sold.
+            // But if it is listed for sale, they cannot use it.
+            // CHECK BOTH PROPERTY NAMES (Backend vs Frontend Schema Convention)
+            if (sourceVideo.is_for_sale || sourceVideo.for_sale) {
+                throw new Error("RESTRICTED: Cancel the sale listing before using this asset.");
+            }
+
+            if (sourceVideo.locked) {
+                 throw new Error("RESTRICTED: This asset is locked/archived and cannot be reused.");
+            }
+        }
+
+        // 2. CREATE TALENT
+        const payload = {
+            user_id: user.id,
+            name,
+            image_url,
+            role: role || 'model',
+            notes,
+            for_sale: !!for_sale,
+            price: Number(price) || 0,
+            original_creator_id: user.id,
+            source_generation_id: source_video_id || null, // Link to source
+            dna_prompt
+        };
+
+        const { data: newTalent, error: insertError } = await supabaseAdmin
+            .from('talents')
+            .insert(payload)
+            .select()
+            .single();
+
+        if (insertError) throw insertError;
+
+        console.log(`🌟 New Talent Created: ${newTalent.id} (Source: ${source_video_id || 'None'})`);
+
+        res.json({ success: true, talent: newTalent });
+
+    } catch (error) {
+        console.error("❌ Casting Error:", error.message);
+        res.status(400).json({ success: false, error: error.message });
+    }
+});
 
 // --- API PUBLISH ---
 app.post('/api/publish', async (req, res) => {
