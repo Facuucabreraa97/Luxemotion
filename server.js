@@ -450,12 +450,7 @@ app.post('/api/create-preference', async (req, res) => {
     }
 });
 
-res.json({ url: result.init_point, id: result.id });
-  } catch (error) {
-    console.error("Payment Error:", error);
-    res.status(500).json({ error: "Payment initiation failed" });
-}
-});
+
 
 // --- API BUY (ATOMIC TRANSACTION) ---
 app.post('/api/buy', async (req, res) => {
