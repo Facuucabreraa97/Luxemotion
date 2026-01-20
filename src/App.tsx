@@ -14,6 +14,8 @@ import Admin from './pages/Admin';
 import { VideoCard } from './components/VideoCard';
 import { EarningsDashboard } from './pages/EarningsDashboard';
 import { useMode } from './context/ModeContext';
+import { LandingPage } from './pages/LandingPage';
+import { AccessPending } from './pages/AccessPending';
 
 // --- CONFIGURATION ---
 const getApiUrl = () => {
@@ -1640,6 +1642,20 @@ function AppContent() {
                 setUserPlan(data.plan || 'starter');
                 if (data.plan === 'starter' && !data.is_admin) {
                     setMode('agency');
+                }
+
+                // --- WHITELIST GUARD ---
+                // If status is pending (default) and NOT admin, redirect.
+                // We use window.location because we are outside a component with easy navigate access or to ensure hard redirect.
+                // Actually, strict check: if access_status is explicitly 'pending'.
+                // Admin is ALWAYS approved.
+                const isApproved = data.access_status === 'approved' || data.is_admin;
+                const isPending = data.access_status === 'pending' || !data.access_status; // Default pending if null
+
+                if (!isApproved && window.location.pathname.startsWith('/app')) {
+                    // Redirect to pending page if trying to access app
+                    window.location.href = '/access-pending';
+                    return;
                 }
             } else {
                 // Fallback for email if profile fetch fails or if email is not in profile
