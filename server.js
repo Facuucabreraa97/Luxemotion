@@ -170,6 +170,13 @@ const analyzeProductImage = async (imageUrl) => {
 
 // --- API GENERATE VIDEO (VELVET ENGINE) ---
 app.post('/api/generate', async (req, res) => {
+    // SECURITY CHECK
+    const { inputVideo } = req.body;
+    if (inputVideo) {
+        // Using supabaseAdmin to ensure we can check Sold status regardless of RLS or user context quirks here
+        const { data: check } = await supabaseAdmin.from('generations').select('is_sold').eq('id', inputVideo.id || inputVideo).single();
+        if (check?.is_sold) return res.status(403).json({ error: 'ASSET SOLD' });
+    }
     try {
         const user = await getUser(req);
 
