@@ -16,7 +16,7 @@ export const LandingPage = () => {
             <nav className="relative z-10 p-8 flex justify-between items-center animate-in fade-in slide-in-from-top-4 duration-1000">
                 <div className="flex items-center gap-2">
                     <Hexagon size={16} className="text-white fill-white/10" />
-                    <span className="text-sm font-bold tracking-[0.2em]">LUXEMOTION</span>
+                    <span className="text-sm font-bold tracking-[0.2em]">MivideoAI</span>
                 </div>
                 <button onClick={() => navigate('/login')} className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 hover:text-white transition-colors">
                     Login
@@ -32,14 +32,15 @@ export const LandingPage = () => {
                     <span className="text-[9px] font-mono uppercase tracking-widest text-zinc-400">VydyLabs Engine v2.0 Live</span>
                 </div>
 
-                {/* Headline: Giant Sans Serif - FORCED UPDATE CHECK */}
-                <h1 className="text-6xl md:text-8xl lg:text-9xl font-bold tracking-tighter leading-[0.9] text-white mix-blend-difference mb-8 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300">
-                    VYDYLABS<br />
-                    <span className="text-zinc-600">FUTURE V1.</span>
+                {/* Headline: MivideoAI */}
+                <h1 className="text-6xl md:text-8xl lg:text-9xl font-bold tracking-tighter leading-[0.9] text-transparent bg-clip-text bg-gradient-to-b from-white via-white to-gray-500 mb-8 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300">
+                    MivideoAI
                 </h1>
 
-                <p className="max-w-xl mx-auto text-lg text-zinc-500 font-light tracking-wide mb-12 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-500">
-                    The platform for elite creators to create, scale, and monetize assets in the new digital economy.
+                {/* Subtitle */}
+                <p className="max-w-xl mx-auto text-xl md:text-2xl text-zinc-400 font-light tracking-wide mb-12 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-500">
+                    Acceso Exclusivo.<br />
+                    <span className="text-white font-medium">El Futuro es Ahora.</span>
                 </p>
 
                 {/* CTA Button: Pale Gold / White */}
