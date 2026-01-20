@@ -656,6 +656,13 @@ app.post('/api/talents/create', async (req, res) => {
                 throw new Error("Source video not found or access denied.");
             }
 
+            // GUARD CLAUSE: Strict Status Check
+            if (sourceVideo.locked || sourceVideo.is_for_sale) {
+                return res.status(403).json({
+                    error: "SECURITY_BLOCK: The source asset is no longer owned by you or is in trade."
+                });
+            }
+
             // Check Ownership
             if (sourceVideo.user_id !== user.id) {
                 throw new Error("ILLEGAL ACTION: You do not own the source asset.");
@@ -676,18 +683,6 @@ app.post('/api/talents/create', async (req, res) => {
 
             if (commercialCount > 0) {
                 return res.status(403).json({ success: false, error: "This asset source has already been commercialized." });
-            }
-
-            // Check Status
-            // "If sourceVideo.is_sold" -> In our logic, if user owns it, it's not sold.
-            // But if it is listed for sale, they cannot use it.
-            // CHECK BOTH PROPERTY NAMES (Backend vs Frontend Schema Convention)
-            if (sourceVideo.is_for_sale || sourceVideo.for_sale) {
-                 return res.status(403).json({ success: false, error: "This asset cannot be used because the original has been sold." });
-            }
-
-            if (sourceVideo.locked) {
-                 return res.status(403).json({ success: false, error: "This asset cannot be used because the original has been sold." });
             }
         }
 
@@ -740,6 +735,21 @@ app.post('/api/publish', async (req, res) => {
     const { data: item } = await supabaseAdmin.from(table).select('*').eq('id', targetId).single();
     if (!item || item.user_id !== user.id) throw new Error("Permission denied");
 
+    // GUARD CLAUSE: Check Source Video Status if it's a Talent
+    if (table === 'talents' && item.source_generation_id) {
+        const { data: sourceVideo } = await supabaseAdmin
+           .from('generations')
+           .select('*')
+           .eq('id', item.source_generation_id)
+           .single();
+
+        if (sourceVideo && (sourceVideo.locked || sourceVideo.is_for_sale)) {
+            return res.status(403).json({
+               error: "SECURITY_BLOCK: The source asset is no longer owned by you or is in trade."
+            });
+        }
+    }
+
     // Determine new status: use explicit state if provided (checking strictly for boolean), else toggle
     let newStatus;
     if (typeof publicState === 'boolean') {
@@ -787,24 +797,25 @@ app.post('/api/publish', async (req, res) => {
 // --- API MARKETPLACE & CASTING (GET) ---
 app.get('/api/marketplace', async (req, res) => {
     try {
-        // Fetch talents that are for sale
+        // PRECISION TECHNICAL INSTRUCTION: Filtering in query, not JS.
+        // Inner join with generations table (alias: source_video).
         const { data: talents, error } = await supabaseAdmin
             .from('talents')
-            .select('*, generations(id, locked, is_for_sale, user_id)')
-            .eq('for_sale', true);
+            .select('*, source_video:generations!inner(*)')
+            .eq('for_sale', true)
+            // Mandatory Clauses: The parent must NOT be sold or for sale
+            .not('source_video.locked', 'eq', true)
+            .not('source_video.is_for_sale', 'eq', true);
 
         if (error) throw error;
 
-        // SANITY FILTER: Exclude zombie assets
-        const cleanTalents = talents.filter(t => {
-            if (!t.generations) return true; // Independent asset (if any)
-            // Filter out if source is locked (sold/archived) or for sale
-            if (t.generations.locked === true) return false;
-            if (t.generations.is_for_sale === true) return false;
-            return true;
+        // Map back alias to 'generations' so the frontend remains unaware
+        const response = talents.map(t => {
+             const { source_video, ...rest } = t;
+             return { ...rest, generations: source_video };
         });
 
-        res.json(cleanTalents);
+        res.json(response);
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
@@ -812,23 +823,24 @@ app.get('/api/marketplace', async (req, res) => {
 
 app.get('/api/casting', async (req, res) => {
     try {
-        // Casting: Available models (talents), likely public ones?
+        // Casting: Available models (talents)
         const { data: talents, error } = await supabaseAdmin
             .from('talents')
-            .select('*, generations(id, locked, is_for_sale, user_id)')
-            .eq('is_public', true);
+            .select('*, source_video:generations!inner(*)')
+            .eq('is_public', true)
+            // Mandatory Clauses
+            .not('source_video.locked', 'eq', true)
+            .not('source_video.is_for_sale', 'eq', true);
 
         if (error) throw error;
 
-        // SANITY FILTER
-        const cleanTalents = talents.filter(t => {
-            if (!t.generations) return true;
-            if (t.generations.locked === true) return false;
-            if (t.generations.is_for_sale === true) return false;
-            return true;
+        // Map back alias to 'generations'
+        const response = talents.map(t => {
+             const { source_video, ...rest } = t;
+             return { ...rest, generations: source_video };
         });
 
-        res.json(cleanTalents);
+        res.json(response);
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
