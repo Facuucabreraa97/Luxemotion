@@ -763,8 +763,6 @@ app.post('/api/publish', async (req, res) => {
                 const { count: commercialCount, error: lineageError } = await supabaseAdmin
                     .from('talents')
                     .select('*', { count: 'exact', head: true })
-                    .from('talents')
-                    .select('*', { count: 'exact', head: true })
                     .eq('source_generation_id', targetId)
                     .or('is_for_sale.eq.true,is_sold.eq.true,sales_count.gt.0');
 
