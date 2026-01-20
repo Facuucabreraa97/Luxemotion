@@ -39,8 +39,8 @@ export const VideoCard: React.FC<VideoCardProps> = ({
   const isForSale = item.for_sale || item.is_for_sale;
   const salesCount = item.sales_count || 0;
 
-  // Sold if marked is_sold OR (not for sale anymore but has sales)
-  const isSold = item.is_sold === true || (!isForSale && salesCount > 0);
+  // Sold if marked is_sold OR (not for sale anymore but has sales) OR LOCKED (Source Video of a Sold Talent)
+  const isSold = item.locked === true || item.is_sold === true || (!isForSale && salesCount > 0);
 
   // Commercialized = Sold or Listed
   const isCommercialized = isSold || isForSale;
