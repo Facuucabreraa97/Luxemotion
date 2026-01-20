@@ -661,6 +661,23 @@ app.post('/api/talents/create', async (req, res) => {
                 throw new Error("ILLEGAL ACTION: You do not own the source asset.");
             }
 
+            // LINEAGE CHECK: Check if any OTHER talent from this source is already commercialized
+            // This prevents a video from generating multiple commercial products.
+            const { count: commercialCount, error: lineageError } = await supabaseAdmin
+                .from('talents')
+                .select('*', { count: 'exact', head: true })
+                .eq('source_generation_id', source_video_id)
+                .or('for_sale.eq.true,sales_count.gt.0'); // Active check against DB state
+
+            if (lineageError) {
+                 console.error("Lineage check failed:", lineageError);
+                 throw new Error("Security check failed during lineage verification.");
+            }
+
+            if (commercialCount > 0) {
+                throw new Error("This asset source has already been commercialized.");
+            }
+
             // Check Status
             // "If sourceVideo.is_sold" -> In our logic, if user owns it, it's not sold.
             // But if it is listed for sale, they cannot use it.
@@ -719,7 +736,8 @@ app.post('/api/publish', async (req, res) => {
 
     if (!targetId) throw new Error("ID missing");
 
-    const { data: item } = await supabaseAdmin.from(table).select('user_id, is_public').eq('id', targetId).single();
+    // Fetch item
+    const { data: item } = await supabaseAdmin.from(table).select('*').eq('id', targetId).single();
     if (!item || item.user_id !== user.id) throw new Error("Permission denied");
 
     // Determine new status: use explicit state if provided (checking strictly for boolean), else toggle
@@ -728,6 +746,22 @@ app.post('/api/publish', async (req, res) => {
         newStatus = publicState;
     } else {
         newStatus = !item.is_public;
+    }
+
+    // LINEAGE CHECK FOR PUBLISHING (If enabling public access)
+    if (newStatus === true && table === 'generations') {
+        // If this is a video, check if it has commercialized children (talents)
+        const { count: commercialCount, error: lineageError } = await supabaseAdmin
+            .from('talents')
+            .select('*', { count: 'exact', head: true })
+            .eq('source_generation_id', targetId)
+            .or('for_sale.eq.true,sales_count.gt.0');
+
+        if (lineageError) throw new Error("Security check failed.");
+
+        if (commercialCount > 0) {
+            throw new Error("This asset has commercialized derivatives and cannot be published to the community.");
+        }
     }
 
     const updateData = { is_public: newStatus };
