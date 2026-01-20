@@ -9,7 +9,12 @@ export interface EarningItem {
     sales_count: number;
     is_sold: boolean;
     created_at: string;
-    isExample?: boolean;
+    // Relations
+    generations?: {
+        id: string;
+        image_url: string;
+        video_url?: string;
+    };
 }
 
 export const useEarnings = () => {
@@ -23,59 +28,29 @@ export const useEarnings = () => {
                 const { data: { session } } = await supabase.auth.getSession();
                 if (!session) return;
 
-                // Fetch Sold Assets (History: The records I marked as Sold)
-                // Filter: created by me AND is_sold = true.
+                // RELATIONAL QUERY: Talents + Original Generation (Source Video)
+                // Using left join on 'generations' via source_video_id (automatically detected if FK exists)
                 const { data, error } = await supabase
                     .from('talents')
-                    .select('*')
+                    .select('*, generations(*)')
                     .eq('original_creator_id', session.user.id)
                     .eq('is_sold', true)
                     .order('created_at', { ascending: false });
 
-                let items = data || [];
+                if (error) throw error;
 
-                // MOCK LOGIC (If empty, show examples)
-                if (items.length === 0) {
-                    items = [
-                        {
-                            id: 'mock-1',
-                            name: 'Cyberpunk Diva (Example)',
-                            image_url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop',
-                            price: 1500,
-                            sales_count: 1,
-                            is_sold: true,
-                            created_at: new Date().toISOString(),
-                            isExample: true
-                        },
-                        {
-                            id: 'mock-2',
-                            name: 'Neon Samurai (Example)',
-                            image_url: 'https://images.unsplash.com/photo-1535295972055-1c762f4483e5?q=80&w=2564&auto=format&fit=crop',
-                            price: 2400,
-                            sales_count: 1,
-                            is_sold: true,
-                            created_at: new Date().toISOString(),
-                            isExample: true
-                        },
-                        {
-                            id: 'mock-3',
-                            name: 'Digital Soul (Example)',
-                            image_url: 'https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?q=80&w=2564&auto=format&fit=crop',
-                            price: 900,
-                            sales_count: 1,
-                            is_sold: true,
-                            created_at: new Date().toISOString(),
-                            isExample: true
-                        }
-                    ];
-                }
+                // MAPPING
+                const items = (data || []).map((t: any) => ({
+                    ...t,
+                    image_url: t.generations?.image_url || t.image_url || 'https://via.placeholder.com/500x1000?text=No+Image', // Enhanced Fallback
+                }));
 
                 setEarnings(items);
 
                 // Calculate Stats
-                const total = items.reduce((acc, item) => acc + (item.price || 90), 0); // Default 90 if no price
+                const total = items.reduce((acc: number, item: any) => acc + (item.price || 90), 0);
                 const count = items.length;
-                const royalties = total * 0.10; // 10% Mock Royalty
+                const royalties = total * 0.10; // 10% Royalty
 
                 setStats({ totalError: total, count, royalties });
 
