@@ -479,7 +479,7 @@ app.post('/api/buy', async (req, res) => {
 
         // Determine Table & Column
         const table = (assetType === 'model' || assetType === 'talent') ? 'talents' : 'generations';
-        const saleColumn = (table === 'talents') ? 'for_sale' : 'is_for_sale';
+        const saleColumn = 'is_for_sale'; // STANDARDIZATION: Both tables use is_for_sale
 
         console.log(`Searching in table: ${table} for ID: ${assetId}`);
 
@@ -562,9 +562,11 @@ app.post('/api/buy', async (req, res) => {
         // Execute an UPDATE on the correct table for the original record.
         const updatePayload = {
             user_id: buyerId, // Change to userId (The Buyer's ID)
+            is_for_sale: false, // Mark as not for sale (Standardized)
+            sales_count: (item.sales_count || 0) + 1 // INCREMENT COUNT
         };
-        // Mark as not for sale using dynamic column name
-        updatePayload[saleColumn] = false;
+
+        console.log("Updating sales_count to:", (item.sales_count || 0) + 1);
 
         const { error: transferError } = await adminSupabase
             .from(table)
@@ -638,7 +640,10 @@ app.post('/api/marketplace/buy', async (req, res) => {
 app.post('/api/talents/create', async (req, res) => {
     try {
         const user = await getUser(req);
-        const { name, image_url, role, notes, for_sale, price, source_video_id, dna_prompt } = req.body;
+        const { name, image_url, role, notes, for_sale, is_for_sale, price, source_video_id, dna_prompt } = req.body;
+
+        // Use either input
+        const saleStatus = !!for_sale || !!is_for_sale;
 
         if (!name || !image_url) throw new Error("Name and Image are required");
 
@@ -674,7 +679,7 @@ app.post('/api/talents/create', async (req, res) => {
                 .from('talents')
                 .select('*', { count: 'exact', head: true })
                 .eq('source_generation_id', source_video_id)
-                .or('for_sale.eq.true,sales_count.gt.0'); // Active check against DB state
+                .or('is_for_sale.eq.true,sales_count.gt.0'); // Active check against DB state
 
             if (lineageError) {
                  console.error("Lineage check failed:", lineageError);
@@ -693,7 +698,7 @@ app.post('/api/talents/create', async (req, res) => {
             image_url,
             role: role || 'model',
             notes,
-            for_sale: !!for_sale,
+            is_for_sale: saleStatus,
             price: Number(price) || 0,
             original_creator_id: user.id,
             source_generation_id: source_video_id || null, // Link to source
@@ -766,7 +771,7 @@ app.post('/api/publish', async (req, res) => {
                 .from('talents')
                 .select('*', { count: 'exact', head: true })
                 .eq('source_generation_id', targetId)
-                .or('for_sale.eq.true,sales_count.gt.0');
+                .or('is_for_sale.eq.true,sales_count.gt.0');
 
             if (lineageError) throw new Error("Security check failed.");
 
@@ -802,7 +807,7 @@ app.get('/api/marketplace', async (req, res) => {
         const { data: talents, error } = await supabaseAdmin
             .from('talents')
             .select('*, source_video:generations!inner(*)')
-            .eq('for_sale', true)
+            .eq('is_for_sale', true)
             // Mandatory Clauses: The parent must NOT be sold or for sale
             .not('source_video.locked', 'eq', true)
             .not('source_video.is_for_sale', 'eq', true);
