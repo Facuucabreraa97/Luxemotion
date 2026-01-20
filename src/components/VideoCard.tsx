@@ -36,11 +36,12 @@ export const VideoCard: React.FC<VideoCardProps> = ({
     const isVelvet = mode === 'velvet';
 
     // --- ABSOLUTE LOCK LOGIC ---
+    const { is_sold } = item; // Explicit destructuring as requested
     const isForSale = item.for_sale || item.is_for_sale;
     const salesCount = item.sales_count || 0;
 
     // Sold if marked is_sold OR (not for sale anymore but has sales) OR LOCKED (Source Video of a Sold Talent)
-    const isSold = item.locked === true || item.is_sold === true || (!isForSale && salesCount > 0);
+    const isSold = item.locked === true || is_sold === true || (!isForSale && salesCount > 0);
 
     // Commercialized = Sold or Listed
     const isCommercialized = isSold || isForSale;
@@ -96,7 +97,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({
     const showDownload = !!onDownload && !isSold;
 
     return (
-        <div className={`rounded-[30px] overflow-hidden group relative hover:-translate-y-2 transition-all ${isVelvet ? S.panel : 'bg-white shadow-lg border border-gray-100'} ${isSold ? 'grayscale opacity-75' : ''}`}>
+        <div className={`rounded-[30px] overflow-hidden group relative hover:-translate-y-2 transition-all ${isVelvet ? S.panel : 'bg-white shadow-lg border border-gray-100'} ${isSold ? 'grayscale opacity-75 pointer-events-none' : ''}`}>
             {/* Media Container */}
             <div className={`relative ${aspectRatioClass} w-full bg-black/5`}>
                 {isVideoAsset ? (
@@ -117,7 +118,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({
                     <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/20">
                         <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl border border-white/20 flex items-center gap-2">
                             <Lock size={12} className="text-white/70" />
-                            <span className="text-white text-[10px] font-bold tracking-[0.2em] uppercase">Vendido / Royalty Asset</span>
+                            <span className="text-white text-[10px] font-bold tracking-[0.2em] uppercase">Vendido / Sold</span>
                         </div>
                     </div>
                 )}
