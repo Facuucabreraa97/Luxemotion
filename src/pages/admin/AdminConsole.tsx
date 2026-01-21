@@ -39,6 +39,8 @@ export const AdminConsole = () => {
     const [users, setUsers] = useState<any[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
 
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
     // Auth Check
     useEffect(() => {
         const init = async () => {
@@ -54,9 +56,21 @@ export const AdminConsole = () => {
 
     const fetchData = async () => {
         setRefreshing(true);
-        const { data } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
-        if (data) {
-            setUsers(data);
+        setErrorMsg(null);
+
+        // SIMPLIFIED QUERY (No Order to avoid 400)
+        const { data, error } = await supabase.from('profiles').select('*');
+
+        if (error) {
+            console.error("Admin Fetch Error:", error);
+            setErrorMsg(error.message);
+            setLoading(false);
+        } else if (data) {
+            // Client Side Sort
+            const sorted = data.sort((a: any, b: any) =>
+                new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+            );
+            setUsers(sorted);
             setLoading(false);
         }
         setRefreshing(false);
@@ -110,6 +124,19 @@ export const AdminConsole = () => {
     if (loading) return (
         <div className="min-h-screen bg-slate-950 p-8 pt-20">
             {[1, 2, 3, 4, 5].map(i => <SkeletonRow key={i} />)}
+        </div>
+    );
+
+    if (errorMsg) return (
+        <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-8 text-center text-red-500 font-mono">
+            <div className="text-4xl mb-4">⚠️</div>
+            <h1 className="text-xl font-bold uppercase tracking-widest mb-2">System Critical Error</h1>
+            <p className="bg-red-500/10 border border-red-500/20 p-4 rounded text-sm max-w-2xl">
+                {errorMsg}
+            </p>
+            <button onClick={fetchData} className="mt-8 px-6 py-2 bg-red-500 hover:bg-red-600 text-white rounded uppercase tracking-widest font-bold text-xs transition-colors">
+                Retry Protocol
+            </button>
         </div>
     );
 
@@ -211,11 +238,11 @@ export const AdminConsole = () => {
                                                 </td>
                                                 <td className="p-4">
                                                     <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${user.access_status === 'approved' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                                                            user.access_status === 'banned' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
-                                                                'bg-orange-500/10 text-orange-400 border-orange-500/20'
+                                                        user.access_status === 'banned' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                                                            'bg-orange-500/10 text-orange-400 border-orange-500/20'
                                                         }`}>
                                                         <div className={`w-1.5 h-1.5 rounded-full ${user.access_status === 'approved' ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]' :
-                                                                user.access_status === 'banned' ? 'bg-red-400' : 'bg-orange-400 animate-pulse'
+                                                            user.access_status === 'banned' ? 'bg-red-400' : 'bg-orange-400 animate-pulse'
                                                             }`}></div>
                                                         {user.access_status || 'PENDING'}
                                                     </div>
