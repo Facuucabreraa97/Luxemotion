@@ -1668,6 +1668,7 @@ function AppContent() {
                     <Route path="earnings" element={<EarningsDashboard />} />
                     <Route path="*" element={<Navigate to="/app" replace />} />
                 </Route>
+                <Route path="/vydy-ops/console" element={<AdminConsole />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
         </Router>
