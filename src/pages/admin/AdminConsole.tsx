@@ -37,6 +37,7 @@ export const AdminConsole = () => {
 
     // Data States
     const [users, setUsers] = useState<any[]>([]);
+    const [transactions, setTransactions] = useState<any[]>([]);
     const [selectedUser, setSelectedUser] = useState<any | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -59,23 +60,27 @@ export const AdminConsole = () => {
         setRefreshing(true);
         setErrorMsg(null);
 
-        // SIMPLIFIED QUERY (No Order to avoid 400)
-        const { data, error } = await supabase.from('profiles').select('*');
-
-        if (error) {
-            console.error("Admin Fetch Error:", error);
-            setErrorMsg(error.message);
-            setLoading(false);
-        } else if (data) {
-            // Client Side Sort
-            const sorted = data.sort((a: any, b: any) =>
-                new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
-            );
-            setUsers(sorted);
-            setLoading(false);
+        // 1. Users
+        const { data: userData, error: userError } = await supabase.from('profiles').select('*');
+        if (userError) setErrorMsg(userError.message);
+        else if (userData) {
+            setUsers(userData.sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()));
         }
+
+        // 2. Transactions (Treasury)
+        if (activeTab === 'treasury') {
+            const { data: txData, error: txError } = await supabase.from('transactions').select('*, profiles(first_name, last_name, email)').order('created_at', { ascending: false });
+            if (txData) setTransactions(txData);
+        }
+
+        setLoading(false);
         setRefreshing(false);
     };
+
+    // Refresh when tab changes
+    useEffect(() => {
+        if (activeTab === 'treasury') fetchData();
+    }, [activeTab]);
 
     // --- REAL TIME KPIs ---
     const kpi = useMemo(() => {
@@ -97,19 +102,31 @@ export const AdminConsole = () => {
         }
     };
 
+    // RPC ACTION
     const handleAddCredits = async (id: string, current: number) => {
-        const amount = prompt("INJECT AMOUNT (CR):");
-        if (!amount) return;
-        const val = parseInt(amount);
-        if (isNaN(val)) return;
+        const amountStr = prompt("INJECT AMOUNT (CR): (Positive=Deposit, Negative=Deduct)");
+        if (!amountStr) return;
+        const amount = parseInt(amountStr);
+        if (isNaN(amount)) return;
 
-        // Optimistic
-        setUsers(prev => prev.map(u => u.id === id ? { ...u, credits: (u.credits || 0) + val } : u));
+        const reason = prompt("REASON FOR INJECTION:", "Admin Grant") || "Admin Grant";
 
-        const { error } = await supabase.from('profiles').update({ credits: current + val }).eq('id', id);
+        // Optimistic UI (Profiles only, Tx won't show until refresh unless we fake it)
+        setUsers(prev => prev.map(u => u.id === id ? { ...u, credits: (u.credits || 0) + amount } : u));
+
+        // ATOMIC RPC CALL
+        const { error } = await supabase.rpc('add_credits', {
+            target_user_id: id,
+            credit_amount: amount,
+            reason: reason
+        });
+
         if (error) {
-            alert('Error: ' + error.message);
-            fetchData();
+            alert('Atomic Transaction Failed: ' + error.message);
+            fetchData(); // Rollback
+        } else {
+            // Success - if we were on treasury tab, we'd want to refresh
+            if (activeTab === 'treasury') fetchData();
         }
     };
 
@@ -259,9 +276,9 @@ export const AdminConsole = () => {
                                                 </td>
                                                 <td className="p-4 text-right">
                                                     <div className="flex justify-end gap-2 opacity-60 group-hover:opacity-100 transition-opacity translate-x-2 group-hover:translate-x-0 duration-300">
-                                                        <button onClick={() => handleAddCredits(user.id, user.credits || 0)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-cyan-500/20 text-slate-400 hover:text-cyan-400 border border-white/5 transition-all" title="Inject Liquidity"><Zap size={14} /></button>
-                                                        {user.access_status !== 'approved' && <button onClick={() => handleStatus(user.id, 'approved')} className="w-8 h-8 flex items-center justify-center rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border border-emerald-500/20 transition-all" title="Approve Protocol"><CheckCircle size={14} /></button>}
-                                                        {user.access_status !== 'banned' && <button onClick={() => handleStatus(user.id, 'banned')} className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-red-500/20 text-slate-400 hover:text-red-400 border border-white/5 transition-all" title="Ban Entity"><Ban size={14} /></button>}
+                                                        <button onClick={(e) => { e.stopPropagation(); handleAddCredits(user.id, user.credits || 0); }} className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-cyan-500/20 text-slate-400 hover:text-cyan-400 border border-white/5 transition-all" title="Inject Liquidity"><Zap size={14} /></button>
+                                                        {user.access_status !== 'approved' && <button onClick={(e) => { e.stopPropagation(); handleStatus(user.id, 'approved'); }} className="w-8 h-8 flex items-center justify-center rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border border-emerald-500/20 transition-all" title="Approve Protocol"><CheckCircle size={14} /></button>}
+                                                        {user.access_status !== 'banned' && <button onClick={(e) => { e.stopPropagation(); handleStatus(user.id, 'banned'); }} className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-red-500/20 text-slate-400 hover:text-red-400 border border-white/5 transition-all" title="Ban Entity"><Ban size={14} /></button>}
                                                     </div>
                                                 </td>
                                             </tr>
@@ -272,6 +289,55 @@ export const AdminConsole = () => {
                         </div>
                     </div>
                 )}
+
+                {/* LEDGER / TREASURY TAB */}
+                {activeTab === 'treasury' && (
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-xl font-bold text-white tracking-widest uppercase flex items-center gap-2">
+                                <DollarSign className="text-emerald-400" /> Global Ledger
+                            </h2>
+                            <button onClick={fetchData} className="px-4 py-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded hover:bg-emerald-500/20 text-xs font-bold uppercase tracking-wider">Sync Blockchain</button>
+                        </div>
+
+                        <div className="border border-white/5 rounded-2xl overflow-hidden bg-white/[0.02] backdrop-blur-sm">
+                            <table className="w-full text-left border-collapse">
+                                <thead className="bg-black/40 text-[10px] font-bold text-slate-500 uppercase tracking-widest backdrop-blur-md sticky top-0 z-10">
+                                    <tr>
+                                        <th className="p-4">Time (UTC)</th>
+                                        <th className="p-4">Transaction ID</th>
+                                        <th className="p-4">Beneficiary</th>
+                                        <th className="p-4">Description</th>
+                                        <th className="p-4 text-right">Amount (CR)</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-white/5 text-sm font-mono">
+                                    {transactions.length === 0 ? (
+                                        <tr><td colSpan={5} className="p-8 text-center text-slate-600">LEDGER_EMPTY // GENESIS_BLOCK_WAITING</td></tr>
+                                    ) : transactions.map(tx => (
+                                        <tr key={tx.id} className="group hover:bg-white/5 transition-colors">
+                                            <td className="p-4 text-slate-500 whitespace-nowrap">{new Date(tx.created_at).toLocaleString()}</td>
+                                            <td className="p-4 text-slate-600 text-[10px]">{tx.id}</td>
+                                            <td className="p-4 text-slate-300">
+                                                {tx.profiles ? (
+                                                    <div className="flex items-center gap-2">
+                                                        <span>{tx.profiles.first_name} {tx.profiles.last_name}</span>
+                                                        <span className="text-slate-600 text-[10px]">({tx.profiles.email})</span>
+                                                    </div>
+                                                ) : <span className="text-slate-700">UNKNOWN_ENTITY</span>}
+                                            </td>
+                                            <td className="p-4 text-xs text-slate-400 uppercase tracking-wider">{tx.type} // {tx.description}</td>
+                                            <td className={`p-4 text-right font-bold ${tx.amount > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                {tx.amount > 0 ? '+' : ''}{tx.amount}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
+
                 {/* USER DETAIL MODAL */}
                 {selectedUser && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={() => setSelectedUser(null)}>
