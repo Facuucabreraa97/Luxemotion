@@ -16,6 +16,7 @@ import { EarningsDashboard } from './pages/EarningsDashboard';
 import { useMode } from './context/ModeContext';
 import { LandingPage } from './pages/LandingPage';
 import { AccessPending } from './pages/AccessPending';
+import { AdminConsole } from './pages/admin/AdminConsole';
 
 // --- CONFIGURATION ---
 const getApiUrl = () => {
