@@ -1,6 +1,10 @@
 name: Project Panopticon - Sentinel
 
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '0 11,19,1 * * *' # 8am, 4pm, 10pm Buenos Aires (GMT-3)
 
 jobs:
   sentinel-scan:

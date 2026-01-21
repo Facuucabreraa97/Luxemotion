@@ -24,12 +24,23 @@ try {
 
 // 3. CONSULT THE ORACLE (OpenAI API Call via raw HTTPS to avoid dependencies)
 const prompt = `
-  You are a Senior React Engineer. The following file has a UI bug (overlapping content).
-  FILE CONTENT:
-  ${sourceCode}
-  
-  TASK: Increase the bottom padding of the <main> container to 'pb-40'.
-  OUTPUT: Return ONLY the unified diff (git patch) format. No markdown, no talk.
+  ROLE: You are the Chief Technology Officer (CTO) of VydyLabs.
+  INPUT: Test logs and source code from the latest build.
+
+  MISSION:
+  1. ANALYZE the system health based on the provided logs.
+  2. IDENTIFY any critical failures (P0) or warnings.
+  3. STRATEGIZE: Provide 1 specific, high-level recommendation to improve UX, Architecture, or Finance.
+  4. EXECUTE: If a bug is found in the code, generate a valid Git Patch.
+
+OUTPUT FORMAT (Markdown):
+  ## 🚦 Executive Status: [HEALTHY / CRITICAL]
+  ### 🧐 Strategic Insight
+  [Your professional advice here]
+  ### 🛠️ Technical Details
+  [Log summary]
+  ### 💉 Auto-Fix
+  [If applicable, describe the patch]
 `;
 
 const req = https.request({
