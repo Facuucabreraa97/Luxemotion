@@ -225,7 +225,15 @@ export const AdminConsole = () => {
                                         {filteredUsers.length === 0 ? (
                                             <tr><td colSpan={5} className="p-8 text-center text-slate-600 font-mono text-xs">NO_DATA_MATCHING_QUERY_VECTOR</td></tr>
                                         ) : filteredUsers.map(user => (
-                                            <tr key={user.id} className="group hover:bg-cyan-500/5 transition-colors duration-200">
+                                            <tr key={user.id} onClick={() => alert(`
+TELEMETRY REPORT:
+-----------------
+IP: ${user.last_ip || 'N/A'}
+LOC: ${user.country || 'Unknown'}
+DEV: ${user.device_info || 'Unknown'}
+SRC: ${user.traffic_source || 'Unknown'}
+SEEN: ${user.last_active_at ? new Date(user.last_active_at).toLocaleString() : 'Never'}
+                                            `)} className="group hover:bg-cyan-500/5 transition-colors duration-200 cursor-pointer">
                                                 <td className="p-4">
                                                     <div className="w-10 h-10 rounded-xl overflow-hidden border border-white/10 shadow-lg group-hover:scale-110 transition-transform">
                                                         <SmartAvatar url={user.avatar_url} name={`${user.first_name} ${user.last_name}`} />
@@ -234,7 +242,10 @@ export const AdminConsole = () => {
                                                 <td className="p-4">
                                                     <div className="text-white font-bold mb-0.5">{user.first_name} {user.last_name}</div>
                                                     <div className="text-xs text-slate-500 font-mono">{user.email || 'NO_EMAIL_LINKED'}</div>
-                                                    <div className="text-[9px] text-slate-700 font-mono mt-1 pt-1 border-t border-white/5 truncate max-w-[150px] opacity-0 group-hover:opacity-100 transition-opacity">ID: {user.id}</div>
+                                                    <div className="flex items-center gap-2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        {user.country && <span className="text-[9px] bg-slate-800 px-1 rounded text-slate-300 border border-slate-700">{user.country}</span>}
+                                                        <span className="text-[9px] text-slate-600 font-mono">ID: {user.id.slice(0, 8)}...</span>
+                                                    </div>
                                                 </td>
                                                 <td className="p-4">
                                                     <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${user.access_status === 'approved' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :

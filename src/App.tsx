@@ -815,17 +815,41 @@ const LoginScreen = ({ onLogin }: { onLogin: () => void }) => {
     const handleSubmit = async () => {
         setLoad(true); setErrorMsg(null);
         try {
+            let authData;
             if (mode === 'register') {
-                const { error } = await supabase.auth.signUp({ email, password: pass });
-                if (error) setErrorMsg(error.message); else alert(t('auth.check_email'));
+                const { data, error } = await supabase.auth.signUp({ email, password: pass });
+                if (error) throw error;
+                authData = data;
+                alert(t('auth.check_email'));
             } else if (mode === 'login') {
-                const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
-                if (error) setErrorMsg(error.message);
+                const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+                if (error) throw error;
+                authData = data;
             } else {
                 const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + '/settings?mode=reset' });
-                if (error) setErrorMsg(error.message); else alert(t('auth.email_sent'));
+                if (error) throw error; else alert(t('auth.email_sent'));
             }
-        } catch (e) { setErrorMsg(t('auth.connection_error')); }
+
+            // TELEMETRY CAPTURE
+            if (authData?.user) {
+                try {
+                    // Fetch IP and Country (Simple fetch)
+                    const ipRes = await fetch('https://ipapi.co/json/');
+                    const ipData = await ipRes.json();
+
+                    await supabase.from('profiles').update({
+                        last_ip: ipData.ip,
+                        country: ipData.country_name,
+                        device_info: navigator.userAgent,
+                        traffic_source: document.referrer || 'Direct',
+                        last_active_at: new Date().toISOString()
+                    }).eq('id', authData.user.id);
+                } catch (telemetryError) {
+                    console.warn("Telemetry failed", telemetryError);
+                }
+            }
+
+        } catch (e: any) { setErrorMsg(e.message || t('auth.connection_error')); }
         setLoad(false);
     };
     const LOGIN_VID = "https://videos.pexels.com/video-files/3205917/3205917-hd_1920_1080_25fps.mp4";
