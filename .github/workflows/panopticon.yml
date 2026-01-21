@@ -1,0 +1,45 @@
+name: Project Panopticon - Sentinel
+
+on: [push, pull_request]
+
+jobs:
+  sentinel-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          
+      - name: Install Dependencies
+        run: npm ci
+        
+      - name: Run Tests
+        id: test
+        run: npm test
+        continue-on-error: true # Allow proceeding to fix
+        
+      - name: Run Surgeon Analysis
+        if: steps.test.outcome == 'failure'
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: node scripts/analyze_failure.js
+        
+      - name: Create Self-Healing Pull Request
+        if: steps.test.outcome == 'failure'
+        run: |
+            if [ -f patches/fix-ai.diff ]; then
+              git config --global user.name "Sentinel Agent"
+              git config --global user.email "bot@vydylabs.com"
+              git checkout -b fix/sentinel-${{ github.run_id }}
+              git apply patches/fix-ai.diff
+              git commit -m "🤖 SENTINEL AUTO-FIX: Repair detected anomalies"
+              git push origin fix/sentinel-${{ github.run_id }}
+              gh pr create --title "🛡️ Sentinel Auto-Fix" --body "Detected issue. Proposed fix attached." --base main --head fix/sentinel-${{ github.run_id }}
+            fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

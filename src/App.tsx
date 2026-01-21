@@ -1431,6 +1431,7 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile, 
 };
 
 import MobileLayout from './components/MobileLayout';
+import SentinelConsole from './pages/admin/SentinelConsole';
 
 // --- APP LAYOUT ---
 
@@ -1621,6 +1622,7 @@ function AppContent() {
                     <Route path="*" element={<Navigate to="/app" replace />} />
                 </Route>
                 <Route path="/vydy-ops/console" element={<AdminConsole />} />
+                <Route path="/vydy-ops/sentinel" element={<SentinelConsole />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
         </Router>
