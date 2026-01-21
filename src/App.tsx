@@ -1340,7 +1340,7 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile, 
                 <GlassCard className="p-8">
                     <div className="flex justify-between items-center mb-8">
                         <h2 className="text-xl font-bold tracking-tight text-white flex gap-3">
-                            <span className={mode === 'velvet' ? "text-[#C6A649]" : "text-blue-600"}>01</span> Reference Image 
+                            <span className={mode === 'velvet' ? "text-[#C6A649]" : "text-blue-600"}>01</span> Reference Image
                             <Tooltip txt="Upload the photo you want to animate." />
                         </h2>
                         <div className={`p-1.5 rounded-full border flex ${mode === 'velvet' ? 'bg-black/40 border-white/10' : 'bg-gray-100 border-gray-200'}`}>
@@ -1362,20 +1362,20 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile, 
                 </GlassCard>
 
                 <GlassCard className="p-8">
-                     <div className="flex justify-between items-center mb-8"><h2 className="text-xl font-bold tracking-tight text-white flex gap-3"><span className={mode === 'velvet' ? "text-[#C6A649]" : "text-blue-600"}>02</span> {t('studio.settings')}</h2>{mode === 'velvet' && (<div className="px-4 py-1.5 rounded-full border border-[#C6A649]/30 bg-[#C6A649]/10 text-[#C6A649] text-[9px] font-bold uppercase tracking-widest flex items-center gap-2"><Flame size={12} /> {t('studio.velvet_active')}</div>)}</div>
-                     {/* ... (Keep existing settings UI) ... */}
-                     <div className="grid grid-cols-4 gap-4 mb-8">
+                    <div className="flex justify-between items-center mb-8"><h2 className="text-xl font-bold tracking-tight text-white flex gap-3"><span className={mode === 'velvet' ? "text-[#C6A649]" : "text-blue-600"}>02</span> {t('studio.settings')}</h2>{mode === 'velvet' && (<div className="px-4 py-1.5 rounded-full border border-[#C6A649]/30 bg-[#C6A649]/10 text-[#C6A649] text-[9px] font-bold uppercase tracking-widest flex items-center gap-2"><Flame size={12} /> {t('studio.velvet_active')}</div>)}</div>
+                    {/* ... (Keep existing settings UI) ... */}
+                    <div className="grid grid-cols-4 gap-4 mb-8">
                         {CAMS.map(m => (<button key={m.id} onClick={() => setCam(m.id)} className={`relative p-4 rounded-3xl border flex flex-col items-center gap-3 transition-all group overflow-hidden active:scale-95 duration-200 ${cam === m.id ? (mode === 'velvet' ? 'bg-[#C6A649] border-[#C6A649] text-black shadow-lg' : 'bg-black border-black text-white shadow-lg') : (mode === 'velvet' ? 'bg-black/40 border-white/5 text-gray-500 hover:bg-white/5' : 'bg-gray-50 border-gray-200 text-gray-400 hover:bg-white hover:border-gray-300')}`}>{m.icon}<span className="text-[7px] font-bold uppercase tracking-widest">{t(`cams.${m.id}.label`)}</span></button>))}
-                     </div>
-                     {/* ... (Rest of settings) ... */}
-                     {mode === 'velvet' && (
+                    </div>
+                    {/* ... (Rest of settings) ... */}
+                    {mode === 'velvet' && (
                         <div className="grid grid-cols-4 gap-3 mb-6 animate-in fade-in slide-in-from-top-4">
                             {VELVET_STYLES.map(v => (<button key={v.id} onClick={() => { setVelvetStyle(v.id); handlePromptInjection(t(`velvet_styles.${v.id}.desc`)); }} className={`p-3 rounded-2xl border transition-all text-center group active:scale-95 duration-200 ${velvetStyle === v.id ? (mode === 'velvet' ? 'bg-pink-500/10 border-pink-500 text-white' : 'bg-purple-100 border-purple-500 text-purple-900') : (mode === 'velvet' ? 'bg-black/40 border-white/5 text-white/50' : 'bg-white border-gray-200 text-gray-400')}`}><p className="text-[8px] font-bold uppercase tracking-widest mb-1">{t(`velvet_styles.${v.id}.name`)}</p></button>))}
                         </div>
-                     )}
-                     <div className="relative group"><textarea value={prompt} onChange={e => setPrompt(e.target.value)} placeholder={t('studio.prompt_placeholder')} className={`${inputClass} h-32 mb-8 resize-none p-6 text-sm ${mode === 'velvet' ? 'border-pink-900/50 focus:border-pink-500' : ''}`} /><div className="absolute bottom-10 right-4"><Sparkles size={16} className={`${mode === 'velvet' ? 'text-[#C6A649]' : 'text-blue-500'} opacity-50`} /></div></div>
-                     {/* ... (Duration/Ratio) ... */}
-                     <div className={`grid grid-cols-2 gap-8 pt-6 border-t ${mode === 'velvet' ? 'border-white/5' : 'border-gray-100'}`}>
+                    )}
+                    <div className="relative group"><textarea value={prompt} onChange={e => setPrompt(e.target.value)} placeholder={t('studio.prompt_placeholder')} className={`${inputClass} h-32 mb-8 resize-none p-6 text-sm ${mode === 'velvet' ? 'border-pink-900/50 focus:border-pink-500' : ''}`} /><div className="absolute bottom-10 right-4"><Sparkles size={16} className={`${mode === 'velvet' ? 'text-[#C6A649]' : 'text-blue-500'} opacity-50`} /></div></div>
+                    {/* ... (Duration/Ratio) ... */}
+                    <div className={`grid grid-cols-2 gap-8 pt-6 border-t ${mode === 'velvet' ? 'border-white/5' : 'border-gray-100'}`}>
                         <div className="space-y-4">
                             <div className="flex justify-between items-center"><span className="text-[10px] uppercase tracking-widest opacity-40">{t('studio.duration')}</span><span className={`font-bold text-xs ${mode === 'velvet' ? 'text-[#C6A649]' : 'text-blue-600'}`}>{dur}s</span></div>
                             <div className={`flex gap-2 p-1.5 rounded-2xl border ${mode === 'velvet' ? 'bg-black/40 border-white/10' : 'bg-gray-100 border-gray-200'}`}><button onClick={() => setDur(5)} className={`flex-1 py-3 rounded-xl text-[9px] font-bold uppercase transition-all ${toggleClass(dur === 5)}`}>5s (10cr)</button><button onClick={() => setDur(10)} className={`flex-1 py-3 rounded-xl text-[9px] font-bold uppercase transition-all ${toggleClass(dur === 10)}`}>10s (20cr)</button></div>
@@ -1384,9 +1384,9 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile, 
                             <div className="flex justify-between items-center"><span className="text-[10px] uppercase tracking-widest opacity-40">{t('studio.ratio')}</span></div>
                             <div className={`flex gap-2 p-1.5 rounded-2xl border ${mode === 'velvet' ? 'bg-black/40 border-white/10' : 'bg-gray-100 border-gray-200'}`}>{RATIOS.map(r => (<button key={r.id} onClick={() => setRatio(r.id)} className={`flex-1 py-3 rounded-xl text-[9px] font-bold uppercase transition-all ${toggleClass(ratio === r.id)}`}>{t(r.labelKey)}</button>))}</div>
                         </div>
-                     </div>
+                    </div>
                 </GlassCard>
-            </div>    {/* CRITICAL UI: DO NOT MODIFY */}
+
                 <button
                     id="studio-generate-btn"
                     onClick={generate}
@@ -1402,6 +1402,7 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile, 
                     )}
                 </button>
             </div>
+
             <div className="lg:col-span-3 relative z-10 flex flex-col pt-0 h-[calc(100vh-100px)] sticky top-8">
                 <div className={`w-full h-full rounded-[40px] border overflow-hidden shadow-2xl relative transition-all duration-500 flex flex-col ${mode === 'velvet' ? 'bg-black border-white/10' : 'bg-white border-gray-200'}`}>
                     <div className={`flex-1 flex items-center justify-center p-8 transition-colors ${mode === 'velvet' ? 'bg-black/50' : 'bg-gray-50'}`}>
