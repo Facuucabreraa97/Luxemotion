@@ -1525,6 +1525,8 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile, 
     );
 };
 
+import MobileLayout from './components/MobileLayout';
+
 // --- APP LAYOUT ---
 
 function ProtectedLayout({ session, credits, handleLogout, setSelPlan, profile, mode, selPlan, notify }: any) {
@@ -1539,13 +1541,12 @@ function ProtectedLayout({ session, credits, handleLogout, setSelPlan, profile, 
                 <main className="ml-80 min-h-screen pt-0 transition-colors duration-500"><Outlet /></main>
             </div>
 
-            {/* MOBILE LAYOUT */}
+            {/* MOBILE LAYOUT (WRAPPED) */}
             <div className="lg:hidden">
-                <MobileHeader credits={credits} userProfile={profile} onUpgrade={() => setSelPlan({ key: 'creator', annual: true })} />
-                <main className="w-full pb-40 pt-20 overflow-x-hidden">
+                <MobileLayout>
+                    <MobileHeader credits={credits} userProfile={profile} onUpgrade={() => setSelPlan({ key: 'creator', annual: true })} />
                     <Outlet />
-                </main>
-                <MobileNav />
+                </MobileLayout>
             </div>
         </div>
     );

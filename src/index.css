@@ -2,16 +2,28 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  body {
-    @apply bg-black text-white antialiased;
-    background-color: #000000;
-    /* HARD CODE SAFETY NET */
-  }
+:root {
+  color-scheme: dark;
 }
 
-@layer base {
-  body {
-    @apply bg-[#050505] text-white;
-  }
+/* CRITICAL FIX: Allow body to grow naturally so padding-bottom works */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #000000;
+  /* Force Black */
+  color: #ffffff;
+  width: 100%;
+  min-height: 100vh;
+  overflow-x: hidden;
+  /* Prevent horizontal scroll */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Kill the trap: Ensure root doesn't lock the height */
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
