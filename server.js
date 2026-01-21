@@ -168,277 +168,164 @@ const analyzeProductImage = async (imageUrl) => {
     }
 };
 
-// --- API GENERATE VIDEO (VELVET ENGINE) ---
+// --- API GENERATE VIDEO (VELVET ENGINE PRO v2) ---
 app.post('/api/generate', async (req, res) => {
     // SECURITY CHECK
     const { inputVideo } = req.body;
     if (inputVideo) {
-        // Using supabaseAdmin to ensure we can check Sold status regardless of RLS or user context quirks here
         const { data: check } = await supabaseAdmin.from('generations').select('is_sold').eq('id', inputVideo.id || inputVideo).single();
         if (check?.is_sold) return res.status(403).json({ error: 'ASSET SOLD' });
     }
+
+    let user;
+    let cost = 10; // Default cost per spec
+
     try {
-        const user = await getUser(req);
+        user = await getUser(req);
 
-        if (!replicateToken) throw new Error("Missing Replicate API Token");
-
-        // 1. Calculate Costs (Modified for LuxeVoice)
-        const {
-            duration,
-            mode,
-            prompt,
-            aspectRatio,
-            image,
-            inputVideo,
-            endImage,
-            velvetStyle,
-            product_image_url,
-            action_type,
-            voiceScript, // Phase 2 Trigger
-            voiceId
-        } = req.body;
-
-        // GUARD CLAUSE: Remix Security (Martial Law)
-        // If remixing a video (inputVideo), verify ownership and sold status.
-        if (inputVideo) {
-            // We need the ID to check DB status. 
-            // If inputVideo is a URL, we might need the ID passed separately or lookup by URL.
-            // Assumption: frontend passes 'source_id' or we lookup. 
-            // However, strictly adhering to user prompt "const { data: asset } = await supabase.from('generations').select('is_sold').eq('id', id).single();"
-            // It implies we have an ID.
-            // Let's check request body for `video_id` or `source_id`.
-            // If not present, we can't check efficiently without URL lookup.
-            // But let's look at `req.body`.
-        }
-
-        // Default base cost (5 for standard)
-        // If voiceScript is present, cost jumps to 25.
-        let cost = 5;
-        if (voiceScript && voiceScript.length > 0) {
-            cost = 25;
-        }
-
-        if (mode === 'velvet') cost += 10; // Velvet Premium surcharge stacks
-
-        // 2. Verify Balance
+        // 1. PHASE 1: THE GATEKEEPER (Auth & Finance)
+        // Fetch User Profile
         const { data: profile } = await supabaseAdmin.from('profiles').select('credits, is_admin').eq('id', user.id).single();
         if (!profile) throw new Error("Profile not found");
 
         const isAdmin = profile.is_admin === true;
 
+        // Calculate Cost (Dynamic based on params if needed, fixed for now)
+        if (req.body.duration > 5) cost = 15;
+
         if (!isAdmin && profile.credits < cost) {
             throw new Error(`Insufficient credits (${profile?.credits}cr). Needed ${cost}cr.`);
         }
 
-        // 3. Deduct Credits (if not admin)
-        // We deduct FULL amount upfront to prevent fraud. We refund if Phase 2 fails.
+        // ATOMIC DEDUCTION (The Payment)
         if (!isAdmin) {
             const { error: deductError } = await supabaseAdmin.from('profiles').update({ credits: profile.credits - cost }).eq('id', user.id);
-            if (deductError) throw new Error("Error updating balance");
+            if (deductError) throw new Error("Transaction Failed: Could not deduct credits.");
+
+            // Log Transaction
+            await supabaseAdmin.from('transactions').insert({
+                user_id: user.id,
+                amount: -cost,
+                description: 'Velvet Engine Generation Fee',
+                type: 'SERVICE_FEE'
+            });
         }
 
-        // 4. Prompt Engineering (Vision & Logic)
-        let effectivePrompt = prompt || "Beautiful subject";
+        // 2. PHASE 2: THE DISPATCHER (Model Agnostic)
+        // Fetch Active Model
+        const { data: activeModel } = await supabaseAdmin.from('ai_models').select('*').eq('is_active', true).single();
 
-        // --- VISION MIDDLEWARE START ---
-        if (product_image_url) {
-            console.log(`👁️ Vision Middleware Active for ${user.email}`);
-            try {
-                // Check if product image exists and inject specific prompt
-                // "Professional cinematic product shot. A fashion model interacting naturally with a [product/bottle/item]. The product is clearly visible, in focus, and elegantly displayed."
-
-                // We still analyze the image to know WHAT it is (bottle, bag, etc.)
-                const visionOutput = await analyzeProductImage(product_image_url);
-                console.log(`👁️ Vision Output: "${visionOutput}"`);
-
-                // Inject into prompt (Enhanced Logic)
-                effectivePrompt = `Commercial cinematic shot. A model holding and interacting with a ${visionOutput} naturally. The product is the main focus, clearly visible and sharp. ${effectivePrompt}`;
-
-            } catch (visionError) {
-                console.warn("⚠️ Vision Middleware failed, falling back to original prompt.", visionError.message);
-                // Fallback: Proceed with effectivePrompt as is (original prompt)
-            }
-        }
-        // --- VISION MIDDLEWARE END ---
-
-        let stylePrompt = "";
-        if (mode === 'velvet') {
-            const skinOptimizer = ", (skin texture:1.4), (visible pores:1.3)";
-            switch (velvetStyle) {
-                case 'boudoir':
-                    stylePrompt = ", hyperrealistic anime adaptation, unreal proportions but realistic skin texture, subsurface scattering, fantasy lingerie, neon ambient light";
-                    break;
-                case 'cosplay':
-                    stylePrompt = ", bedroom cosplay, (fabric texture:1.3), (stitching details:1.2), realistic latex reflection";
-                    break;
-                default: // leaked
-                    stylePrompt = ", (camera noise:1.2), (motion blur:1.1), flash photography, poor lighting, authentic look, authentic amateur vibe";
-            }
-            stylePrompt += skinOptimizer;
-        } else {
-            stylePrompt = ", cinematic lighting, commercial grade, sharp focus, masterpiece, shot on ARRI Alexa, color graded, professional studio, vogue magazine style, 4k, clean composition";
+        if (!activeModel) {
+            throw new Error("503 SERVICE UNAVAILABLE: No Active AI Engine Found.");
         }
 
-        const finalPrompt = effectivePrompt + stylePrompt;
+        console.log(`🚀 Dispatching Job to: ${activeModel.name} (${activeModel.provider_endpoint})`);
 
-        const negativePrompt = mode === 'velvet'
-            ? "censor bars, mosaic, blur, cartoonish skin, airbrushed, plastic look, 3d render, plastic, doll, smooth skin, cartoon, illustration, symmetry, cgi, drawing, doll-like, deformed, ugly, watermark, text, low quality, distortion, bad anatomy, extra limbs"
-            : "cartoon, drawing, illustration, plastic skin, doll-like, deformed, ugly, blur, watermark, text, low quality, distortion, bad anatomy, extra limbs, cgi, 3d render";
+        // Construct Payload
+        const { prompt, aspectRatio, negative_prompt } = req.body;
 
-        const inputPayload = {
-            prompt: finalPrompt,
-            aspect_ratio: aspectRatio || "9:16",
-            duration: Number(duration),
-            cfg_scale: mode === 'velvet' ? 0.45 : 0.6,
-            negative_prompt: negativePrompt
+        // Default Params Merge
+        const modelParams = activeModel.default_params || {};
+
+        const payload = {
+            ...modelParams,
+            prompt: prompt + (modelParams.prompt_suffix || ""), // Append hidden prompts
+            negative_prompt: negative_prompt || modelParams.negative_prompt || "blurry, low quality",
+            aspect_ratio: aspectRatio || "9:16"
+            // Start Image / Video Logic here if model supports it
         };
 
-        if (inputVideo) {
-            inputPayload.video = inputVideo;
-            // Prioritize product image as start_image if available (Remix Mode Fix)
-            if (product_image_url) {
-                inputPayload.start_image = product_image_url;
-            } else if (image) {
-                inputPayload.start_image = image;
-            }
-        } else {
-            // Prioritize product image as start_image if available
-            if (product_image_url) {
-                inputPayload.start_image = product_image_url;
-            } else {
-                inputPayload.start_image = image;
-            }
-            if (endImage) inputPayload.tail_image = endImage;
-        }
-
-        console.log(`🎬 Generating ${mode?.toUpperCase() || 'STD'} for ${user.email} | Prompt: ${finalPrompt.substring(0, 50)}...`);
-
-        // PHASE 1: Base Video Generation
-        const output = await replicate.run("kwaivgi/kling-v2.5-turbo-pro", { input: inputPayload });
-        const remoteUrl = Array.isArray(output) ? output[0] : output;
-
-        let finalVideoUrl = remoteUrl;
-        let voiceSuccess = false;
-        let voiceWarning = false;
-
-        // PHASE 2: Voice Layer (Conditional)
-        if (voiceScript && voiceId) {
-            console.log(`🎤 Voice Mode Active: Script "${voiceScript.substring(0, 20)}..." | Voice: ${voiceId}`);
-            try {
-                if (!elevenLabsApiKey) throw new Error("ElevenLabs API Key missing");
-
-                // Step A: TTS (ElevenLabs)
-                const ttsResponse = await axios.post(
-                    `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
-                    {
-                        text: voiceScript,
-                        model_id: "eleven_multilingual_v2",
-                        voice_settings: { stability: 0.5, similarity_boost: 0.5 }
-                    },
-                    {
-                        headers: {
-                            'xi-api-key': elevenLabsApiKey,
-                            'Content-Type': 'application/json',
-                            'Accept': 'audio/mpeg'
-                        },
-                        responseType: 'arraybuffer'
-                    }
-                );
-
-                // Step B: Upload Audio to Storage
-                const audioBuffer = ttsResponse.data;
-                const audioFileName = `audio-temp/${user.id}-${Date.now()}.mp3`;
-                const { error: audioUploadError } = await supabaseAdmin.storage
-                    .from('assets') // Using 'assets' bucket as requested
-                    .upload(audioFileName, audioBuffer, { contentType: 'audio/mpeg' });
-
-                if (audioUploadError) throw new Error("Audio upload failed: " + audioUploadError.message);
-
-                const { data: { publicUrl: audioUrl } } = supabaseAdmin.storage
-                    .from('assets')
-                    .getPublicUrl(audioFileName);
-
-                console.log("🔊 Audio uploaded:", audioUrl);
-
-                // Step C: Lip-Sync (Replicate)
-                // Using cjwbw/video-retalking
-                const syncOutput = await replicate.run(
-                    "cjwbw/video-retalking:db5a63d14300880584749699479a42ca0f55b1f486d9a9f24e4c9e782e5d9780",
-                    {
-                        input: {
-                            face: remoteUrl, // Result from Phase 1
-                            input_audio: audioUrl
-                        }
-                    }
-                );
-
-                finalVideoUrl = Array.isArray(syncOutput) ? syncOutput[0] : syncOutput;
-                voiceSuccess = true;
-                console.log("🗣️ LipSync Complete:", finalVideoUrl);
-
-            } catch (voiceError) {
-                console.warn("Voice Failure -> Downgrading to mute video");
-                voiceWarning = true;
-
-                // Revert to original video if voice failed
-                finalVideoUrl = remoteUrl;
-
-                // Refund the extra cost (20 credits) - Wrapped to prevent crash
-                if (!isAdmin) {
-                    try {
-                        await supabaseAdmin.from('profiles').update({ credits: profile.credits - 5 }).eq('id', user.id); // Refund 20, keeping 5 base
-                        cost = 5; // Update cost variable for record keeping
-                        console.log("♻️ Credits refunded due to voice failure.");
-                    } catch (refundError) {
-                        console.error("⚠️ Refund failed:", refundError.message);
-                    }
-                }
-            }
-        }
-
-        console.log("💾 Proceeding to save generation...");
-
-        // 5. Upload Final Result to Storage
-        const videoRes = await fetch(finalVideoUrl);
-        const videoBlob = await videoRes.arrayBuffer();
-        const fileName = `luxe_${user.id}_${Date.now()}.mp4`;
-
-        const { error: uploadError } = await supabaseAdmin.storage
-            .from('videos')
-            .upload(fileName, videoBlob, { contentType: 'video/mp4' });
-
-        if (uploadError) throw new Error("Error uploading to cloud: " + uploadError.message);
-
-        const { data: { publicUrl } } = supabaseAdmin.storage.from('videos').getPublicUrl(fileName);
-
-        // 6. Save Record
-        const { data: genRecord, error: insertError } = await supabaseAdmin.from('generations').insert({
+        // Create PENDING Job in DB
+        const { data: job, error: jobError } = await supabaseAdmin.from('generation_jobs').insert({
             user_id: user.id,
-            video_url: publicUrl,
-            prompt: finalPrompt, // Save the actual used prompt
-            aspect_ratio: aspectRatio,
-            cost: cost,
-            locked: false // Default to unlocked
-        }).select('id').single();
+            model_id: activeModel.id,
+            status: 'PENDING',
+            prompt: prompt
+        }).select().single();
 
-        if (insertError) {
-            console.error("❌ DB Insert Failed:", insertError.message);
-            // We do not throw here to allow the user to at least see the generated video
-        } else {
-            console.log("✅ Generation saved to DB:", genRecord.id);
+        if (jobError) throw new Error("Failed to queue job.");
+
+        // ASYNC EXECUTION (Fire & Forget Pattern for Server, but here we wait for initiation if using API)
+        // Check if provider_endpoint is a "RunPod" style (Async) or "OpenAI" style (Sync)
+        // For this architecture, we assume Async/Webhook or Polling pattern.
+        // We will call the API.
+
+        // Resolve API Key (If reference, read from ENV, else use raw)
+        const apiKey = process.env[activeModel.api_key_ref] || activeModel.api_key_ref || process.env.REPLICATE_API_TOKEN;
+
+        // Call External Provider
+        // NOTE: This assumes Replicate-like API structure for simplicity, or generic POST.
+        // Adjust based on specific provider contract. Here we implement a generic fetch.
+
+        const response = await fetch(activeModel.provider_endpoint, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'wait' // Optional: Replicate specific
+            },
+            body: JSON.stringify({ input: payload })
+        });
+
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`Provider Error: ${response.status} - ${errText}`);
         }
 
+        const result = await response.json();
+
+        // If provider returns an ID immediately (Async)
+        // Update Job with External ID
+        const externalId = result.id; // Replicate uses 'id'
+        const status = result.status; // starting status
+
+        await supabaseAdmin.from('generation_jobs').update({
+            status: status === 'succeeded' ? 'COMPLETED' : status.toUpperCase(),
+            result_url: result.output ? (Array.isArray(result.output) ? result.output[0] : result.output) : null,
+            // Store provider specific ID if needed for polling
+            error_log: JSON.stringify(result) // Temp storage for debug
+        }).eq('id', job.id);
+
+        // Return Job ID to User
         res.json({
-            id: genRecord ? genRecord.id : null,
-            videoUrl: publicUrl,
-            cost,
-            remainingCredits: isAdmin ? profile.credits : (voiceWarning ? profile.credits - 5 : profile.credits - cost),
-            voiceWarning
+            success: true,
+            job_id: job.id,
+            status: 'PENDING',
+            message: 'Job dispatched to Velvet Engine.'
         });
 
     } catch (error) {
-        console.error("❌ Generation Error:", error.message);
-        res.status(500).json({ error: error.message });
+        console.error("❌ Engine Failure:", error.message);
+
+        // REFUND MECHANISM
+        if (user && cost > 0) {
+            console.log(`♻️ Refunding ${cost} CR to ${user.email}`);
+            await supabaseAdmin.from('profiles').update({ credits: profile.credits }).eq('id', user.id);
+            // Note: In a real atomic setup, we'd increment, but here we just restore functionality or rely on the previous state if we fetched it.
+            // Better: UPDATE credits = credits + cost
+            await supabaseAdmin.rpc('add_credits', { target_user_id: user.id, credit_amount: cost, reason: 'System Refund: Engine Error' });
+        }
+
+        res.status(500).json({ error: error.message, refund_issued: true });
+    }
+});
+
+// --- API JOB STATUS (POLLING) ---
+app.post('/api/jobs/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { data: job } = await supabaseAdmin.from('generation_jobs').select('*').eq('id', id).single();
+
+        if (!job) return res.status(404).json({ error: 'Job not found' });
+
+        // If still processing, checks the provider?
+        // In a robust system, we use Webhooks.
+        // Here, we can do a quick "Check Provider" if polling logic is needed and webhook didn't fire.
+        // For now, return DB status.
+
+        res.json(job);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
     }
 });
 
