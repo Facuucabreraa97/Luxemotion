@@ -8,6 +8,7 @@ import {
     Heart, Smartphone, Monitor, Square, Flame, LayoutDashboard, Info, Mic, Activity, DollarSign, TrendingUp
 } from 'lucide-react';
 import { createClient, Session, User as SupabaseUser } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase'; // NEW IMPORT
 import { useTranslation } from 'react-i18next';
 import './i18n';
 import Admin from './pages/Admin';

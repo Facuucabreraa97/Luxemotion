@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../App'; // Importing from App to share client or reuse config
+import { supabase } from '@/lib/supabase';
 import { ChevronDown, Zap, Crown } from 'lucide-react';
 
 interface Model {
