@@ -145,11 +145,12 @@ export const AdminConsole = () => {
 
             {/* TOP BAR */}
             <header className="border-b border-white/5 bg-slate-950/80 flex items-center justify-between px-6 py-4 sticky top-0 z-50 backdrop-blur-xl">
-                <div className="flex items-center gap-4">
-                    <div className="w-8 h-8 rounded bg-gradient-to-tr from-cyan-900 to-slate-800 flex items-center justify-center border border-white/10">
-                        <Shield className="text-cyan-400 w-4 h-4" />
-                    </div>
-                    <span className="font-bold tracking-[0.2em] text-xs text-white uppercase">VydyLabs OS <span className="text-slate-600">//</span> Admin</span>
+                <div onClick={fetchData} className="flex items-center gap-4 cursor-pointer group hover:opacity-80 transition-opacity" title="Soft Refresh Data">
+                    <img src="/branding/vydylabs-logo-white.png" alt="VydyLabs OS" className="h-8 w-auto object-contain" />
+                    <div className="h-6 w-px bg-white/10 mx-2"></div>
+                    <span className="px-2 py-0.5 rounded-full border border-white/10 bg-white/5 text-[10px] font-bold text-slate-400 tracking-widest uppercase">
+                        Admin Console
+                    </span>
                 </div>
                 <div className="flex items-center gap-2">
                     <button onClick={fetchData} className={`p-2 rounded-full hover:bg-white/5 transition-colors ${refreshing ? 'animate-spin text-cyan-500' : 'text-slate-500'}`}>
