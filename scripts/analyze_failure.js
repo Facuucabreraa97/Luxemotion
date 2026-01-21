@@ -1,16 +1,16 @@
 import fs from 'fs';
 import https from 'https';
 
-// --- CONFIGURATION (GOOGLE BRAIN) --- 
+// --- CONFIGURATION (TITANIUM CORE) --- 
 const CONFIG = {
     targetFile: 'src/components/layout/MobileLayout.tsx',
-    apiKey: process.env.GEMINI_API_KEY, // Reading the new Google Key 
-    model: 'gemini-1.5-flash', // Fast, Efficient, Free Tier eligible 
+    apiKey: process.env.GEMINI_API_KEY,
+    model: 'gemini-1.5-flash-001', // FIXED: Canonical ID for stability 
     timeout: 30000,
     maxRetries: 3
 };
 
-// --- UTILITY: GOOGLE GEMINI API CLIENT (ZERO DEP) --- 
+// --- UTILITY: GEMINI CLIENT (OPTIMIZED) --- 
 async function askGemini(prompt, attempt = 1) {
     return new Promise((resolve, reject) => {
         const url = new URL(`https://generativelanguage.googleapis.com/v1beta/models/${CONFIG.model}:generateContent`);
@@ -20,12 +20,9 @@ async function askGemini(prompt, attempt = 1) {
             hostname: url.hostname,
             path: url.pathname + url.search,
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             timeout: CONFIG.timeout
         };
-
         const req = https.request(options, (res) => {
             let data = '';
             res.on('data', chunk => data += chunk);
@@ -33,13 +30,9 @@ async function askGemini(prompt, attempt = 1) {
                 if (res.statusCode >= 200 && res.statusCode < 300) {
                     try {
                         const json = JSON.parse(data);
-                        // Gemini Response Structure Parsing
                         const content = json.candidates?.[0]?.content?.parts?.[0]?.text;
-                        if (content) {
-                            resolve(content);
-                        } else {
-                            reject(new Error('GEMINI EMPTY RESPONSE'));
-                        }
+                        if (content) resolve(content);
+                        else reject(new Error('GEMINI EMPTY RESPONSE'));
                     } catch (e) {
                         reject(new Error(`JSON PARSE FAIL: ${e.message}`));
                     }
@@ -55,20 +48,32 @@ async function askGemini(prompt, attempt = 1) {
             reject(new Error('TIMEOUT'));
         });
 
-        // Gemini Payload Structure
+        // --- ADVANCED PAYLOAD (ENGINEERING TUNED) ---
         const payload = {
             contents: [{
                 parts: [{
-                    text: `ROLE: You are a Senior React Engineer.\nTASK: Fix the code below. Output ONLY the raw git diff patch.\n\nCODE:\n${prompt}`
+                    text: `ROLE: Senior React DevOps.\nTASK: Fix the code below. Output ONLY the raw git diff patch.\n\nCODE:\n${prompt}`
                 }]
-            }]
+            }],
+            // PRECISION SETTINGS
+            generationConfig: {
+                temperature: 0.1, // Maximum Determinism for Code
+                maxOutputTokens: 2000
+            },
+            // BYPASS SAFETY FILTERS FOR CODE ANALYSIS
+            safetySettings: [
+                { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+                { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+                { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+                { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" }
+            ]
         };
         req.write(JSON.stringify(payload));
         req.end();
 
     }).catch(async (err) => {
         if (attempt < CONFIG.maxRetries) {
-            console.warn(`⚠️ [RETRY] Gemini Attempt ${attempt} failed. Retrying in 2s... (${err.message})`);
+            console.warn(`⚠️ [RETRY] Attempt ${attempt} failed (${err.message}). Retrying...`);
             await new Promise(r => setTimeout(r, 2000));
             return askGemini(prompt, attempt + 1);
         } else {
@@ -79,10 +84,10 @@ async function askGemini(prompt, attempt = 1) {
 
 // --- MAIN EXECUTION --- 
 async function main() {
-    console.log('🇬 [SENTINEL] GOOGLE PROTOCOL INITIATED...');
+    console.log(`🇬 [SENTINEL] TITANIUM PROTOCOL (${CONFIG.model}) INITIATED...`);
 
     if (!CONFIG.apiKey) {
-        console.error('❌ [CRITICAL] GEMINI_API_KEY MISSING in GitHub Secrets.');
+        console.error('❌ [CRITICAL] GEMINI_API_KEY MISSING.');
         process.exit(1);
     }
 
@@ -92,26 +97,25 @@ async function main() {
             sourceCode = fs.readFileSync(CONFIG.targetFile, 'utf8');
             console.log(`✅ [ACCESS] Read target file: ${CONFIG.targetFile}`);
         } else {
-            console.warn(`⚠️ [WARNING] Target file not found. Simulating test.`);
-            sourceCode = "// MOCK CODE FOR GEMINI TEST";
+            console.warn(`⚠️ [WARNING] Target file not found. Simulating test payload.`);
+            sourceCode = "// TEST PAYLOAD: console.log('Hello World');";
         }
     } catch (err) {
         console.error(`❌ [IO ERROR] ${err.message}`);
         process.exit(1);
     }
 
-    console.log(`🧠 [THINKING] Contacting Google Gemini (${CONFIG.model})...`);
+    console.log(`🧠 [THINKING] Engineering Inference in progress...`);
     try {
         const patch = await askGemini(sourceCode);
 
         if (!fs.existsSync('patches')) fs.mkdirSync('patches');
         fs.writeFileSync('patches/fix-ai.diff', patch);
 
-        console.log('✅ [SUCCESS] Google Gemini generated a fix patch.');
-        console.log('💉 [READY] Sentinel is armed with Google Intelligence.');
+        console.log('✅ [SUCCESS] Patch generated via Google Gemini 1.5 Flash (Optimized).');
 
     } catch (error) {
-        console.error(`💀 [FATAL] GEMINI FAILED: ${error.message}`);
+        console.error(`💀 [FATAL] INFERENCE FAILED: ${error.message}`);
         process.exit(1);
     }
 }
