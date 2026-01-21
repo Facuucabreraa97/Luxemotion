@@ -37,6 +37,7 @@ export const AdminConsole = () => {
 
     // Data States
     const [users, setUsers] = useState<any[]>([]);
+    const [selectedUser, setSelectedUser] = useState<any | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
 
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -226,15 +227,7 @@ export const AdminConsole = () => {
                                         {filteredUsers.length === 0 ? (
                                             <tr><td colSpan={5} className="p-8 text-center text-slate-600 font-mono text-xs">NO_DATA_MATCHING_QUERY_VECTOR</td></tr>
                                         ) : filteredUsers.map(user => (
-                                            <tr key={user.id} onClick={() => alert(`
-TELEMETRY REPORT:
------------------
-IP: ${user.last_ip || 'N/A'}
-LOC: ${user.country || 'Unknown'}
-DEV: ${user.device_info || 'Unknown'}
-SRC: ${user.traffic_source || 'Unknown'}
-SEEN: ${user.last_active_at ? new Date(user.last_active_at).toLocaleString() : 'Never'}
-                                            `)} className="group hover:bg-cyan-500/5 transition-colors duration-200 cursor-pointer">
+                                            <tr key={user.id} onClick={() => setSelectedUser(user)} className="group hover:bg-cyan-500/5 transition-colors duration-200 cursor-pointer">
                                                 <td className="p-4">
                                                     <div className="w-10 h-10 rounded-xl overflow-hidden border border-white/10 shadow-lg group-hover:scale-110 transition-transform">
                                                         <SmartAvatar url={user.avatar_url} name={`${user.first_name} ${user.last_name}`} />
@@ -279,7 +272,95 @@ SEEN: ${user.last_active_at ? new Date(user.last_active_at).toLocaleString() : '
                         </div>
                     </div>
                 )}
+                {/* USER DETAIL MODAL */}
+                {selectedUser && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={() => setSelectedUser(null)}>
+                        <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                            {/* Modal Header */}
+                            <div className="p-6 border-b border-white/5 bg-slate-900/50 flex justify-between items-start">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-16 h-16 rounded-2xl overflow-hidden border border-white/10 shadow-lg">
+                                        <SmartAvatar url={selectedUser.avatar_url} name={`${selectedUser.first_name} ${selectedUser.last_name}`} />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-xl font-bold text-white mb-1">{selectedUser.first_name} {selectedUser.last_name}</h2>
+                                        <div className="text-xs text-slate-400 font-mono">{selectedUser.email}</div>
+                                        <div className="mt-2 flex gap-2">
+                                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${selectedUser.access_status === 'approved' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                                selectedUser.access_status === 'banned' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                                                    'bg-orange-500/10 text-orange-400 border-orange-500/20'
+                                                }`}>{selectedUser.access_status || 'PENDING'}</span>
+                                            {selectedUser.email === ADMIN_EMAIL && <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-purple-500/10 text-purple-400 border border-purple-500/20">ADMIN</span>}
+                                        </div>
+                                    </div>
+                                </div>
+                                <button onClick={() => setSelectedUser(null)} className="text-slate-500 hover:text-white transition-colors"><Zap className="rotate-45" size={20} /></button>
+                            </div>
+
+                            {/* Telemetry Grid */}
+                            <div className="p-6 grid grid-cols-2 gap-4">
+                                <TelemetryCard
+                                    label="Network IP"
+                                    value={selectedUser.last_ip}
+                                    icon={<Activity size={16} />}
+                                    isSensitive={selectedUser.email === ADMIN_EMAIL}
+                                />
+                                <TelemetryCard
+                                    label="Geo Location"
+                                    value={selectedUser.country}
+                                    icon={<Users size={16} />}
+                                    isSensitive={selectedUser.email === ADMIN_EMAIL}
+                                    fallback="📍 [SECURE LOCATION]"
+                                />
+                                <TelemetryCard
+                                    label="Device Info"
+                                    value={selectedUser.device_info}
+                                    icon={<Shield size={16} />}
+                                    isSensitive={selectedUser.email === ADMIN_EMAIL}
+                                    fallback="📱 [ENCRYPTED DEVICE]"
+                                    fullWidth
+                                />
+                                <TelemetryCard
+                                    label="Traffic Source"
+                                    value={selectedUser.traffic_source}
+                                    icon={<Search size={16} />}
+                                />
+                                <TelemetryCard
+                                    label="Last Active"
+                                    value={selectedUser.last_active_at ? new Date(selectedUser.last_active_at).toLocaleString() : 'Never'}
+                                    icon={<Activity size={16} />}
+                                    fullWidth
+                                />
+                            </div>
+
+                            {/* Footer Actions */}
+                            <div className="p-6 border-t border-white/5 bg-slate-950/30 flex justify-end gap-3">
+                                <button onClick={() => setSelectedUser(null)} className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-slate-400 hover:bg-white/5 transition-colors">Close</button>
+                                <button onClick={() => { handleAddCredits(selectedUser.id, selectedUser.credits || 0); setSelectedUser(null); }} className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 transition-colors border border-cyan-500/20">Inject Credits</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </main>
         </div>
     );
 };
+
+const TelemetryCard = ({ label, value, icon, isSensitive, fallback, fullWidth }: any) => (
+    <div className={`p-4 rounded-xl bg-slate-950/50 border border-white/5 ${fullWidth ? 'col-span-2' : 'col-span-1'}`}>
+        <div className="flex items-center gap-2 mb-2 text-slate-500">
+            {icon}
+            <span className="text-[10px] font-bold uppercase tracking-widest">{label}</span>
+        </div>
+        <div className={`font-mono text-sm ${isSensitive ? 'text-purple-400' : 'text-slate-200'}`}>
+            {isSensitive ? (
+                <div className="flex items-center gap-2">
+                    <span className="blur-sm select-none opacity-50 pointer-events-none">192.168.0.1</span>
+                    <span className="text-[10px] bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded border border-purple-500/30">{fallback || '🔒 REDACTED'}</span>
+                </div>
+            ) : (
+                value || 'N/A'
+            )}
+        </div>
+    </div>
+);
