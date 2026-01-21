@@ -1,7 +1,14 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-black text-white antialiased;
+    background-color: #000000;
+    /* HARD CODE SAFETY NET */
+  }
+}
 
 @layer base {
   body {
