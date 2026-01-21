@@ -1,36 +1,72 @@
 import fs from 'fs';
 import https from 'https';
 
-// --- CONFIGURATION (OMNI-CORE) --- 
+// --- CONFIGURATION --- 
 const CONFIG = {
     targetFile: 'src/components/layout/MobileLayout.tsx',
     apiKey: process.env.GEMINI_API_KEY,
-    // CASCADE STRATEGY: Try best model first, fallback to stable if 404/Error 
-    modelCascade: ['gemini-1.5-flash', 'gemini-1.5-flash-001', 'gemini-pro'],
     timeout: 30000,
 };
 
-// --- UTILITY: ADAPTIVE GEMINI CLIENT --- 
-async function askGemini(prompt, modelIndex = 0) {
-    const currentModel = CONFIG.modelCascade[modelIndex];
-
-    // Fail-safe check 
-    if (!currentModel) throw new Error('ALL MODELS FAILED. SYSTEM EXHAUSTED.');
-
-    console.log(`📡 [CONNECT] Attempting handshake with Model: ${currentModel}...`);
-
+// --- STEP 1: AUTO-DISCOVER AVAILABLE MODELS --- 
+async function findBestModel() {
+    console.log('📡 [DISCOVERY] Asking Google for available models...');
     return new Promise((resolve, reject) => {
-        const url = new URL(`https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent`);
+        const url = new URL('https://generativelanguage.googleapis.com/v1beta/models');
         url.searchParams.append('key', CONFIG.apiKey);
 
-        const options = {
+        https.get(url, (res) => {
+            let data = '';
+            res.on('data', chunk => data += chunk);
+            res.on('end', () => {
+                if (res.statusCode === 200) {
+                    try {
+                        const json = JSON.parse(data);
+                        // Find first model that supports content generation
+                        const viableModel = json.models?.find(m =>
+                            m.supportedGenerationMethods?.includes('generateContent') &&
+                            (m.name.includes('flash') || m.name.includes('pro'))
+                        );
+
+                        if (viableModel) {
+                            console.log(`✨ [FOUND] Optimized Model Detected: ${viableModel.name}`);
+                            // The API returns 'models/gemini-x', so we pass it directly
+                            resolve(viableModel.name);
+                        } else {
+                            // Fallback if discovery returns weird list
+                            console.warn('⚠️ [WARN] No ideal model found in list. Defaulting to gemini-pro.');
+                            resolve('models/gemini-pro');
+                        }
+                    } catch (e) {
+                        reject(new Error(`DISCOVERY JSON ERROR: ${e.message}`));
+                    }
+                } else {
+                    console.warn(`⚠️ [WARN] Discovery failed (Status ${res.statusCode}). Defaulting fallback.`);
+                    resolve('models/gemini-pro'); // Blind fallback
+                }
+            });
+        }).on('error', (e) => {
+            console.warn(`⚠️ [WARN] Discovery Network Error: ${e.message}`);
+            resolve('models/gemini-pro');
+        });
+    });
+}
+
+// --- STEP 2: INFERENCE EXECUTION --- 
+async function askGemini(prompt, modelName) {
+    return new Promise((resolve, reject) => {
+        // NOTE: modelName already contains 'models/' prefix from discovery 
+        const cleanModel = modelName.startsWith('models/') ? modelName.split('/')[1] : modelName;
+        const url = new URL(`https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent`);
+        url.searchParams.append('key', CONFIG.apiKey);
+
+        const req = https.request({
             hostname: url.hostname,
             path: url.pathname + url.search,
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             timeout: CONFIG.timeout
-        };
-        const req = https.request(options, (res) => {
+        }, (res) => {
             let data = '';
             res.on('data', chunk => data += chunk);
             res.on('end', () => {
@@ -41,89 +77,60 @@ async function askGemini(prompt, modelIndex = 0) {
                         if (content) resolve(content);
                         else reject(new Error('EMPTY_RESPONSE'));
                     } catch (e) {
-                        reject(new Error(`JSON_PARSE_ERROR: ${e.message}`));
+                        reject(new Error(`PARSE_ERROR: ${e.message}`));
                     }
                 } else {
-                    // Smart Reject with Status for Cascade Logic
-                    reject(new Error(`API_ERROR_${res.statusCode}`));
+                    reject(new Error(`API_ERROR_${res.statusCode}: ${data}`));
                 }
             });
         });
-        req.on('error', (e) => reject(new Error(`NETWORK_ERROR: ${e.message}`)));
-        req.on('timeout', () => {
-            req.destroy();
-            reject(new Error('TIMEOUT'));
-        });
+        req.on('error', (e) => reject(new Error(`NETWORK: ${e.message}`)));
 
-        // --- ADVANCED PROMPT ENGINEERING (Chain of Thought) ---
-        const payload = {
+        // PAYLOAD 
+        req.write(JSON.stringify({
             contents: [{
                 parts: [{
-                    text: `SYSTEM: You are a Senior React Architect.
-
-STRATEGY: 1. Analyze the code. 2. Fix the overlap/layout issue. 3. Output valid git diff. OUTPUT FORMAT: ONLY raw git patch. No markdown.
-
-CODE TO FIX: ${prompt}`
+                    text: `SYSTEM: Senior DevOps.\nTASK: Fix code. Output raw git diff.\n\nCODE:\n${prompt}`
                 }]
             }],
-            generationConfig: {
-                temperature: 0.1, // Surgical Precision 
-                maxOutputTokens: 4000
-            }
-        };
-
-        req.write(JSON.stringify(payload));
+            generationConfig: { temperature: 0.1 }
+        }));
         req.end();
 
-    }).catch(async (err) => {
-        console.warn(`⚠️ [WARNING] Model ${currentModel} failed: ${err.message}`);
-
-        // RECURSIVE CASCADE: Try next model
-        if (modelIndex < CONFIG.modelCascade.length - 1) {
-            console.log(`🔄 [SWITCH] Rerouting to fallback model...`);
-            return askGemini(prompt, modelIndex + 1);
-        } else {
-            throw new Error(`FATAL: All AI models unresponsive. Last error: ${err.message}`);
-        }
     });
 }
-
-// --- MAIN EXECUTION --- 
+// --- MAIN --- 
 async function main() {
-    console.log('🇬 [SENTINEL] OMNI-CORE PROTOCOL INITIATED...');
+    console.log('🇬 [SENTINEL] AUTO-DISCOVERY PROTOCOL INITIATED...');
 
     if (!CONFIG.apiKey) {
         console.error('❌ [CRITICAL] GEMINI_API_KEY MISSING.');
         process.exit(1);
     }
 
-    let sourceCode = '';
+    // 1. READ FILE 
+    let sourceCode = '// TEST PAYLOAD';
     try {
         if (fs.existsSync(CONFIG.targetFile)) {
             sourceCode = fs.readFileSync(CONFIG.targetFile, 'utf8');
-            console.log(`✅ [ACCESS] Read target file: ${CONFIG.targetFile}`);
-        } else {
-            console.warn(`⚠️ [WARNING] Target file not found. Simulating test.`);
-            sourceCode = "// TEST PAYLOAD: console.log('Antigravity Test');";
+            console.log(`✅ [ACCESS] Target loaded: ${CONFIG.targetFile}`);
         }
-    } catch (err) {
-        console.error(`❌ [IO ERROR] ${err.message}`);
-        process.exit(1);
-    }
+    } catch (err) { /* Ignore */ }
 
-    console.log('🧠 [THINKING] Engaging Adaptive Intelligence...');
+    // 2. DISCOVER & EXECUTE 
     try {
-        const patch = await askGemini(sourceCode);
+        const bestModel = await findBestModel();
+        console.log(`🧠 [THINKING] Inferencing via ${bestModel}...`);
 
+        const patch = await askGemini(sourceCode, bestModel);
         if (!fs.existsSync('patches')) fs.mkdirSync('patches');
         fs.writeFileSync('patches/fix-ai.diff', patch);
 
-        console.log('✅ [SUCCESS] Patch generated successfully via Cascade Protocol.');
+        console.log('✅ [SUCCESS] Patch generated via Auto-Discovery.');
 
     } catch (error) {
-        console.error(`💀 [FATAL] MISSION FAILED: ${error.message}`);
+        console.error(`💀 [FATAL] OPERATION FAILED: ${error.message}`);
         process.exit(1);
     }
 }
-
 main();
