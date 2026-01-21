@@ -2,28 +2,30 @@
 @tailwind components;
 @tailwind utilities;
 
+/* FORCE DARK MODE & NATIVE FONT */
 :root {
   color-scheme: dark;
 }
 
-/* CRITICAL FIX: Allow body to grow naturally so padding-bottom works */
 html,
 body {
-  margin: 0;
-  padding: 0;
-  background-color: #000000;
-  /* Force Black */
-  color: #ffffff;
-  width: 100%;
-  min-height: 100vh;
-  overflow-x: hidden;
-  /* Prevent horizontal scroll */
-  -webkit-tap-highlight-color: transparent;
+  @apply bg-black text-white antialiased;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
 }
 
-/* Kill the trap: Ensure root doesn't lock the height */
-#root {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+/* STANDARDIZED COMPONENTS (The "Vydy Class") */
+@layer components {
+  .btn-primary {
+    @apply w-full py-4 rounded-xl font-bold text-sm tracking-widest uppercase transition-all active:scale-95 shadow-lg;
+    @apply bg-[#FCD34D] text-black hover:bg-yellow-300;
+    /* Cyberpunk Yellow */
+  }
+
+  .card-glass {
+    @apply bg-zinc-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-6;
+  }
+
+  .text-heading {
+    @apply text-xl font-bold tracking-tight text-white mb-4;
+  }
 }

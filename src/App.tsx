@@ -1337,64 +1337,66 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile, 
             </div>
             {modal && <VelvetModal onClose={() => setModal(false)} onOk={() => { setModal(false); setVelvetFilter(true); notify(t('studio.velvet_active') + " 🔥"); }} />}
             <div className="lg:col-span-2 space-y-8">
-                <GlassCard className="p-8">
+                <div className="card-glass p-8">
                     <div className="flex justify-between items-center mb-8">
-                        <h2 className="text-xl font-bold tracking-tight text-white flex gap-3">
-                            <span className={mode === 'velvet' ? "text-[#C6A649]" : "text-blue-600"}>01</span> Reference Image
+                        <h2 className="text-heading flex gap-3">
+                            <span className="text-primary">01</span> Reference Image
                             <Tooltip txt="Upload the photo you want to animate." />
                         </h2>
-                        <div className={`p-1.5 rounded-full border flex ${mode === 'velvet' ? 'bg-black/40 border-white/10' : 'bg-gray-100 border-gray-200'}`}>
+                        <div className="p-1.5 rounded-full border border-white/10 flex bg-black/40">
                             <button onClick={() => { setType('img'); setVid(null); }} className={`px-6 py-2 rounded-full text-[9px] font-bold uppercase transition-all active:scale-95 duration-200 ${toggleClass(type === 'img')}`}>{t('studio.tabs.photo')}</button>
                             <button onClick={() => { setType('vid'); setImg(null); }} className={`px-6 py-2 rounded-full text-[9px] font-bold uppercase transition-all active:scale-95 duration-200 ${toggleClass(type === 'vid')}`}>{t('studio.tabs.remix')}</button>
                         </div>
                     </div>
                     {/* ... (Keep content) ... */}
                     <div className="grid grid-cols-2 gap-6">
-                        <div id="studio-source-upload" className={`aspect-[3/4] rounded-[30px] border-2 border-dashed relative overflow-hidden group transition-all duration-300 ${type === 'vid' ? 'border-blue-500/30' : (mode === 'velvet' ? 'border-white/10 hover:border-[#C6A649]/50' : 'border-gray-200 hover:border-blue-500')}`}>
-                            {type === 'img' ? (img ? (<><img src={img} className="w-full h-full object-cover" />{img === DEMO_IMG && <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-[#C6A649] text-black text-[8px] font-bold px-3 py-1 rounded-full uppercase shadow-lg flex gap-2"><Sparkles size={10} /> {t('studio.upload.demo')}</div>}<button onClick={() => { setImg(null); }} className="absolute top-4 right-4 bg-black/60 p-2 rounded-full text-white hover:bg-red-500 transition-all z-20"><X size={14} /></button></>) : <div className={`absolute inset-0 flex flex-col items-center justify-center ${mode === 'velvet' ? 'text-white/20' : 'text-gray-400'}`}><Upload className="mb-4 w-8 h-8" /><span className="text-[9px] uppercase font-bold tracking-widest text-center">{t('studio.upload.subject')}</span><input type="file" onChange={e => handleFile(e, setImg)} className="absolute inset-0 opacity-0 cursor-pointer" /></div>) : (vid ? (<><video src={vid} className="w-full h-full object-cover opacity-50" controls preload="metadata" playsInline crossOrigin="anonymous" /><button onClick={() => setVid(null)} className="absolute top-4 right-4 bg-black/50 p-2 rounded-full text-white hover:bg-red-500 z-20"><X size={14} /></button></>) : <div className="absolute inset-0 flex flex-col items-center justify-center text-blue-500/40"><Film className="mb-4 w-8 h-8" /><span className="text-[9px] uppercase font-bold tracking-widest text-center">{t('studio.upload.video')}</span><input type="file" onChange={e => handleFile(e, setVid)} className="absolute inset-0 opacity-0 cursor-pointer" /></div>)}
+                        <div id="studio-source-upload" className={`aspect-[3/4] rounded-[30px] border-2 border-dashed relative overflow-hidden group transition-all duration-300 ${type === 'vid' ? 'border-primary/30' : 'border-white/10 hover:border-primary/50'}`}>
+                            {type === 'img' ? (img ? (<><img src={img} className="w-full h-full object-cover" />{img === DEMO_IMG && <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-primary text-black text-[8px] font-bold px-3 py-1 rounded-full uppercase shadow-lg flex gap-2"><Sparkles size={10} /> {t('studio.upload.demo')}</div>}<button onClick={() => { setImg(null); }} className="absolute top-4 right-4 bg-black/60 p-2 rounded-full text-white hover:bg-red-500 transition-all z-20"><X size={14} /></button></>) : <div className={`absolute inset-0 flex flex-col items-center justify-center text-white/20`}><Upload className="mb-4 w-8 h-8" /><span className="text-[9px] uppercase font-bold tracking-widest text-center">{t('studio.upload.subject')}</span><input type="file" onChange={e => handleFile(e, setImg)} className="absolute inset-0 opacity-0 cursor-pointer" /></div>) : (vid ? (<><video src={vid} className="w-full h-full object-cover opacity-50" controls preload="metadata" playsInline crossOrigin="anonymous" /><button onClick={() => setVid(null)} className="absolute top-4 right-4 bg-black/50 p-2 rounded-full text-white hover:bg-red-500 z-20"><X size={14} /></button></>) : <div className="absolute inset-0 flex flex-col items-center justify-center text-primary/40"><Film className="mb-4 w-8 h-8" /><span className="text-[9px] uppercase font-bold tracking-widest text-center">{t('studio.upload.video')}</span><input type="file" onChange={e => handleFile(e, setVid)} className="absolute inset-0 opacity-0 cursor-pointer" /></div>)}
                         </div>
                         <div className="flex flex-col gap-4">
-                            <div id="studio-product-upload" className={`aspect-[3/4] rounded-[30px] border-2 border-dashed relative overflow-hidden group transition-all duration-300 ${mode === 'velvet' ? 'border-white/10 bg-black/20 hover:border-[#C6A649]/50' : 'border-gray-200 bg-gray-50 hover:border-blue-500'}`}>
-                                {prod ? (<><img src={prod} className="w-full h-full object-cover" />{prod === DEMO_PROD && <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-[#C6A649] text-black text-[8px] font-bold px-3 py-1 rounded-full uppercase shadow-lg flex gap-2"><Sparkles size={10} /> {t('studio.upload.demo')}</div>}<button onClick={() => setProd(null)} className="absolute top-4 right-4 bg-black/60 p-2 rounded-full text-white hover:bg-red-500 transition-all z-20"><X size={14} /></button></>) : <div className={`absolute inset-0 flex flex-col items-center justify-center ${mode === 'velvet' ? 'text-white/20' : 'text-gray-400'}`}><Plus className="mb-4 w-8 h-8" /><span className="text-[9px] uppercase font-bold tracking-widest text-center">{t('studio.upload.product')}</span><input type="file" onChange={e => handleFile(e, setProd)} className="absolute inset-0 opacity-0 cursor-pointer" /></div>}
+                            <div id="studio-product-upload" className={`aspect-[3/4] rounded-[30px] border-2 border-dashed relative overflow-hidden group transition-all duration-300 border-white/10 bg-black/20 hover:border-primary/50`}>
+                                {prod ? (<><img src={prod} className="w-full h-full object-cover" />{prod === DEMO_PROD && <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-primary text-black text-[8px] font-bold px-3 py-1 rounded-full uppercase shadow-lg flex gap-2"><Sparkles size={10} /> {t('studio.upload.demo')}</div>}<button onClick={() => setProd(null)} className="absolute top-4 right-4 bg-black/60 p-2 rounded-full text-white hover:bg-red-500 transition-all z-20"><X size={14} /></button></>) : <div className={`absolute inset-0 flex flex-col items-center justify-center text-white/20`}><Plus className="mb-4 w-8 h-8" /><span className="text-[9px] uppercase font-bold tracking-widest text-center">{t('studio.upload.product')}</span><input type="file" onChange={e => handleFile(e, setProd)} className="absolute inset-0 opacity-0 cursor-pointer" /></div>}
                             </div>
                         </div>
                     </div>
-                </GlassCard>
+                </div>
 
-                <GlassCard className="p-8">
-                    <div className="flex justify-between items-center mb-8"><h2 className="text-xl font-bold tracking-tight text-white flex gap-3"><span className={mode === 'velvet' ? "text-[#C6A649]" : "text-blue-600"}>02</span> {t('studio.settings')}</h2>{mode === 'velvet' && (<div className="px-4 py-1.5 rounded-full border border-[#C6A649]/30 bg-[#C6A649]/10 text-[#C6A649] text-[9px] font-bold uppercase tracking-widest flex items-center gap-2"><Flame size={12} /> {t('studio.velvet_active')}</div>)}</div>
+                <div className="card-glass p-8">
+                    <div className="flex justify-between items-center mb-8"><h2 className="text-heading flex gap-3"><span className="text-primary">02</span> {t('studio.settings')}</h2>{mode === 'velvet' && (<div className="px-4 py-1.5 rounded-full border border-primary/30 bg-primary/10 text-primary text-[9px] font-bold uppercase tracking-widest flex items-center gap-2"><Flame size={12} /> {t('studio.velvet_active')}</div>)}</div>
                     {/* ... (Keep existing settings UI) ... */}
                     <div className="grid grid-cols-4 gap-4 mb-8">
-                        {CAMS.map(m => (<button key={m.id} onClick={() => setCam(m.id)} className={`relative p-4 rounded-3xl border flex flex-col items-center gap-3 transition-all group overflow-hidden active:scale-95 duration-200 ${cam === m.id ? (mode === 'velvet' ? 'bg-[#C6A649] border-[#C6A649] text-black shadow-lg' : 'bg-black border-black text-white shadow-lg') : (mode === 'velvet' ? 'bg-black/40 border-white/5 text-gray-500 hover:bg-white/5' : 'bg-gray-50 border-gray-200 text-gray-400 hover:bg-white hover:border-gray-300')}`}>{m.icon}<span className="text-[7px] font-bold uppercase tracking-widest">{t(`cams.${m.id}.label`)}</span></button>))}
+                        {CAMS.map(m => (<button key={m.id} onClick={() => setCam(m.id)} className={`relative p-4 rounded-3xl border flex flex-col items-center gap-3 transition-all group overflow-hidden active:scale-95 duration-200 ${cam === m.id ? 'bg-primary border-primary text-black shadow-lg' : 'bg-black/40 border-white/5 text-gray-500 hover:bg-white/5'}`}>{m.icon}<span className="text-[7px] font-bold uppercase tracking-widest">{t(`cams.${m.id}.label`)}</span></button>))}
                     </div>
                     {/* ... (Rest of settings) ... */}
                     {mode === 'velvet' && (
                         <div className="grid grid-cols-4 gap-3 mb-6 animate-in fade-in slide-in-from-top-4">
-                            {VELVET_STYLES.map(v => (<button key={v.id} onClick={() => { setVelvetStyle(v.id); handlePromptInjection(t(`velvet_styles.${v.id}.desc`)); }} className={`p-3 rounded-2xl border transition-all text-center group active:scale-95 duration-200 ${velvetStyle === v.id ? (mode === 'velvet' ? 'bg-pink-500/10 border-pink-500 text-white' : 'bg-purple-100 border-purple-500 text-purple-900') : (mode === 'velvet' ? 'bg-black/40 border-white/5 text-white/50' : 'bg-white border-gray-200 text-gray-400')}`}><p className="text-[8px] font-bold uppercase tracking-widest mb-1">{t(`velvet_styles.${v.id}.name`)}</p></button>))}
+                            {VELVET_STYLES.map(v => (<button key={v.id} onClick={() => { setVelvetStyle(v.id); handlePromptInjection(t(`velvet_styles.${v.id}.desc`)); }} className={`p-3 rounded-2xl border transition-all text-center group active:scale-95 duration-200 ${velvetStyle === v.id ? 'bg-primary/20 border-primary text-white' : 'bg-black/40 border-white/5 text-white/50'}`}><p className="text-[8px] font-bold uppercase tracking-widest mb-1">{t(`velvet_styles.${v.id}.name`)}</p></button>))}
                         </div>
                     )}
-                    <div className="relative group"><textarea value={prompt} onChange={e => setPrompt(e.target.value)} placeholder={t('studio.prompt_placeholder')} className={`${inputClass} h-32 mb-8 resize-none p-6 text-sm ${mode === 'velvet' ? 'border-pink-900/50 focus:border-pink-500' : ''}`} /><div className="absolute bottom-10 right-4"><Sparkles size={16} className={`${mode === 'velvet' ? 'text-[#C6A649]' : 'text-blue-500'} opacity-50`} /></div></div>
+                    <div className="relative group"><textarea value={prompt} onChange={e => setPrompt(e.target.value)} placeholder={t('studio.prompt_placeholder')} className={`${inputClass} h-32 mb-8 resize-none p-6 text-sm border-white/10 focus:border-primary`} /><div className="absolute bottom-10 right-4"><Sparkles size={16} className={`text-primary opacity-50`} /></div></div>
                     {/* ... (Duration/Ratio) ... */}
-                    <div className={`grid grid-cols-2 gap-8 pt-6 border-t ${mode === 'velvet' ? 'border-white/5' : 'border-gray-100'}`}>
+                    <div className={`grid grid-cols-2 gap-8 pt-6 border-t border-white/5`}>
                         <div className="space-y-4">
-                            <div className="flex justify-between items-center"><span className="text-[10px] uppercase tracking-widest opacity-40">{t('studio.duration')}</span><span className={`font-bold text-xs ${mode === 'velvet' ? 'text-[#C6A649]' : 'text-blue-600'}`}>{dur}s</span></div>
-                            <div className={`flex gap-2 p-1.5 rounded-2xl border ${mode === 'velvet' ? 'bg-black/40 border-white/10' : 'bg-gray-100 border-gray-200'}`}><button onClick={() => setDur(5)} className={`flex-1 py-3 rounded-xl text-[9px] font-bold uppercase transition-all active:scale-95 duration-200 ${toggleClass(dur === 5)}`}>5s (10cr)</button><button onClick={() => setDur(10)} className={`flex-1 py-3 rounded-xl text-[9px] font-bold uppercase transition-all active:scale-95 duration-200 ${toggleClass(dur === 10)}`}>10s (20cr)</button></div>
+                            <div className="flex justify-between items-center"><span className="text-[10px] uppercase tracking-widest opacity-40">{t('studio.duration')}</span><span className={`font-bold text-xs text-primary`}>{dur}s</span></div>
+                            <div className={`flex gap-2 p-1.5 rounded-2xl border bg-black/40 border-white/10`}><button onClick={() => setDur(5)} className={`flex-1 py-3 rounded-xl text-[9px] font-bold uppercase transition-all active:scale-95 duration-200 ${toggleClass(dur === 5)}`}>5s (10cr)</button><button onClick={() => setDur(10)} className={`flex-1 py-3 rounded-xl text-[9px] font-bold uppercase transition-all active:scale-95 duration-200 ${toggleClass(dur === 10)}`}>10s (20cr)</button></div>
                         </div>
                         <div className="space-y-4">
                             <div className="flex justify-between items-center"><span className="text-[10px] uppercase tracking-widest opacity-40">{t('studio.ratio')}</span></div>
-                            <div className={`flex gap-2 p-1.5 rounded-2xl border ${mode === 'velvet' ? 'bg-black/40 border-white/10' : 'bg-gray-100 border-gray-200'}`}>{RATIOS.map(r => (<button key={r.id} onClick={() => setRatio(r.id)} className={`flex-1 py-3 rounded-xl text-[9px] font-bold uppercase transition-all active:scale-95 duration-200 ${toggleClass(ratio === r.id)}`}>{t(r.labelKey)}</button>))}</div>
+                            <div className={`flex gap-2 p-1.5 rounded-2xl border bg-black/40 border-white/10`}>{RATIOS.map(r => (<button key={r.id} onClick={() => setRatio(r.id)} className={`flex-1 py-3 rounded-xl text-[9px] font-bold uppercase transition-all active:scale-95 duration-200 ${toggleClass(ratio === r.id)}`}>{t(r.labelKey)}</button>))}</div>
                         </div>
                     </div>
-                </GlassCard>
+                </div>
+            </div>
 
+            <div className="mt-8 mb-12 px-6">
                 <button
                     id="studio-generate-btn"
                     onClick={generate}
                     disabled={loading || (!img && !vid) || (!profile?.is_admin && credits < totalCost)}
-                    className={`w-full py-7 rounded-[32px] font-bold uppercase tracking-[0.3em] text-xs flex items-center justify-center gap-4 fixed bottom-[calc(80px+env(safe-area-inset-bottom)+20px)] left-4 right-4 lg:static lg:w-full z-40 shadow-2xl transition-all duration-300 ${mode === 'velvet' ? (velvetFilter ? S.btnVelvet : S.btnGold) : 'bg-black text-white shadow-lg hover:bg-gray-800 hover:shadow-xl active:scale-95'}`}
+                    className="btn-primary"
                 >
                     {loading ? (
-                        <span className="flex items-center gap-2">
+                        <span className="flex items-center justify-center gap-2">
                             <Loader2 className="animate-spin" size={18} /> Creating magic...
                         </span>
                     ) : (
