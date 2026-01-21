@@ -1,76 +1,104 @@
-const fs = require('fs');
-const https = require('https');
+import fs from 'fs';
+import https from 'https';
+import path from 'path';
 
-// 1. IDENTIFY THE BROKEN FILE (In a real scenario, parse this from test logs)
-// For this deployment, we target the known mobile layout file.
-const targetFile = 'src/components/layout/MobileLayout.tsx';
+// --- CONFIGURATION (THE BRAIN) --- 
+const CONFIG = {
+    targetFile: 'src/components/layout/MobileLayout.tsx', // In production, pass this via process.argv 
+    apiKey: process.env.OPENAI_API_KEY,
+    model: 'gpt-4', // Using the smartest model for code repair 
+    timeout: 30000 // 30s Hard Timeout to prevent CI hanging 
+};
 
-console.log(`🧬 SURGEON: Analyzing ${targetFile}...`);
+// --- UTILITY: PROMISIFIED HTTPS (ZERO DEPENDENCY FETCH) --- 
+function askOracle(prompt) {
+    return new Promise((resolve, reject) => {
+        const options = {
+            hostname: 'api.openai.com',
+            path: '/v1/chat/completions',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${CONFIG.apiKey}`
+            },
+            timeout: CONFIG.timeout
+        };
 
-if (!process.env.OPENAI_API_KEY) {
-    console.error("❌ NO BRAIN FOUND: OPENAI_API_KEY missing. Falling back to Heuristic Fix.");
-    // Fallback logic here if needed, but for Max Capacity we assume Key exists
-    process.exit(1);
+        const req = https.request(options, (res) => {
+            let data = '';
+            res.on('data', chunk => data += chunk);
+            res.on('end', () => {
+                if (res.statusCode >= 200 && res.statusCode < 300) {
+                    try {
+                        const json = JSON.parse(data);
+                        resolve(json.choices[0].message.content);
+                    } catch (e) {
+                        reject(new Error(`FAILED TO PARSE JSON: ${e.message}`));
+                    }
+                } else {
+                    reject(new Error(`API ERROR: Status ${res.statusCode} - ${data}`));
+                }
+            });
+        });
+
+        req.on('error', (e) => reject(new Error(`NETWORK FAILURE: ${e.message}`)));
+        req.on('timeout', () => {
+            req.destroy();
+            reject(new Error('REQUEST TIMED OUT'));
+        });
+
+        req.write(JSON.stringify({
+            model: CONFIG.model,
+            messages: [
+                { role: "system", content: "You are a Senior React Engineer. Output ONLY the raw git diff patch." },
+                { role: "user", content: prompt }
+            ]
+        }));
+        req.end();
+    });
 }
 
-// 2. READ SOURCE CODE
-let sourceCode = '';
-try {
-    sourceCode = fs.readFileSync(targetFile, 'utf8');
-} catch (e) {
-    console.error(`❌ FILE NOT FOUND: ${targetFile}`);
-    process.exit(1);
-}
+// --- MAIN EXECUTION (ASYNC FLOW) --- 
+async function main() {
+    console.log('🧬 [SENTINEL] SURGEON PROTOCOL INITIATED...');
 
-// 3. CONSULT THE ORACLE (OpenAI API Call via raw HTTPS to avoid dependencies)
-const prompt = `
-  ROLE: You are the Chief Technology Officer (CTO) of VydyLabs.
-  INPUT: Test logs and source code from the latest build.
-
-  MISSION:
-  1. ANALYZE the system health based on the provided logs.
-  2. IDENTIFY any critical failures (P0) or warnings.
-  3. STRATEGIZE: Provide 1 specific, high-level recommendation to improve UX, Architecture, or Finance.
-  4. EXECUTE: If a bug is found in the code, generate a valid Git Patch.
-
-OUTPUT FORMAT (Markdown):
-  ## 🚦 Executive Status: [HEALTHY / CRITICAL]
-  ### 🧐 Strategic Insight
-  [Your professional advice here]
-  ### 🛠️ Technical Details
-  [Log summary]
-  ### 💉 Auto-Fix
-  [If applicable, describe the patch]
-`;
-
-const req = https.request({
-    hostname: 'api.openai.com',
-    path: '/v1/chat/completions',
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+    // 1. SECURITY CHECK 
+    if (!CONFIG.apiKey) {
+        console.error('❌ [CRITICAL] OPENAI_API_KEY MISSING. ABORTING.');
+        process.exit(1);
     }
-}, (res) => {
-    let data = '';
-    res.on('data', (chunk) => data += chunk);
-    res.on('end', () => {
-        const response = JSON.parse(data);
-        if (response.error) {
-            console.error("❌ BRAIN DAMAGE:", response.error);
-            process.exit(1);
-        }
-        const patch = response.choices[0].message.content;
 
-        // 4. SAVE THE INTELLIGENT PATCH
+    // 2. READ SOURCE 
+    let sourceCode = '';
+    try {
+        if (fs.existsSync(CONFIG.targetFile)) {
+            sourceCode = fs.readFileSync(CONFIG.targetFile, 'utf8');
+            console.log(`✅ [ACCESS] Read target file: ${CONFIG.targetFile}`);
+        } else {
+            console.warn(`⚠️ [WARNING] Target file not found. Simulating for connectivity test.`);
+            sourceCode = "// MOCK CONTENT FOR CONNECTION TEST";
+        }
+    } catch (err) {
+        console.error(`❌ [IO ERROR] Could not read file: ${err.message}`);
+        process.exit(1);
+    }
+
+    // 3. GENERATE DIAGNOSIS 
+    console.log('🧠 [THINKING] Consultando a la Inteligencia Artificial...');
+    try {
+        const patch = await askOracle(`Fix the following code (overlap issue):\n\n${sourceCode}`);
+
+        // 4. SAVE ARTIFACT
         if (!fs.existsSync('patches')) fs.mkdirSync('patches');
         fs.writeFileSync('patches/fix-ai.diff', patch);
-        console.log("✅ SURGEON: AI Patch Generated successfully.");
-    });
-});
 
-req.write(JSON.stringify({
-    model: "gpt-4", // Or gpt-3.5-turbo
-    messages: [{ role: "user", content: prompt }]
-}));
-req.end();
+        console.log('✅ [SUCCESS] Patch generated and saved to patches/fix-ai.diff');
+        console.log('💉 [READY] Sentinel is ready for injection.');
+    } catch (error) {
+        console.error(`💀 [FATAL] AI PROCESSING FAILED: ${error.message}`);
+        process.exit(1);
+    }
+}
+
+// EXECUTE 
+main();
