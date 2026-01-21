@@ -35,6 +35,10 @@ export const AdminConsole = () => {
     const [refreshing, setRefreshing] = useState(false);
     const [activeTab, setActiveTab] = useState<'users' | 'treasury'>('users');
 
+    // State for AI Engine
+    const [aiModels, setAiModels] = useState<any[]>([]);
+    const [jobStats, setJobStats] = useState({ pending: 0, processing: 0, completed: 0, failed: 0 });
+
     // Data States
     const [users, setUsers] = useState<any[]>([]);
     const [transactions, setTransactions] = useState<any[]>([]);
