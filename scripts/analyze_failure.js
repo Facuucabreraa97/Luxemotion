@@ -1,19 +1,26 @@
 import fs from 'fs';
 import https from 'https';
 
-// --- CONFIGURATION (TITANIUM CORE) --- 
+// --- CONFIGURATION (OMNI-CORE) --- 
 const CONFIG = {
     targetFile: 'src/components/layout/MobileLayout.tsx',
     apiKey: process.env.GEMINI_API_KEY,
-    model: 'gemini-1.5-flash-001', // FIXED: Canonical ID for stability 
+    // CASCADE STRATEGY: Try best model first, fallback to stable if 404/Error 
+    modelCascade: ['gemini-1.5-flash', 'gemini-1.5-flash-001', 'gemini-pro'],
     timeout: 30000,
-    maxRetries: 3
 };
 
-// --- UTILITY: GEMINI CLIENT (OPTIMIZED) --- 
-async function askGemini(prompt, attempt = 1) {
+// --- UTILITY: ADAPTIVE GEMINI CLIENT --- 
+async function askGemini(prompt, modelIndex = 0) {
+    const currentModel = CONFIG.modelCascade[modelIndex];
+
+    // Fail-safe check 
+    if (!currentModel) throw new Error('ALL MODELS FAILED. SYSTEM EXHAUSTED.');
+
+    console.log(`📡 [CONNECT] Attempting handshake with Model: ${currentModel}...`);
+
     return new Promise((resolve, reject) => {
-        const url = new URL(`https://generativelanguage.googleapis.com/v1beta/models/${CONFIG.model}:generateContent`);
+        const url = new URL(`https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent`);
         url.searchParams.append('key', CONFIG.apiKey);
 
         const options = {
@@ -32,59 +39,58 @@ async function askGemini(prompt, attempt = 1) {
                         const json = JSON.parse(data);
                         const content = json.candidates?.[0]?.content?.parts?.[0]?.text;
                         if (content) resolve(content);
-                        else reject(new Error('GEMINI EMPTY RESPONSE'));
+                        else reject(new Error('EMPTY_RESPONSE'));
                     } catch (e) {
-                        reject(new Error(`JSON PARSE FAIL: ${e.message}`));
+                        reject(new Error(`JSON_PARSE_ERROR: ${e.message}`));
                     }
                 } else {
-                    reject(new Error(`API STATUS ${res.statusCode}: ${data}`));
+                    // Smart Reject with Status for Cascade Logic
+                    reject(new Error(`API_ERROR_${res.statusCode}`));
                 }
             });
         });
-
-        req.on('error', (e) => reject(new Error(`NETWORK: ${e.message}`)));
+        req.on('error', (e) => reject(new Error(`NETWORK_ERROR: ${e.message}`)));
         req.on('timeout', () => {
             req.destroy();
             reject(new Error('TIMEOUT'));
         });
 
-        // --- ADVANCED PAYLOAD (ENGINEERING TUNED) ---
+        // --- ADVANCED PROMPT ENGINEERING (Chain of Thought) ---
         const payload = {
             contents: [{
                 parts: [{
-                    text: `ROLE: Senior React DevOps.\nTASK: Fix the code below. Output ONLY the raw git diff patch.\n\nCODE:\n${prompt}`
+                    text: `SYSTEM: You are a Senior React Architect.
+
+STRATEGY: 1. Analyze the code. 2. Fix the overlap/layout issue. 3. Output valid git diff. OUTPUT FORMAT: ONLY raw git patch. No markdown.
+
+CODE TO FIX: ${prompt}`
                 }]
             }],
-            // PRECISION SETTINGS
             generationConfig: {
-                temperature: 0.1, // Maximum Determinism for Code
-                maxOutputTokens: 2000
-            },
-            // BYPASS SAFETY FILTERS FOR CODE ANALYSIS
-            safetySettings: [
-                { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
-                { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-                { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-                { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" }
-            ]
+                temperature: 0.1, // Surgical Precision 
+                maxOutputTokens: 4000
+            }
         };
+
         req.write(JSON.stringify(payload));
         req.end();
 
     }).catch(async (err) => {
-        if (attempt < CONFIG.maxRetries) {
-            console.warn(`⚠️ [RETRY] Attempt ${attempt} failed (${err.message}). Retrying...`);
-            await new Promise(r => setTimeout(r, 2000));
-            return askGemini(prompt, attempt + 1);
+        console.warn(`⚠️ [WARNING] Model ${currentModel} failed: ${err.message}`);
+
+        // RECURSIVE CASCADE: Try next model
+        if (modelIndex < CONFIG.modelCascade.length - 1) {
+            console.log(`🔄 [SWITCH] Rerouting to fallback model...`);
+            return askGemini(prompt, modelIndex + 1);
         } else {
-            throw err;
+            throw new Error(`FATAL: All AI models unresponsive. Last error: ${err.message}`);
         }
     });
 }
 
 // --- MAIN EXECUTION --- 
 async function main() {
-    console.log(`🇬 [SENTINEL] TITANIUM PROTOCOL (${CONFIG.model}) INITIATED...`);
+    console.log('🇬 [SENTINEL] OMNI-CORE PROTOCOL INITIATED...');
 
     if (!CONFIG.apiKey) {
         console.error('❌ [CRITICAL] GEMINI_API_KEY MISSING.');
@@ -97,25 +103,25 @@ async function main() {
             sourceCode = fs.readFileSync(CONFIG.targetFile, 'utf8');
             console.log(`✅ [ACCESS] Read target file: ${CONFIG.targetFile}`);
         } else {
-            console.warn(`⚠️ [WARNING] Target file not found. Simulating test payload.`);
-            sourceCode = "// TEST PAYLOAD: console.log('Hello World');";
+            console.warn(`⚠️ [WARNING] Target file not found. Simulating test.`);
+            sourceCode = "// TEST PAYLOAD: console.log('Antigravity Test');";
         }
     } catch (err) {
         console.error(`❌ [IO ERROR] ${err.message}`);
         process.exit(1);
     }
 
-    console.log(`🧠 [THINKING] Engineering Inference in progress...`);
+    console.log('🧠 [THINKING] Engaging Adaptive Intelligence...');
     try {
         const patch = await askGemini(sourceCode);
 
         if (!fs.existsSync('patches')) fs.mkdirSync('patches');
         fs.writeFileSync('patches/fix-ai.diff', patch);
 
-        console.log('✅ [SUCCESS] Patch generated via Google Gemini 1.5 Flash (Optimized).');
+        console.log('✅ [SUCCESS] Patch generated successfully via Cascade Protocol.');
 
     } catch (error) {
-        console.error(`💀 [FATAL] INFERENCE FAILED: ${error.message}`);
+        console.error(`💀 [FATAL] MISSION FAILED: ${error.message}`);
         process.exit(1);
     }
 }
