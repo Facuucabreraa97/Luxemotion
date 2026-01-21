@@ -1,17 +1,17 @@
 import fs from 'fs';
 import https from 'https';
-import path from 'path';
 
 // --- CONFIGURATION (THE BRAIN) --- 
 const CONFIG = {
     targetFile: 'src/components/layout/MobileLayout.tsx', // In production, pass this via process.argv 
     apiKey: process.env.OPENAI_API_KEY,
-    model: 'gpt-4', // Using the smartest model for code repair 
-    timeout: 30000 // 30s Hard Timeout to prevent CI hanging 
+    model: 'gpt-4o', // Smartest model for code repair 
+    timeout: 30000, // 30s Hard Timeout 
+    maxRetries: 3 // Resilience Factor 
 };
 
-// --- UTILITY: PROMISIFIED HTTPS (ZERO DEPENDENCY FETCH) --- 
-function askOracle(prompt) {
+// --- UTILITY: PROMISIFIED HTTPS WITH RETRY (ZERO DEP) --- 
+async function askOracle(prompt, attempt = 1) {
     return new Promise((resolve, reject) => {
         const options = {
             hostname: 'api.openai.com',
@@ -33,18 +33,19 @@ function askOracle(prompt) {
                         const json = JSON.parse(data);
                         resolve(json.choices[0].message.content);
                     } catch (e) {
-                        reject(new Error(`FAILED TO PARSE JSON: ${e.message}`));
+                        reject(new Error(`JSON PARSE FAIL: ${e.message}`));
                     }
                 } else {
-                    reject(new Error(`API ERROR: Status ${res.statusCode} - ${data}`));
+                    // Smart Reject to trigger retry
+                    reject(new Error(`API STATUS ${res.statusCode}: ${data}`));
                 }
             });
         });
 
-        req.on('error', (e) => reject(new Error(`NETWORK FAILURE: ${e.message}`)));
+        req.on('error', (e) => reject(new Error(`NETWORK: ${e.message}`)));
         req.on('timeout', () => {
             req.destroy();
-            reject(new Error('REQUEST TIMED OUT'));
+            reject(new Error('TIMEOUT'));
         });
 
         req.write(JSON.stringify({
@@ -55,12 +56,21 @@ function askOracle(prompt) {
             ]
         }));
         req.end();
+
+    }).catch(async (err) => {
+        if (attempt < CONFIG.maxRetries) {
+            console.warn(`⚠️ [RETRY] Attempt ${attempt} failed. Retrying in 2s... (${err.message})`);
+            await new Promise(r => setTimeout(r, 2000)); // Wait 2s 
+            return askOracle(prompt, attempt + 1);
+        } else {
+            throw err;
+        }
     });
 }
 
 // --- MAIN EXECUTION (ASYNC FLOW) --- 
 async function main() {
-    console.log('🧬 [SENTINEL] SURGEON PROTOCOL INITIATED...');
+    console.log('🧬 [SENTINEL] SURGEON PROTOCOL INITIATED (ESM/ASYNC)...');
 
     // 1. SECURITY CHECK 
     if (!CONFIG.apiKey) {
@@ -84,18 +94,19 @@ async function main() {
     }
 
     // 3. GENERATE DIAGNOSIS 
-    console.log('🧠 [THINKING] Consultando a la Inteligencia Artificial...');
+    console.log(`🧠 [THINKING] Consultando a la IA (Max Retries: ${CONFIG.maxRetries})...`);
     try {
         const patch = await askOracle(`Fix the following code (overlap issue):\n\n${sourceCode}`);
 
         // 4. SAVE ARTIFACT
         if (!fs.existsSync('patches')) fs.mkdirSync('patches');
         fs.writeFileSync('patches/fix-ai.diff', patch);
-
         console.log('✅ [SUCCESS] Patch generated and saved to patches/fix-ai.diff');
         console.log('💉 [READY] Sentinel is ready for injection.');
+
     } catch (error) {
-        console.error(`💀 [FATAL] AI PROCESSING FAILED: ${error.message}`);
+        console.error(`💀 [FATAL] AI PROCESSING FAILED AFTER ${CONFIG.maxRetries} ATTEMPTS:`);
+        console.error(error.message);
         process.exit(1);
     }
 }
