@@ -1344,8 +1344,8 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile, 
                             <Tooltip txt="Upload the photo you want to animate." />
                         </h2>
                         <div className={`p-1.5 rounded-full border flex ${mode === 'velvet' ? 'bg-black/40 border-white/10' : 'bg-gray-100 border-gray-200'}`}>
-                            <button onClick={() => { setType('img'); setVid(null); }} className={`px-6 py-2 rounded-full text-[9px] font-bold uppercase transition-all ${toggleClass(type === 'img')}`}>{t('studio.tabs.photo')}</button>
-                            <button onClick={() => { setType('vid'); setImg(null); }} className={`px-6 py-2 rounded-full text-[9px] font-bold uppercase transition-all ${toggleClass(type === 'vid')}`}>{t('studio.tabs.remix')}</button>
+                            <button onClick={() => { setType('img'); setVid(null); }} className={`px-6 py-2 rounded-full text-[9px] font-bold uppercase transition-all active:scale-95 duration-200 ${toggleClass(type === 'img')}`}>{t('studio.tabs.photo')}</button>
+                            <button onClick={() => { setType('vid'); setImg(null); }} className={`px-6 py-2 rounded-full text-[9px] font-bold uppercase transition-all active:scale-95 duration-200 ${toggleClass(type === 'vid')}`}>{t('studio.tabs.remix')}</button>
                         </div>
                     </div>
                     {/* ... (Keep content) ... */}
@@ -1378,11 +1378,11 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile, 
                     <div className={`grid grid-cols-2 gap-8 pt-6 border-t ${mode === 'velvet' ? 'border-white/5' : 'border-gray-100'}`}>
                         <div className="space-y-4">
                             <div className="flex justify-between items-center"><span className="text-[10px] uppercase tracking-widest opacity-40">{t('studio.duration')}</span><span className={`font-bold text-xs ${mode === 'velvet' ? 'text-[#C6A649]' : 'text-blue-600'}`}>{dur}s</span></div>
-                            <div className={`flex gap-2 p-1.5 rounded-2xl border ${mode === 'velvet' ? 'bg-black/40 border-white/10' : 'bg-gray-100 border-gray-200'}`}><button onClick={() => setDur(5)} className={`flex-1 py-3 rounded-xl text-[9px] font-bold uppercase transition-all ${toggleClass(dur === 5)}`}>5s (10cr)</button><button onClick={() => setDur(10)} className={`flex-1 py-3 rounded-xl text-[9px] font-bold uppercase transition-all ${toggleClass(dur === 10)}`}>10s (20cr)</button></div>
+                            <div className={`flex gap-2 p-1.5 rounded-2xl border ${mode === 'velvet' ? 'bg-black/40 border-white/10' : 'bg-gray-100 border-gray-200'}`}><button onClick={() => setDur(5)} className={`flex-1 py-3 rounded-xl text-[9px] font-bold uppercase transition-all active:scale-95 duration-200 ${toggleClass(dur === 5)}`}>5s (10cr)</button><button onClick={() => setDur(10)} className={`flex-1 py-3 rounded-xl text-[9px] font-bold uppercase transition-all active:scale-95 duration-200 ${toggleClass(dur === 10)}`}>10s (20cr)</button></div>
                         </div>
                         <div className="space-y-4">
                             <div className="flex justify-between items-center"><span className="text-[10px] uppercase tracking-widest opacity-40">{t('studio.ratio')}</span></div>
-                            <div className={`flex gap-2 p-1.5 rounded-2xl border ${mode === 'velvet' ? 'bg-black/40 border-white/10' : 'bg-gray-100 border-gray-200'}`}>{RATIOS.map(r => (<button key={r.id} onClick={() => setRatio(r.id)} className={`flex-1 py-3 rounded-xl text-[9px] font-bold uppercase transition-all ${toggleClass(ratio === r.id)}`}>{t(r.labelKey)}</button>))}</div>
+                            <div className={`flex gap-2 p-1.5 rounded-2xl border ${mode === 'velvet' ? 'bg-black/40 border-white/10' : 'bg-gray-100 border-gray-200'}`}>{RATIOS.map(r => (<button key={r.id} onClick={() => setRatio(r.id)} className={`flex-1 py-3 rounded-xl text-[9px] font-bold uppercase transition-all active:scale-95 duration-200 ${toggleClass(ratio === r.id)}`}>{t(r.labelKey)}</button>))}</div>
                         </div>
                     </div>
                 </GlassCard>

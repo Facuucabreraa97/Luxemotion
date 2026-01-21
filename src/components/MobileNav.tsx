@@ -31,7 +31,7 @@ export default function BottomNav() {
             <Link
               key={item.label}
               to={item.path}
-              className={`flex flex-col items-center gap-1 transition-all duration-300 ${isActive ? 'text-[#C6A649] scale-105' : 'text-white/40 hover:text-white'}`}
+              className={`flex flex-col items-center gap-1 transition-all duration-300 active:scale-95 ${isActive ? 'text-[#C6A649] scale-105' : 'text-white/40 hover:text-white'}`}
             >
               <Icon size={20} strokeWidth={isActive ? 2.5 : 1.5} />
               <span className="text-[8px] font-bold tracking-wider">{item.label}</span>
