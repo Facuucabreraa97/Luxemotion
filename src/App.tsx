@@ -1532,10 +1532,21 @@ function ProtectedLayout({ session, credits, handleLogout, setSelPlan, profile, 
     return (
         <div className={`${mode === 'velvet' ? S.bg : 'bg-gray-50 min-h-screen text-gray-900 font-sans'}`}>
             {selPlan && <CheckoutModal planKey={selPlan.key} annual={selPlan.annual} onClose={() => setSelPlan(null)} />}
-            <Sidebar credits={credits} onLogout={handleLogout} onUp={() => setSelPlan({ key: 'creator', annual: true })} userProfile={profile} onUpgrade={() => setSelPlan({ key: 'creator', annual: true })} notify={notify} />
-            <MobileHeader credits={credits} userProfile={profile} onUpgrade={() => setSelPlan({ key: 'creator', annual: true })} />
-            <main className="lg:ml-80 min-h-screen pt-20 lg:pt-0 transition-colors duration-500"><Outlet /></main>
-            <MobileNav />
+
+            {/* DESKTOP LAYOUT */}
+            <div className="hidden lg:block">
+                <Sidebar credits={credits} onLogout={handleLogout} onUp={() => setSelPlan({ key: 'creator', annual: true })} userProfile={profile} onUpgrade={() => setSelPlan({ key: 'creator', annual: true })} notify={notify} />
+                <main className="ml-80 min-h-screen pt-0 transition-colors duration-500"><Outlet /></main>
+            </div>
+
+            {/* MOBILE LAYOUT */}
+            <div className="lg:hidden">
+                <MobileHeader credits={credits} userProfile={profile} onUpgrade={() => setSelPlan({ key: 'creator', annual: true })} />
+                <main className="w-full pb-40 pt-20 overflow-x-hidden">
+                    <Outlet />
+                </main>
+                <MobileNav />
+            </div>
         </div>
     );
 }
