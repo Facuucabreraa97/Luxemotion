@@ -17,6 +17,7 @@ import { useMode } from './context/ModeContext';
 import { LandingPage } from './pages/LandingPage';
 import { AccessPending } from './pages/AccessPending';
 import { AdminConsole } from './pages/admin/AdminConsole';
+import ModelSelector from './components/ModelSelector';
 
 // --- CONFIGURATION ---
 const getApiUrl = () => {
@@ -1194,7 +1195,7 @@ const SettingsPage = ({ profile, setProfile, notify }: any) => {
     );
 };
 
-const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile }: any) => {
+const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile, modelId, onSelectModel }: any) => {
     const { mode } = useMode();
     const location = useLocation();
     const { t } = useTranslation();
@@ -1295,7 +1296,8 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile }
                 mode: effectiveMode,
                 velvetStyle: effectiveVelvetStyle,
                 voiceScript: (voiceMode && voiceScript) ? voiceScript : undefined,
-                voiceId: (voiceMode && voiceId) ? voiceId : undefined
+                voiceId: (voiceMode && voiceId) ? voiceId : undefined,
+                modelId: modelId || undefined // VELVET BRIDGE
             };
 
             const r = await fetch(`${CONFIG.API_URL}/generate`, {
@@ -1548,6 +1550,7 @@ function AppContent() {
     const [userPlan, setUserPlan] = useState<'starter' | 'creator' | 'agency'>('starter');
     const [selPlan, setSelPlan] = useState<{ key: string, annual: boolean } | null>(null);
     const [profile, setProfile] = useState<UserProfile>({ name: "User", email: "", plan: 'starter' });
+    const [modelId, setModelId] = useState<string | null>(null); // ENGINE STATE
     const { mode, setMode } = useMode();
     const { showToast } = useToast();
     const notify = (msg: string) => showToast(msg);
@@ -1684,7 +1687,7 @@ function AppContent() {
                 <Route path="/login" element={!session ? <LoginScreen onLogin={() => { }} /> : <Navigate to="/app" />} />
                 <Route path="/register" element={!session ? <LoginScreen onLogin={() => { }} /> : <Navigate to="/app" />} />
                 <Route path="/app" element={<ProtectedLayout session={session} credits={credits} handleLogout={handleLogout} setSelPlan={setSelPlan} profile={profile} mode={mode} selPlan={selPlan} notify={notify} />}>
-                    <Route index element={<StudioPage onGen={handleVideoSaved} influencers={influencers} credits={credits} notify={notify} onUp={() => setSelPlan({ key: 'creator', annual: true })} userPlan={userPlan} talents={influencers} profile={profile} />} />
+                    <Route index element={<StudioPage onGen={handleVideoSaved} influencers={influencers} credits={credits} notify={notify} onUp={() => setSelPlan({ key: 'creator', annual: true })} userPlan={userPlan} talents={influencers} profile={profile} modelId={modelId} onSelectModel={setModelId} />} />
                     <Route path="explore" element={<ExplorePage />} />
                     <Route path="talent" element={<TalentPage list={influencers} add={handleInf.add} del={handleInf.del} notify={notify} videos={videos} profile={profile} />} />
                     <Route path="gallery" element={<GalleryPage videos={videos} setVideos={setVideos} />} />
