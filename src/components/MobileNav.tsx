@@ -14,7 +14,7 @@ export default function BottomNav() {
     { label: 'GALERÍA', icon: ImageIcon, path: '/app/gallery' },
     { label: 'GANANCIAS', icon: DollarSign, path: '/app/earnings' },
     { label: 'PLAN', icon: CreditCard, path: '/app/billing' }, // Fixed path /app/plan -> /app/billing
-    { label: 'AJUSTES', icon: Settings, path: '/settings' }, // Fixed path /app/settings -> /settings
+    { label: 'AJUSTES', icon: Settings, path: '/app/settings' },
   ];
 
   return (
