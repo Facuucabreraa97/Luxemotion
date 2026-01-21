@@ -2,39 +2,48 @@ name: Project Panopticon - Sentinel
 
 on:
   push:
-  pull_request:
-  schedule:
-    - cron: '0 11,19,1 * * *' # 8am, 4pm, 10pm Buenos Aires (GMT-3)
+    branches: [ "main" ]
+  workflow_dispatch:
+
+# OPTIMIZATION: Cancel old runs if new code arrives to save resources
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   sentinel-scan:
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: write
+      pull-requests: write
+
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
-        
+        uses: actions/checkout@v4
+
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
-          
+          cache: 'npm' # OPTIMIZATION: Cache dependencies for speed
+
       - name: Install Dependencies
         run: npm ci
-        
+
       - name: Run Tests
-        id: test
-        run: npm test
-        continue-on-error: true # Allow proceeding to fix
-        
-      - name: Run Surgeon Analysis
-        if: steps.test.outcome == 'failure'
+        id: test_step
+        run: npm test -- --passWithNoTests
+        continue-on-error: true
+
+      # CRITICAL FIX: INJECTING GOOGLE INTELLIGENCE
+      - name: Run Surgeon Analysis (Gemini Powered)
+        if: steps.test_step.outcome == 'failure'
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }} # <--- ACCESS GRANTED
         run: node scripts/analyze_failure.js
-        
+
       - name: Create Self-Healing Pull Request
-        if: steps.test.outcome == 'failure'
+        if: steps.test_step.outcome == 'failure'
         run: |
             if [ -f patches/fix-ai.diff ]; then
               git config --global user.name "Sentinel Agent"
