@@ -1326,6 +1326,13 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile, 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 p-6 lg:p-12 pb-32 lg:pb-12 animate-in fade-in duration-700 mb-24 lg:mb-0 relative">
             <StudioOnboarding />
+            <div className="lg:col-span-5 flex justify-between items-end mb-4 border-b pb-6 border-white/10">
+                <div>
+                    <h2 className={`text-4xl font-bold uppercase tracking-[0.2em] ${mode === 'velvet' ? 'text-white' : 'text-gray-900'}`}>{t('studio.title')}</h2>
+                    {mode === 'velvet' && <p className={S.subLuxe}>{t('studio.subtitle')}</p>}
+                </div>
+                <ModelSelector selectedModelId={modelId} onSelect={onSelectModel} />
+            </div>
             {modal && <VelvetModal onClose={() => setModal(false)} onOk={() => { setModal(false); setVelvetFilter(true); notify(t('studio.velvet_active') + " 🔥"); }} />}
             <div className="lg:col-span-2 space-y-6">
                 <div className={`p-8 rounded-[40px] border transition-all duration-300 ${panelClass}`}>
@@ -1482,7 +1489,7 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile, 
                     id="studio-generate-btn"
                     onClick={generate}
                     disabled={loading || (!img && !vid) || (!profile?.is_admin && credits < totalCost)}
-                    className={`w-full py-7 rounded-[32px] font-bold uppercase tracking-[0.3em] text-xs flex items-center justify-center gap-4 fixed bottom-6 left-4 right-4 lg:static lg:w-full z-50 shadow-2xl transition-all duration-300 ${mode === 'velvet' ? (velvetFilter ? S.btnVelvet : S.btnGold) : 'bg-black text-white shadow-lg hover:bg-gray-800 hover:shadow-xl active:scale-95'}`}
+                    className={`w-full py-7 rounded-[32px] font-bold uppercase tracking-[0.3em] text-xs flex items-center justify-center gap-4 fixed bottom-[calc(80px+env(safe-area-inset-bottom)+20px)] left-4 right-4 lg:static lg:w-full z-40 shadow-2xl transition-all duration-300 ${mode === 'velvet' ? (velvetFilter ? S.btnVelvet : S.btnGold) : 'bg-black text-white shadow-lg hover:bg-gray-800 hover:shadow-xl active:scale-95'}`}
                 >
                     {loading ? (
                         <span className="flex items-center gap-2">

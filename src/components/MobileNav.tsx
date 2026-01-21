@@ -21,7 +21,7 @@ export const MobileNav = () => {
       </Link>
       <Link to="/app/earnings" className="p-3 text-white/50 hover:text-[#C6A649] flex flex-col items-center gap-1 active:scale-95 transition-transform">
         <DollarSign size={20} strokeWidth={1.5} />
-        <span className="text-[8px] uppercase font-bold tracking-wider">Ganancias</span>
+        <span className="text-[8px] uppercase font-bold tracking-wider">{t('common.nav.earnings')}</span>
       </Link>
       <Link to="/app/billing" className="p-3 text-white/50 hover:text-[#C6A649] flex flex-col items-center gap-1 active:scale-95 transition-transform">
         <CreditCard size={20} strokeWidth={1.5} />
