@@ -1,49 +1,31 @@
-import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { createClient } from '@supabase/supabase-js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method Not Allowed' });
-    }
-
+    // Security Gate
+    if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
     const { email } = req.body;
-    if (!email) {
-        return res.status(400).json({ error: 'Email required' });
-    }
-
-    // Verify Environment
-    const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-    const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!SERVICE_KEY) {
-        return res.status(500).json({ error: 'Internal Server Error: Missing Service Key' });
-    }
+    if (!email) return res.status(400).json({ error: 'Missing email' });
 
     try {
-        const supabase = createClient(SUPABASE_URL!, SERVICE_KEY);
+        const supabaseAdmin = createClient(
+            process.env.VITE_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
 
-        // 1. Invite User (Send Email)
-        const { data, error } = await supabase.auth.admin.inviteUserByEmail(email);
+        // 1. Send Invite Logic
+        const { data, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email);
+        if (inviteError) throw inviteError;
 
-        if (error) {
-            console.error('Supabase Invite Error:', error);
-            // If user already exists, just approve them in DB?
-            // "User already registered" might be returned.
-            // But usually we just update DB status.
-        }
-
-        // 2. Update Profile Status
-        const { error: dbError } = await supabase
+        // 2. Update DB Status Logic
+        const { error: dbError } = await supabaseAdmin
             .from('profiles')
-            .update({ status: 'APPROVED', access_status: 'approved' }) // Update both for safety
+            .update({ status: 'APPROVED' })
             .eq('email', email);
-
         if (dbError) throw dbError;
 
-        return res.status(200).json({ success: true, message: 'User approved' });
-
-    } catch (error: any) {
-        console.error('API Error:', error);
-        return res.status(500).json({ error: error.message });
+        return res.status(200).json({ success: true, message: 'Invite sent & Profile Approved' });
+    } catch (err: any) {
+        return res.status(500).json({ error: err.message });
     }
 }

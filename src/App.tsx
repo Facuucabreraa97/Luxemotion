@@ -18,9 +18,8 @@ import { useMode } from './context/ModeContext';
 // import { AccessPending } from './pages/AccessPending';
 import { AdminConsole } from './pages/admin/AdminConsole';
 import ModelSelector from './components/ModelSelector';
-import { GlassCard } from './components/ui/GlassCard';
 import { ActivateAccount } from './pages/ActivateAccount';
-import { LandingWaitlist } from './pages/LandingWaitlist';
+import LandingWaitlist from './pages/LandingWaitlist';
 import StudioConsole from './pages/StudioConsole';
 
 // --- CONFIGURATION ---
