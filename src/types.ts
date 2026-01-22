@@ -19,6 +19,7 @@ export interface UserProfile {
   credits?: number;
   plan?: 'starter' | 'creator' | 'agency';
   is_admin?: boolean;
+  status?: 'PENDING' | 'APPROVED' | 'ACTIVE';
   role?: string;
 }
 

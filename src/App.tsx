@@ -1612,7 +1612,20 @@ function AppContent() {
                 <Route path="/activate-account" element={<ActivateAccount />} />
                 <Route path="/login" element={!session ? <LoginScreen onLogin={() => { }} /> : <Navigate to="/app" />} />
                 <Route path="/register" element={!session ? <LoginScreen onLogin={() => { }} /> : <Navigate to="/app" />} />
-                <Route path="/app" element={<ProtectedLayout session={session} credits={credits} handleLogout={handleLogout} setSelPlan={setSelPlan} profile={profile} mode={mode} selPlan={selPlan} notify={notify} />}>
+                <Route path="/app" element={
+                    // GOLDEN GATE PROTECTION
+                    // If session exists, check status:
+                    // - PENDING -> Waitlist (or Pending Page, but we deleted it? No, user said delete AccessPending. so Redirect to / #waitlist or show a simple error?)
+                    // - APPROVED -> Needs activation? (If handled by LoginScreen, good. If session is valid, they are usually active or approved.)
+                    // - ACTIVE -> Allow.
+
+                    // Logic: If session && (status === 'APPROVED' || status === 'ACTIVE' || profile.is_admin) -> Allow.
+                    // If session && status === 'PENDING' -> Redirect to / with alert? Or Logout?
+
+                    session && (profile?.status === 'APPROVED' || profile?.status === 'ACTIVE' || profile?.is_admin)
+                        ? <ProtectedLayout session={session} credits={credits} handleLogout={handleLogout} setSelPlan={setSelPlan} profile={profile} mode={mode} selPlan={selPlan} notify={notify} />
+                        : (session ? <Navigate to="/" replace /> : <Navigate to="/login" replace />)
+                }>
                     <Route index element={<StudioPage onGen={handleVideoSaved} influencers={influencers} credits={credits} notify={notify} onUp={() => setSelPlan({ key: 'creator', annual: true })} userPlan={userPlan} talents={influencers} profile={profile} modelId={modelId} onSelectModel={setModelId} />} />
                     <Route path="studio" element={<StudioConsole credits={credits} setCredits={setCredits} notify={notify} />} />
                     <Route path="explore" element={<ExplorePage />} />

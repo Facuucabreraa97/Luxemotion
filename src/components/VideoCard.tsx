@@ -90,7 +90,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({
     // Remixes also have source? If so, this might label remixes as acquired. Acceptable for now.
     if (isOwner && item.source_generation_id && !isSold && !isForSale) {
         statusBadge = t('badges.acquired');
-        statusColor = "bg-purple-600 text-white shadow-purple-500/20";
+        statusColor = "bg-[#C6A649]/20 text-[#C6A649] shadow-[#C6A649]/10";
     }
 
     // Action Buttons Logic
@@ -118,7 +118,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({
 
     return (
         <div className={`rounded-[30px] overflow-hidden group relative hover:-translate-y-2 transition-all ${isVelvet ? S.panel : 'bg-white shadow-lg border border-gray-100'} ${isSold ? 'grayscale opacity-75 pointer-events-none' : ''}`}>
-            {}
+            { }
             <div className={`relative ${aspectRatioClass} w-full bg-black/5`}>
                 {isVideoAsset ? (
                     <video
@@ -133,7 +133,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({
                     <img src={assetUrl} className={`w-full h-full object-cover ${isSold ? 'blur-sm' : ''}`} alt={item.name || 'Asset'} />
                 )}
 
-                {}
+                { }
                 {isSold && (
                     <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/20">
                         <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl border border-white/20 flex items-center gap-2">
@@ -143,7 +143,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({
                     </div>
                 )}
 
-                {}
+                { }
                 {statusBadge && (
                     <div className={`absolute top-4 left-4 px-3 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest shadow-lg z-10 ${statusColor} animate-in fade-in slide-in-from-top-2`}>
                         {statusBadge}
@@ -153,7 +153,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
             </div>
 
-            {}
+            { }
             <div className={`p-5 flex justify-between items-center ${isVelvet ? 'bg-[#0a0a0a]' : 'bg-white'}`}>
                 <div className="flex flex-col gap-1 min-w-0 pr-4">
                     <p className={`text-[10px] font-bold uppercase tracking-widest truncate ${isVelvet ? 'text-white' : 'text-gray-900'}`}>
@@ -163,7 +163,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({
                         {item.date || (isModel ? 'Model' : 'Video')}
                     </span>
 
-                    {}
+                    { }
                     {isSold && (
                         <div className="flex items-center gap-1.5 mt-1 text-amber-500 animate-pulse">
                             <Crown size={10} />
@@ -173,12 +173,12 @@ export const VideoCard: React.FC<VideoCardProps> = ({
                 </div>
 
                 <div className="flex gap-2 shrink-0 items-center">
-                    {}
+                    { }
                     {isSold && (
                         <span className="text-red-500 text-[10px] font-bold uppercase tracking-widest mr-2">SOLD</span>
                     )}
 
-                    {}
+                    { }
                     {showViewDetails && (
                         <button
                             onClick={() => onViewDetails ? onViewDetails(item) : null}
@@ -189,7 +189,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({
                         </button>
                     )}
 
-                    {}
+                    { }
                     {showRemix && (
                         <button
                             onClick={() => onRemix && onRemix(item)}
@@ -200,18 +200,18 @@ export const VideoCard: React.FC<VideoCardProps> = ({
                         </button>
                     )}
 
-                    {}
+                    { }
                     {showManage && (onManage || onSell) && (
                         <button
                             onClick={() => (onManage ? onManage(item.id) : onSell?.(item.id))}
-                            className={`p-2 rounded-full transition-all ${isVelvet ? 'bg-purple-500/20 text-purple-400 hover:bg-purple-500 hover:text-white' : 'bg-purple-100 text-purple-600 hover:bg-purple-600 hover:text-white'}`}
+                            className={`p-2 rounded-full transition-all ${isVelvet ? 'bg-[#C6A649]/20 text-[#C6A649] hover:bg-[#C6A649] hover:text-black' : 'bg-gray-100 text-gray-600 hover:bg-black hover:text-white'}`}
                             title="Manage Listing"
                         >
                             <Settings size={14} />
                         </button>
                     )}
 
-                    {}
+                    { }
                     {showSell && (
                         <button
                             onClick={() => onSell && onSell(item.id)}
@@ -222,7 +222,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({
                         </button>
                     )}
 
-                    {}
+                    { }
                     {showPublish && (
                         <button
                             onClick={() => onPublish && onPublish(item)}
@@ -237,7 +237,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({
                         </button>
                     )}
 
-                    {}
+                    { }
                     {showDownload && (
                         <a
                             href={assetUrl}
@@ -250,7 +250,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({
                         </a>
                     )}
 
-                    {}
+                    { }
                     {showDelete && (
                         <button
                             onClick={() => onDelete && onDelete(item.id)}

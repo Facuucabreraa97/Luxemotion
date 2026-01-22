@@ -81,10 +81,10 @@ export const LandingWaitlist = () => {
     };
 
     return (
-        <div className="min-h-screen bg-transparent text-gray-100 font-sans selection:bg-purple-500/30 flex flex-col relative overflow-hidden">
+        <div className="min-h-screen bg-transparent text-gray-100 font-sans selection:bg-[#C6A649]/30 flex flex-col relative overflow-hidden">
 
             {/* Background Effects */}
-            <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-purple-600/20 blur-[120px] rounded-full pointer-events-none z-0" />
+            <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-[#C6A649]/10 blur-[120px] rounded-full pointer-events-none z-0" />
 
             {/* HERO SECTION */}
             <header className="relative z-10 w-full max-w-5xl mx-auto px-6 pt-12 pb-20 flex flex-col items-center text-center">
@@ -114,14 +114,14 @@ export const LandingWaitlist = () => {
                 <div className="max-w-4xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-12">
                     {/* Problem */}
                     <div>
-                        <h3 className="text-xs font-bold uppercase tracking-widest text-blue-400 mb-4">El Problema</h3>
+                        <h3 className="text-xs font-bold uppercase tracking-widest text-[#C6A649] mb-4">El Problema</h3>
                         <p className="text-lg font-medium text-gray-300 leading-relaxed">
                             No existe una plataforma que permita crear un influencer completo de forma fácil y rápida. Las herramientas actuales son complejas y fragmentadas.
                         </p>
                     </div>
                     {/* Solution */}
                     <div>
-                        <h3 className="text-xs font-bold uppercase tracking-widest text-purple-400 mb-4">La Solución</h3>
+                        <h3 className="text-xs font-bold uppercase tracking-widest text-white mb-4">La Solución</h3>
                         <p className="text-lg font-medium text-gray-300 leading-relaxed">
                             Una plataforma de inteligencia artificial que genera influencers virtuales listos para producir, publicar y vender contenido de forma automática.
                         </p>
@@ -151,7 +151,7 @@ export const LandingWaitlist = () => {
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     placeholder="tu@email.com"
-                                    className="w-full px-4 py-3 bg-black/50 border border-white/10 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all placeholder:text-gray-600"
+                                    className="w-full px-4 py-3 bg-black/50 border border-white/10 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C6A649] focus:border-transparent transition-all placeholder:text-gray-600"
                                     disabled={status === 'loading'}
                                 />
                                 {errorMsg && <p className="text-red-400 text-xs mt-2">{errorMsg}</p>}
@@ -159,7 +159,7 @@ export const LandingWaitlist = () => {
                             <button
                                 type="submit"
                                 disabled={status === 'loading'}
-                                className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-lg hover:shadow-[0_0_20px_rgba(124,58,237,0.5)] hover:scale-[1.02] transition-all disabled:opacity-50"
+                                className="w-full py-3 bg-gradient-to-r from-[#C6A649] to-[#FBF5B7] text-black font-bold rounded-lg hover:shadow-[0_0_20px_rgba(198,166,73,0.5)] hover:scale-[1.02] transition-all disabled:opacity-50"
                             >
                                 {status === 'loading' ? <Loader2 size={20} className="animate-spin mx-auto" /> : "Obtener Acceso Anticipado"}
                             </button>

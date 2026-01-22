@@ -46,7 +46,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ selectedModelId, onSelect
                 onClick={() => setIsOpen(!isOpen)}
                 className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-xs font-medium text-slate-300 backdrop-blur-md"
             >
-                <Zap size={12} className="text-purple-400" />
+                <Zap size={12} className="text-[#C6A649]" />
                 <span>{selectedModel?.name || 'Loading Engine...'}</span>
                 <ChevronDown size={12} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
@@ -65,7 +65,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ selectedModelId, onSelect
                                     onSelect(model.id, model.name);
                                     setIsOpen(false);
                                 }}
-                                className={`w-full text-left px-3 py-2 rounded-lg flex items-center justify-between group transition-colors ${selectedModelId === model.id ? 'bg-purple-500/20 text-purple-300' : 'hover:bg-white/5 text-slate-300'}`}
+                                className={`w-full text-left px-3 py-2 rounded-lg flex items-center justify-between group transition-colors ${selectedModelId === model.id ? 'bg-[#C6A649]/20 text-[#C6A649]' : 'hover:bg-white/5 text-slate-300'}`}
                             >
                                 <div className="flex flex-col">
                                     <span className="text-xs font-bold">{model.name}</span>

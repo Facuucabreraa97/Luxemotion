@@ -36,18 +36,18 @@ export const EarningsDashboard = () => {
     if (loading) {
         return (
             <div className="p-6 lg:p-12 pb-32">
-                {}
+                { }
                 <div className="h-10 w-48 bg-gray-200 dark:bg-white/10 rounded-lg animate-pulse mb-2"></div>
                 <div className="h-4 w-32 bg-gray-200 dark:bg-white/10 rounded-lg animate-pulse mb-12"></div>
 
-                {}
+                { }
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
                     {[1, 2, 3].map(i => (
                         <div key={i} className="h-40 rounded-[30px] bg-gray-100 dark:bg-white/5 animate-pulse"></div>
                     ))}
                 </div>
 
-                {}
+                { }
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
                     {[1, 2, 3, 4].map(i => (
                         <div key={i} className="aspect-[9/16] rounded-[30px] bg-gray-100 dark:bg-white/5 animate-pulse"></div>
@@ -66,12 +66,12 @@ export const EarningsDashboard = () => {
             action: true // Marker for button
         },
         { title: t('earnings.assets_sold'), value: stats.count, icon: Package, color: isVelvet ? 'text-white' : 'text-blue-600' },
-        { title: t('earnings.pipeline_value'), value: `${stats.royalties.toFixed(0)} CR`, icon: TrendingUp, color: isVelvet ? 'text-purple-400' : 'text-purple-600', sub: t('earnings.projected') }
+        { title: t('earnings.pipeline_value'), value: `${stats.royalties.toFixed(0)} CR`, icon: TrendingUp, color: isVelvet ? 'text-[#C6A649]' : 'text-gray-800', sub: t('earnings.projected') }
     ];
 
     return (
         <div className={`p-6 lg:p-12 pb-32 animate-in fade-in slide-in-from-bottom-4`}>
-            {}
+            { }
             <div className={`flex justify-between items-end border-b pb-8 mb-12 ${isVelvet ? 'border-white/10' : 'border-gray-200'}`}>
                 <div>
                     <h2 className={`text-4xl font-bold uppercase tracking-[0.1em] ${isVelvet ? 'text-white' : 'text-gray-900'}`}>
@@ -83,7 +83,7 @@ export const EarningsDashboard = () => {
                 </div>
             </div>
 
-            {}
+            { }
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
                 {cards.map((c, i) => (
                     <div key={i} className={`p-8 rounded-[30px] relative overflow-hidden group hover:-translate-y-1 transition-all ${isVelvet ? S.panel : 'bg-white shadow-xl border border-gray-100'}`}>
@@ -98,7 +98,7 @@ export const EarningsDashboard = () => {
                         </div>
                         {c.sub && <div className="text-[10px] uppercase font-bold text-gray-400 mt-2">{c.sub}</div>}
 
-                        {}
+                        { }
                         {c.action && (
                             <div className="mt-4 flex items-center gap-2">
                                 <button onClick={handleWithdraw} className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors ${isVelvet ? 'bg-[#C6A649] text-black hover:bg-white' : 'bg-black text-white hover:bg-gray-800'}`}>
@@ -111,7 +111,7 @@ export const EarningsDashboard = () => {
                 ))}
             </div>
 
-            {}
+            { }
             <h3 className={`text-xl font-bold uppercase tracking-widest mb-8 ${isVelvet ? 'text-white' : 'text-gray-900'}`}>{t('earnings.portfolio')}</h3>
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
@@ -119,20 +119,20 @@ export const EarningsDashboard = () => {
                     <div key={item.id} className={`group relative aspect-[9/16] rounded-[30px] overflow-hidden ${isVelvet ? 'bg-black/30' : 'bg-gray-100'}`}>
                         <img src={item.image_url} className="w-full h-full object-cover grayscale opacity-60 group-hover:opacity-40 transition-all duration-500" />
 
-                        {}
+                        { }
                         <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
                             <div className="bg-black/80 backdrop-blur text-white px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border border-white/10 shadow-lg">
                                 {t('earnings.sold')}
                             </div>
                         </div>
 
-                        {}
+                        { }
                         <div className="absolute inset-0 flex flex-col items-center justify-center translate-y-4 opacity-0 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
                             <Lock size={24} className={isVelvet ? "text-[#C6A649]" : "text-gray-800"} />
                             <span className={`text-[10px] font-bold uppercase tracking-[0.2em] mt-2 ${isVelvet ? 'text-white' : 'text-gray-900'}`}>{t('earnings.locked')}</span>
                         </div>
 
-                        {}
+                        { }
                         <div className="absolute bottom-0 inset-x-0 p-6 bg-gradient-to-t from-black/90 to-transparent">
                             <h4 className="text-white text-xs font-bold uppercase tracking-widest truncate mb-2">{item.name}</h4>
                             <div className="w-full bg-white/10 h-1 rounded-full overflow-hidden mb-2">
@@ -160,7 +160,7 @@ export const EarningsDashboard = () => {
                 )}
             </div>
 
-            {}
+            { }
             <div className={`rounded-[30px] p-8 ${isVelvet ? S.panel : 'bg-white shadow-xl border border-gray-100'}`}>
                 <div className="flex items-center justify-between mb-8">
                     <h3 className={`text-xl font-bold uppercase tracking-widest ${isVelvet ? 'text-white' : 'text-gray-900'}`}>
@@ -180,7 +180,7 @@ export const EarningsDashboard = () => {
                             </tr>
                         </thead>
                         <tbody className={`text-xs font-medium ${isVelvet ? 'text-gray-300' : 'text-gray-600'}`}>
-                            {}
+                            { }
                             <tr className={`border-t ${isVelvet ? 'border-white/5' : 'border-gray-50'}`}>
                                 <td className="py-4 pl-4">Today, 10:23 AM</td>
                                 <td className="py-4 flex items-center gap-3">
