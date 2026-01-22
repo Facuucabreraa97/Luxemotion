@@ -20,7 +20,8 @@ jobs:
       - run: npm test -- --passWithNoTests || echo "⚠️ Tests skipped"
       - name: Run Atomic Brain
         run: node scripts/analyze_failure.js
-        env: { GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }} }
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       - name: Detect & Commit Atomic Changes
         run: |
           if [ -n "$(git status --porcelain)" ]; then
