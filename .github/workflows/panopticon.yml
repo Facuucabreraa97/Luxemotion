@@ -41,4 +41,5 @@ jobs:
           else
              echo "✅ No Atomic Rewrites needed."
           fi
-        env: { GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} }
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
