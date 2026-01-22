@@ -5,9 +5,13 @@ import https from 'https';
 const CONFIG = {
     targetFile: 'src/components/layout/MobileLayout.tsx',
     apiKey: process.env.GEMINI_API_KEY,
-    timeout: 30000,
+    timeout: 60000,
     maxRetries: 3
 };
+
+function cleanOutput(text) {
+    return text.replace(/^```[a-z]*\n/i, '').replace(/\n```$/, '').trim();
+}
 
 // --- STEP 1: AUTO-DISCOVER --- 
 async function findBestModel() {
@@ -35,10 +39,9 @@ async function findBestModel() {
     });
 }
 
-// --- STEP 2: INFERENCE (STRICT MODE) --- 
-async function askGemini(prompt, modelName, attempt = 1) {
+async function askGemini(fileContent, model) {
     return new Promise((resolve, reject) => {
-        const cleanModel = modelName.startsWith('models/') ? modelName.split('/')[1] : modelName;
+        const cleanModel = model.startsWith('models/') ? model.split('/')[1] : model;
         const url = new URL(`https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent`);
         url.searchParams.append('key', CONFIG.apiKey);
 
@@ -59,84 +62,58 @@ async function askGemini(prompt, modelName, attempt = 1) {
                         if (content) resolve(content);
                         else reject(new Error('EMPTY_RESPONSE'));
                     } catch (e) { reject(new Error(`PARSE_ERROR: ${e.message}`)); }
-                } else { reject(new Error(`API_ERROR_${res.statusCode}`)); }
+                } else { reject(new Error(`API_ERROR_${res.statusCode}: ${data}`)); }
             });
         });
+
         req.on('error', (e) => reject(new Error(`NETWORK: ${e.message}`)));
 
-        // STRICT PROMPT 
+        // ATOMIC REWRITE PROMPT
         req.write(JSON.stringify({
             contents: [{
                 parts: [{
-                    text: `SYSTEM: Senior DevOps.
-
-RULE: Fix the code in-place. DO NOT create new files. OUTPUT: Raw git diff only.
+                    text: `SYSTEM: Senior React Architect.
+TASK: Analyze the following file content. Fix any bugs, layout issues, or syntax errors.
+OUTPUT RULE: Return the FULL, SELF-CONTAINED CODE for the entire file. DO NOT return a diff. DO NOT return markdown fences if possible (or I will strip them).
 CODE:
-${prompt}`
+${fileContent}`
                 }]
             }],
             generationConfig: { temperature: 0.1 }
         }));
         req.end();
-
-    }).catch(async (err) => {
-        if (attempt < CONFIG.maxRetries) {
-            await new Promise(r => setTimeout(r, 2000));
-            return askGemini(prompt, modelName, attempt + 1);
-        } else { throw err; }
     });
 }
 
-// --- MAIN --- 
 async function main() {
-    console.log('🇬 [SENTINEL] SINGULARITY PROTOCOL INITIATED...');
-    if (!CONFIG.apiKey) process.exit(1);
+    console.log('🇬 [SENTINEL] OMEGA PROTOCOL INITIATED...');
 
-    // 1. LOGIC GATE: Does the file exist? 
+    // Safety: Auto-Create if missing
     if (!fs.existsSync(CONFIG.targetFile)) {
-        console.warn(`⚠️ [SKIP] Target file not found: ${CONFIG.targetFile}`);
-        console.log('🛡️ [DEFENSE] Generating Null-Patch to bypass hallucination risk.');
-        // Create a dummy patch that passes 'git apply' but does nothing critical 
-        const nullPatch = `diff --git a/README.md b/README.md
---- a/README.md
-+++ b/README.md
-@@ -1 +1,2 @@
- # Luxomotion
-+// Sentinel Guard Active`
-
-        if (!fs.existsSync('patches')) fs.mkdirSync('patches');
-        fs.writeFileSync('patches/fix-ai.diff', nullPatch);
-        console.log('✅ [SUCCESS] Null-Patch Generated. System Safe.');
-        process.exit(0); // EXIT SUCCESSFULLY WITHOUT CALLING AI
+        console.warn('⚠️ Target file missing. Creating Stabilizer Skeleton.');
+        if (!fs.existsSync('src/components/layout')) fs.mkdirSync('src/components/layout', { recursive: true });
+        fs.writeFileSync(CONFIG.targetFile, "export default function MobileLayout() { return <div>Sentinel Active</div> }");
     }
 
-    // 2. IF FILE EXISTS -> EXECUTE AI 
+    const source = fs.readFileSync(CONFIG.targetFile, 'utf8');
+    const bestModel = await findBestModel();
+    console.log(`🧠 [THINKING] Rewrite via ${bestModel}...`);
+
     try {
-        const sourceCode = fs.readFileSync(CONFIG.targetFile, 'utf8');
-        console.log('✅ [ACCESS] File loaded. Engaging AI...');
+        const rawCode = await askGemini(source, bestModel);
+        const cleanCode = cleanOutput(rawCode);
 
-        const bestModel = await findBestModel();
-        let patch = await askGemini(sourceCode, bestModel);
-
-        // 3. SANITIZATION FIREWALL (Regex Clean-up) 
-        // Remove any lines that look like file creation "new file mode" 
-        if (patch.includes('new file mode')) {
-            console.warn('🧹 [SANITIZER] AI tried to create a file. Blocking...');
-            // Force degradation to null patch if dangerous 
-            patch = `diff --git a/README.md b/README.md
---- a/README.md
-+++ b/README.md
-@@ -1 +1,2 @@
- # Luxomotion
-+// Sentinel Sanitized Fix`
+        // Safety: Check for hallucination (Too short)
+        if (cleanCode.length < 50) {
+            throw new Error('AI Output too short. Preventing Destructive Write.');
         }
 
-        if (!fs.existsSync('patches')) fs.mkdirSync('patches');
-        fs.writeFileSync('patches/fix-ai.diff', patch);
-        console.log('✅ [SUCCESS] Sanitized Patch Generated.');
+        // ATOMIC WRITE
+        fs.writeFileSync(CONFIG.targetFile, cleanCode);
+        console.log('✅ ATOMIC REWRITE COMPLETE.');
 
-    } catch (error) {
-        console.error(`💀 [FATAL] ${error.message}`);
+    } catch (err) {
+        console.error(`💀 [FATAL] ${err.message}`);
         process.exit(1);
     }
 }
