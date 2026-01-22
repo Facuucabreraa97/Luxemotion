@@ -29,6 +29,29 @@ export default function UsersDatabase() {
         await supabase.from('profiles').update({ status: status }).eq('id', id);
     };
 
+    const handleApprove = async (email: string, id: string) => {
+        try {
+            // Optimistic Update
+            setUsers(prev => prev.map(u => u.id === id ? { ...u, status: 'APPROVED' } : u));
+
+            const response = await fetch('/api/admin/approve-user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email }),
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error || 'Failed to send invite');
+            }
+            // Success
+        } catch (error: any) {
+            alert("Error enviando invitación: " + error.message);
+            // Revert
+            fetchUsers();
+        }
+    };
+
     const handleAddCredits = async (id: string, current: number) => {
         const amountStr = prompt("INJECT AMOUNT (CR): (Positive=Deposit, Negative=Deduct)");
         if (!amountStr) return;
@@ -83,7 +106,7 @@ export default function UsersDatabase() {
 
                                     {/* APPROVE ACTION */}
                                     {user.status !== 'APPROVED' && user.status !== 'ACTIVE' && (
-                                        <button onClick={(e) => { e.stopPropagation(); handleStatus(user.id, 'APPROVED'); }} className="p-1 hover:text-green-400" title="Approve Access">
+                                        <button onClick={(e) => { e.stopPropagation(); handleApprove(user.email, user.id); }} className="p-1 hover:text-green-400" title="Approve Access & Send Invite">
                                             <CheckCircle size={14} />
                                         </button>
                                     )}
