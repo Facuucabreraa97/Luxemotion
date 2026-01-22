@@ -1609,6 +1609,7 @@ function AppContent() {
             <Routes>
                 <Route path="/" element={<LandingWaitlist />} />
                 <Route path="/access-pending" element={<AccessPending />} />
+                <Route path="/activate-account" element={<ActivateAccount />} />
                 <Route path="/login" element={!session ? <LoginScreen onLogin={() => { }} /> : <Navigate to="/app" />} />
                 <Route path="/register" element={!session ? <LoginScreen onLogin={() => { }} /> : <Navigate to="/app" />} />
                 <Route path="/app" element={<ProtectedLayout session={session} credits={credits} handleLogout={handleLogout} setSelPlan={setSelPlan} profile={profile} mode={mode} selPlan={selPlan} notify={notify} />}>

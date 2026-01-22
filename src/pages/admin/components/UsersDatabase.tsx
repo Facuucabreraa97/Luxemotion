@@ -25,8 +25,8 @@ export default function UsersDatabase() {
     useEffect(() => { fetchUsers(); }, []);
 
     const handleStatus = async (id: string, status: string) => {
-        setUsers(prev => prev.map(u => u.id === id ? { ...u, access_status: status } : u));
-        await supabase.from('profiles').update({ access_status: status }).eq('id', id);
+        setUsers(prev => prev.map(u => u.id === id ? { ...u, status: status } : u));
+        await supabase.from('profiles').update({ status: status }).eq('id', id);
     };
 
     const handleAddCredits = async (id: string, current: number) => {
@@ -66,17 +66,29 @@ export default function UsersDatabase() {
                         {filteredUsers.map(user => (
                             <tr key={user.id} onClick={() => setSelectedUser(user)} className="group hover:bg-white/5 cursor-pointer transition-colors">
                                 <td className="p-4">
-                                    <div className="font-bold text-white">{user.first_name} {user.last_name}</div>
+                                    <div className="font-bold text-white">{user.first_name ? `${user.first_name} ${user.last_name}` : 'Waitlist User'}</div>
                                     <div className="text-xs text-zinc-500">{user.email}</div>
                                 </td>
                                 <td className="p-4">
-                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${user.access_status === 'approved' ? 'bg-green-500/10 text-green-400' : 'bg-orange-500/10 text-orange-400'}`}>{user.access_status || 'PENDING'}</span>
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase 
+                                        ${user.status === 'APPROVED' ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
+                                            user.status === 'ACTIVE' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
+                                                'bg-orange-500/10 text-orange-400 border border-orange-500/20'}`}>
+                                        {user.status || 'PENDING'}
+                                    </span>
                                 </td>
-                                <td className="p-4 text-zinc-300 font-mono">{user.credits} CR</td>
+                                <td className="p-4 text-zinc-300 font-mono">{user.credits || 0} CR</td>
                                 <td className="p-4 text-right flex justify-end gap-2 opacity-60 group-hover:opacity-100">
-                                    <button onClick={(e) => { e.stopPropagation(); handleAddCredits(user.id, user.credits); }} className="p-1 hover:text-yellow-400"><Zap size={14} /></button>
-                                    <button onClick={(e) => { e.stopPropagation(); handleStatus(user.id, 'approved'); }} className="p-1 hover:text-green-400"><CheckCircle size={14} /></button>
-                                    <button onClick={(e) => { e.stopPropagation(); handleStatus(user.id, 'banned'); }} className="p-1 hover:text-red-400"><Ban size={14} /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); handleAddCredits(user.id, user.credits); }} className="p-1 hover:text-yellow-400" title="Grant Credits"><Zap size={14} /></button>
+
+                                    {/* APPROVE ACTION */}
+                                    {user.status !== 'APPROVED' && user.status !== 'ACTIVE' && (
+                                        <button onClick={(e) => { e.stopPropagation(); handleStatus(user.id, 'APPROVED'); }} className="p-1 hover:text-green-400" title="Approve Access">
+                                            <CheckCircle size={14} />
+                                        </button>
+                                    )}
+
+                                    <button onClick={(e) => { e.stopPropagation(); handleStatus(user.id, 'BANNED'); }} className="p-1 hover:text-red-400" title="Ban User"><Ban size={14} /></button>
                                 </td>
                             </tr>
                         ))}
@@ -84,7 +96,7 @@ export default function UsersDatabase() {
                 </table>
             </div>
 
-            {}
+            { }
             {selectedUser && (
                 <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50" onClick={() => setSelectedUser(null)}>
                     <div className="bg-zinc-900 border border-white/10 p-6 rounded-2xl max-w-md w-full" onClick={e => e.stopPropagation()}>
