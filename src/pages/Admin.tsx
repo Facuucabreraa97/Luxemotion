@@ -159,7 +159,7 @@ const AdminPage = () => {
     <div className="min-h-screen bg-black text-green-500 font-mono p-8 selection:bg-green-900 selection:text-white">
       <div className="max-w-7xl mx-auto">
 
-        {/* Header */}
+        {}
         <header className="flex justify-between items-center mb-12 border-b border-green-900 pb-6">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-green-900/20 rounded-lg border border-green-500/30">
@@ -178,9 +178,9 @@ const AdminPage = () => {
           </button>
         </header>
 
-        {/* Search & Logs Grid */}
+        {}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
-          {/* Search Area */}
+          {}
           <div className="lg:col-span-2">
             <div className="bg-black border border-green-800 rounded-xl p-6 shadow-[0_0_30px_rgba(0,255,0,0.05)]">
               <h2 className="text-xs uppercase tracking-widest text-green-700 mb-4 flex items-center gap-2"><Search size={14}/> User Database Search</h2>
@@ -198,7 +198,7 @@ const AdminPage = () => {
             </div>
           </div>
 
-          {/* System Logs */}
+          {}
           <div className="bg-black border border-green-900 rounded-xl p-4 font-mono text-xs h-40 overflow-hidden relative">
              <div className="absolute top-2 right-2 text-[10px] text-green-800">SYS.LOG</div>
              <div className="space-y-1 opacity-80 mt-4">
@@ -210,7 +210,7 @@ const AdminPage = () => {
           </div>
         </div>
 
-        {/* Results Table */}
+        {}
         <div className="bg-green-900/5 border border-green-900/50 rounded-xl overflow-hidden">
            <div className="p-4 border-b border-green-900/50 bg-green-900/10 flex justify-between items-center">
              <span className="text-xs uppercase tracking-widest text-green-600">Query Results</span>
@@ -256,7 +256,7 @@ const AdminPage = () => {
                        </td>
                        <td className="p-6">
                          <div className="flex items-center gap-2">
-                           {/* Credits */}
+                           {}
                            <div className="flex items-center bg-green-900/20 rounded border border-green-900/30 p-1 gap-1">
                               <button onClick={() => updateCredits(user.id, user.credits - 50)} disabled={!!actionLoading} className="p-1 hover:bg-green-900/40 text-green-600 hover:text-green-400 transition-colors text-[10px]">-50</button>
                               <input
@@ -274,7 +274,7 @@ const AdminPage = () => {
                               <button onClick={() => updateCredits(user.id, user.credits + 50)} disabled={!!actionLoading} className="p-1 hover:bg-green-900/40 text-green-600 hover:text-green-400 transition-colors text-[10px]">+50</button>
                            </div>
 
-                           {/* Plan */}
+                           {}
                            <button
                              onClick={() => togglePlan(user.id, user.plan)}
                              disabled={!!actionLoading}
@@ -284,7 +284,7 @@ const AdminPage = () => {
                              <Crown size={16} />
                            </button>
 
-                           {/* Velvet */}
+                           {}
                            <button
                              onClick={() => toggleVelvet(user.id, user.velvet_access)}
                              disabled={!!actionLoading}
@@ -294,7 +294,7 @@ const AdminPage = () => {
                              <Ghost size={16} />
                            </button>
 
-                           {/* Ban */}
+                           {}
                            <button
                               onClick={() => banUser(user.id)}
                               disabled={!!actionLoading}

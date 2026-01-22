@@ -19,7 +19,7 @@ export default function BottomNav() {
 
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 z-[100] pb-[env(safe-area-inset-bottom)]">
-      {/* BLUR BACKDROP */}
+      {}
       <div className="absolute inset-0 bg-black/80 backdrop-blur-xl border-t border-white/10" />
 
       <div className="relative flex justify-around items-center px-2 py-4">

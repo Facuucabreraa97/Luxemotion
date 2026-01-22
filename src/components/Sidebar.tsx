@@ -1,7 +1,7 @@
 // Force Rebuild: 2026-01-20 16:45
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Video, Users, Image as ImageIcon, CreditCard, Settings, LogOut, Zap, Crown, ChevronRight, Globe, TrendingUp, DollarSign } from 'lucide-react';
+import { Video, Users, Image as ImageIcon, CreditCard, Settings, LogOut, Zap, Crown, ChevronRight, Globe, TrendingUp, DollarSign, Sparkles } from 'lucide-react'; // Added Sparkles
 import { useMode } from '../context/ModeContext';
 import { useTranslation } from 'react-i18next';
 import { UserProfile } from '../types';
@@ -26,6 +26,7 @@ export const Sidebar = ({ credits, onLogout, onUp, userProfile, onUpgrade, notif
 
   const links = [
     { icon: Video, label: t('common.nav.studio'), path: '/app' },
+    { icon: Sparkles, label: 'Studio Console', path: '/app/studio' }, // New Link
     { icon: Globe, label: 'Explore', path: '/app/explore' },
     { icon: Users, label: t('common.nav.talent'), path: '/app/talent' },
     { icon: ImageIcon, label: t('common.nav.gallery'), path: '/app/gallery' },
@@ -68,9 +69,9 @@ export const Sidebar = ({ credits, onLogout, onUp, userProfile, onUpgrade, notif
       <aside className={`fixed left-0 top-0 h-screen w-80 flex flex-col hidden lg:flex border-r transition-all duration-500 z-50
           ${mode === 'velvet' ? 'bg-black/95 border-white/5 backdrop-blur-xl' : 'bg-[#F8F9FA] border-gray-200'}`}>
 
-        {/* HEADER */}
+        {}
         <div className="p-8 pb-4">
-          {/* ADAPTIVE LOGO */}
+          {}
           {mode === 'velvet' ? (
             <h1 className="text-2xl font-bold tracking-[0.2em] uppercase mb-1 text-white">Mivideo<span className="text-[#C6A649]">AI</span></h1>
           ) : (
@@ -85,7 +86,7 @@ export const Sidebar = ({ credits, onLogout, onUp, userProfile, onUpgrade, notif
           </div>
         </div>
 
-        {/* MODE SWITCHER */}
+        {}
         <div className="px-8 mb-6">
           <button id="sidebar-mode-toggle" onClick={handleModeToggle} className={`w-full p-1 rounded-full border flex items-center relative overflow-hidden group transition-all duration-500
               ${mode === 'velvet' ? 'bg-black border-white/10' : 'bg-gray-200 border-gray-300'}`}>
@@ -96,7 +97,7 @@ export const Sidebar = ({ credits, onLogout, onUp, userProfile, onUpgrade, notif
           </button>
         </div>
 
-        {/* NAVIGATION */}
+        {}
         <nav className="flex-1 px-4 space-y-2 overflow-y-auto">
           {links.map((l) => {
             const active = pathname === l.path;
@@ -125,7 +126,7 @@ export const Sidebar = ({ credits, onLogout, onUp, userProfile, onUpgrade, notif
           })}
         </nav>
 
-        {/* FOOTER / CREDITS */}
+        {}
         <div className={`p-6 m-4 rounded-[2rem] border relative overflow-hidden group transition-all duration-500 ${mode === 'velvet' ? 'bg-gradient-to-br from-[#1a1a1a] to-black border-white/10' : 'bg-white border-gray-200 shadow-lg'}`}>
           <div className={`absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity ${mode === 'velvet' ? 'text-[#C6A649]' : 'text-black'}`}><Zap size={80} /></div>
           <div className="relative z-10">

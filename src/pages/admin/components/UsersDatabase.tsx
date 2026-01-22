@@ -84,7 +84,7 @@ export default function UsersDatabase() {
                 </table>
             </div>
 
-            {/* MODAL WOULD GO HERE (Simplified for Architecture) */}
+            {}
             {selectedUser && (
                 <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50" onClick={() => setSelectedUser(null)}>
                     <div className="bg-zinc-900 border border-white/10 p-6 rounded-2xl max-w-md w-full" onClick={e => e.stopPropagation()}>

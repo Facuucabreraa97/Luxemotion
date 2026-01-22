@@ -18,7 +18,6 @@ export default function SentinelConsole() {
         const channel = supabase
             .channel('sentinel-feed')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'admin_reports' }, (payload) => {
-                console.log('⚡ NEW REPORT RECEIVED:', payload.new);
                 setReports((prev) => [payload.new, ...prev]);
             })
             .subscribe((status) => setListening(status === 'SUBSCRIBED'));
@@ -54,7 +53,7 @@ export default function SentinelConsole() {
                                 <h3 className="text-xl font-bold">Health Score: {report.health_score}/100</h3>
                             </div>
 
-                            {/* ACTION BUTTON */}
+                            {}
                             {report.suggested_fix_pr_url && (
                                 <a href={report.suggested_fix_pr_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-black px-6 py-3 rounded-xl font-bold transition-all hover:scale-105 active:scale-95 shadow-lg shadow-yellow-400/20">
                                     <Zap size={18} /> MERGE FIX

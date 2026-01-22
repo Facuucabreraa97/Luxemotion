@@ -1,9 +1,13 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react'; // Added useMemo
 import { createPortal } from 'react-dom';
 import { X, ChevronRight, Check } from 'lucide-react';
 import { useMode } from '../context/ModeContext';
 
-const STEPS = [
+// Moved STEPS definition inside to allow filtering, or keep static and filter inside. 
+// User instruction: "The 'STEPS' constant is currently static. Move it INSIDE the component or wrap it in a useMemo."
+// I will keep the raw data outside for cleanliness, but filter inside.
+
+const RAW_STEPS = [
     {
         target: 'studio-source-upload',
         text: "Upload your model's photo here",
@@ -12,10 +16,9 @@ const STEPS = [
     {
         target: 'studio-product-upload',
         text: "Upload what you want to sell here (or leave it empty)",
-        pos: 'left' // Usually on the right, so tooltip on left or bottom
+        pos: 'left'
     },
     {
-        // We will handle dynamic target for this step in logic
         id: 'mode-switch',
         text: "Activate this for special modes (Requires a Plan)",
         pos: 'bottom'
@@ -34,6 +37,16 @@ export const StudioOnboarding = () => {
     const { mode } = useMode();
     const observer = useRef<ResizeObserver | null>(null);
 
+    // Dynamic Steps Logic
+    const currentSteps = useMemo(() => {
+        return RAW_STEPS.filter(step => {
+            // CRITICAL: In Velvet mode, the Product Upload section is hidden.
+            // We MUST skip the onboarding step pointing to it to prevent "ghost" tooltips.
+            if (mode === 'velvet' && step.target === 'studio-product-upload') return false;
+            return true;
+        });
+    }, [mode]);
+
     useEffect(() => {
         const hasSeen = localStorage.getItem('hasSeenStudioOnboarding_v1');
         if (!hasSeen) {
@@ -43,7 +56,9 @@ export const StudioOnboarding = () => {
     }, []);
 
     const updateRect = () => {
-        const currentStep = STEPS[step];
+        const currentStep = currentSteps[step];
+        if (!currentStep) return; // Safety check
+
         let targetId = currentStep.target;
 
         // Handle dynamic target for mode switch
@@ -87,7 +102,7 @@ export const StudioOnboarding = () => {
     }, [step, visible]);
 
     const handleNext = () => {
-        if (step < STEPS.length - 1) {
+        if (step < currentSteps.length - 1) {
             setStep(s => s + 1);
         } else {
             handleClose();
@@ -101,7 +116,8 @@ export const StudioOnboarding = () => {
 
     if (!visible || !rect) return null;
 
-    const currentStep = STEPS[step];
+    const currentStep = currentSteps[step];
+    if (!currentStep) return null; // Safety
 
     // Tooltip Position Logic
     const tooltipStyle: React.CSSProperties = {};
@@ -110,7 +126,7 @@ export const StudioOnboarding = () => {
     // Simple positioning logic
     if (currentStep.pos === 'right') {
         tooltipStyle.left = rect.right + PADDING;
-        tooltipStyle.top = rect.top + (rect.height / 2) - 40; // Approximate centering
+        tooltipStyle.top = rect.top + (rect.height / 2) - 40;
     } else if (currentStep.pos === 'left') {
         tooltipStyle.right = window.innerWidth - rect.left + PADDING;
         tooltipStyle.top = rect.top + (rect.height / 2) - 40;
@@ -138,54 +154,29 @@ export const StudioOnboarding = () => {
 
     return createPortal(
         <div className="fixed inset-0 z-[9999] overflow-hidden">
-            {/* Spotlight Hole using Box Shadow */}
-            <div
-                className="absolute transition-all duration-500 ease-in-out rounded-xl"
-                style={{
-                    left: rect.left,
-                    top: rect.top,
-                    width: rect.width,
-                    height: rect.height,
-                    boxShadow: '0 0 0 9999px rgba(0,0,0,0.85)',
-                    // Optional: Border ring for the active element
-                    border: mode === 'velvet' ? '2px solid #C6A649' : '2px solid white'
-                }}
-            />
+            {}
+            <div className="flex justify-between items-start mb-2">
+                <span className={`text-[10px] font-bold uppercase tracking-widest ${mode === 'velvet' ? 'text-[#C6A649]' : 'text-blue-600'}`}>
+                    Step {step + 1}/{currentSteps.length}
+                </span>
+                <button onClick={handleClose} className="opacity-50 hover:opacity-100 transition-opacity">
+                    <X size={14} />
+                </button>
+            </div>
 
-            {/* Tooltip */}
-            <div
-                className="absolute z-[10000] transition-all duration-500 ease-in-out"
-                style={tooltipStyle}
-            >
-                <div className={`w-64 p-5 rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-300
-                    ${mode === 'velvet'
-                        ? 'bg-[#1a1a1a] border border-[#C6A649]/30 text-white'
-                        : 'bg-white text-gray-900'
-                    }`}>
-                    <div className="flex justify-between items-start mb-2">
-                        <span className={`text-[10px] font-bold uppercase tracking-widest ${mode === 'velvet' ? 'text-[#C6A649]' : 'text-blue-600'}`}>
-                            Step {step + 1}/{STEPS.length}
-                        </span>
-                        <button onClick={handleClose} className="opacity-50 hover:opacity-100 transition-opacity">
-                            <X size={14} />
-                        </button>
-                    </div>
+            <p className="text-sm font-medium leading-relaxed mb-6">
+                {currentStep.text}
+            </p>
 
-                    <p className="text-sm font-medium leading-relaxed mb-6">
-                        {currentStep.text}
-                    </p>
-
-                    <div className="flex justify-end">
-                        <button
-                            onClick={handleNext}
-                            className={`px-5 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 transition-transform hover:scale-105
+            <div className="flex justify-end">
+                <button
+                    onClick={handleNext}
+                    className={`px-5 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 transition-transform hover:scale-105
                                 ${mode === 'velvet' ? 'bg-[#C6A649] text-black' : 'bg-black text-white'}`}
-                        >
-                            {step === STEPS.length - 1 ? 'Finish' : 'Next'}
-                            {step === STEPS.length - 1 ? <Check size={12}/> : <ChevronRight size={12}/>}
-                        </button>
-                    </div>
-                </div>
+                >
+                    {step === currentSteps.length - 1 ? 'Finish' : 'Next'}
+                    {step === currentSteps.length - 1 ? <Check size={12} /> : <ChevronRight size={12} />}
+                </button>
             </div>
         </div>,
         document.body

@@ -32,7 +32,7 @@ export default function AdminConsole() {
                 </div>
             </header>
 
-            {/* NAVIGATION TABS */}
+            {}
             <nav className="flex gap-8 border-b border-white/10 mb-8">
                 {TABS.map((tab) => (
                     <button
@@ -49,7 +49,7 @@ export default function AdminConsole() {
                 ))}
             </nav>
 
-            {/* ACTIVE VIEW */}
+            {}
             <main className="animate-in fade-in slide-in-from-bottom-4 duration-500 min-h-[500px]">
                 {TABS.find(t => t.id === activeTab)?.component}
             </main>

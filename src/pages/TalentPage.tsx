@@ -65,7 +65,7 @@ export const TalentPage = ({ list, add, del, notify }: any) => {
 
   return (
     <div className="p-6 lg:p-12 pb-32 animate-in fade-in">
-        {/* HEADER */}
+        {}
         <div className={`flex justify-between items-end border-b pb-8 mb-12 ${isVelvet?'border-white/10':'border-gray-200'}`}>
             <div>
                 <h2 className={`text-4xl font-bold uppercase tracking-[0.1em] ${isVelvet?'text-white':'text-gray-900'}`}>{t('common.nav.talent')}</h2>
@@ -76,7 +76,7 @@ export const TalentPage = ({ list, add, del, notify }: any) => {
             </button>
         </div>
 
-        {/* CREATION CARD */}
+        {}
         {open && (
             <div className={`grid grid-cols-1 md:grid-cols-2 gap-12 p-12 rounded-[40px] mb-12 transition-all duration-500 ${isVelvet ? S.panel : 'bg-white shadow-xl border border-gray-100'}`}>
                 <div className={`aspect-[3/4] rounded-[30px] border-2 border-dashed flex items-center justify-center relative overflow-hidden group cursor-pointer transition-all
@@ -101,7 +101,7 @@ export const TalentPage = ({ list, add, del, notify }: any) => {
                         <textarea value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Ex: Pale skin, neck tattoo, blue eyes..." className={`${isVelvet ? S.input : "w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-sm outline-none focus:border-blue-500 transition-all"} h-24 resize-none`}/>
                     </div>
 
-                    {/* AGENCY MODE EXTRA: ROLE SELECTOR */}
+                    {}
                     {!isVelvet && (
                         <div className="space-y-4">
                              <label className="text-[10px] uppercase tracking-widest text-gray-400">Asset Type</label>
@@ -119,7 +119,7 @@ export const TalentPage = ({ list, add, del, notify }: any) => {
             </div>
         )}
 
-        {/* LIST */}
+        {}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
             {list.map((inf:Talent) => (
                 <div key={inf.id} className={`rounded-[30px] overflow-hidden relative group transition-all duration-500 hover:-translate-y-2 ${isVelvet ? S.panel : 'bg-white shadow-lg border border-gray-100'}`}>
@@ -127,14 +127,14 @@ export const TalentPage = ({ list, add, del, notify }: any) => {
                     <div className="absolute bottom-0 inset-x-0 p-6 pt-20 flex justify-between items-end bg-gradient-to-t from-black/90 via-black/50 to-transparent">
                         <div>
                              <span className="text-[10px] font-bold uppercase tracking-widest text-white block">{inf.name}</span>
-                             {/* Only show role if exists (legacy compat) */}
+                             {}
                              {(inf as any).role === 'brand' && <span className="text-[8px] font-bold uppercase bg-blue-600 text-white px-2 py-0.5 rounded-full mt-1 inline-block">Brand</span>}
 
-                             {/* Selling Status */}
+                             {}
                              {(inf as any).for_sale && <span className="text-[8px] font-bold uppercase bg-[#C6A649] text-black px-2 py-0.5 rounded-full mt-1 inline-block ml-2">For Sale: {(inf as any).price} CR</span>}
                         </div>
                         <div className="flex gap-2">
-                            {/* Sell Button */}
+                            {}
                             {!((inf as any).for_sale) && (
                                 <button onClick={()=>setSellingId(sellingId === inf.id ? null : inf.id)} className="bg-white/10 p-2 rounded-full text-white/50 hover:text-[#C6A649] hover:bg-white/20 transition-all backdrop-blur-md">
                                     <ShoppingBag size={12}/>
@@ -146,7 +146,7 @@ export const TalentPage = ({ list, add, del, notify }: any) => {
                         </div>
                     </div>
 
-                    {/* Sell Input Overlay */}
+                    {}
                     {sellingId === inf.id && (
                         <div className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center p-6 text-center animate-in fade-in">
                             <h3 className="text-white text-xs font-bold uppercase mb-4">Sell {inf.name}</h3>

@@ -40,7 +40,7 @@ export const MobileHeader = ({ credits, userProfile, onUpgrade }: MobileHeaderPr
           </div>
 
           <div className="flex items-center gap-3">
-             {/* Mode Switcher for Mobile */}
+             {}
              <button id="mobile-mode-toggle" onClick={handleModeToggle} className={`relative w-12 h-6 rounded-full border transition-all ${mode==='velvet'?'bg-black border-white/20':'bg-gray-200 border-gray-300'}`}>
                 <div className={`absolute top-0.5 bottom-0.5 w-5 rounded-full shadow-sm transition-transform duration-300
                     ${mode==='velvet' ? 'translate-x-6 bg-[#C6A649]' : 'translate-x-0.5 bg-white'}`}></div>
