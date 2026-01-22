@@ -9,8 +9,10 @@
 
 html,
 body {
-  @apply bg-black text-white antialiased;
+  @apply bg-[#030014] text-[#E0E0E0] antialiased selection:bg-purple-500/30;
   font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+  background-image: radial-gradient(circle at 50% 0%, #1a1a2e 0%, #030014 100%);
+  background-attachment: fixed;
 }
 
 /* STANDARDIZED COMPONENTS (The "Vydy Class") */
