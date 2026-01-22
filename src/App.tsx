@@ -11,11 +11,11 @@ import { createClient, Session, User as SupabaseUser } from '@supabase/supabase-
 import { supabase } from '@/lib/supabase'; // NEW IMPORT
 import { useTranslation } from 'react-i18next';
 import './i18n';
-import Admin from './pages/Admin';
+// import Admin from './pages/Admin';
 import { VideoCard } from './components/VideoCard';
 import { EarningsDashboard } from './pages/EarningsDashboard';
 import { useMode } from './context/ModeContext';
-import { LandingPage } from './pages/LandingPage';
+// import { LandingPage } from './pages/LandingPage';
 // import { AccessPending } from './pages/AccessPending';
 import { AdminConsole } from './pages/admin/AdminConsole';
 import ModelSelector from './components/ModelSelector';
