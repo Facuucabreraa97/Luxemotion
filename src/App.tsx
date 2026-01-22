@@ -16,7 +16,7 @@ import { VideoCard } from './components/VideoCard';
 import { EarningsDashboard } from './pages/EarningsDashboard';
 import { useMode } from './context/ModeContext';
 import { LandingPage } from './pages/LandingPage';
-import { AccessPending } from './pages/AccessPending';
+// import { AccessPending } from './pages/AccessPending';
 import { AdminConsole } from './pages/admin/AdminConsole';
 import ModelSelector from './components/ModelSelector';
 import { GlassCard } from './components/ui/GlassCard';
@@ -1573,7 +1573,7 @@ function AppContent() {
 
                 if (!isApproved && window.location.pathname.startsWith('/app')) {
                     // Redirect to pending page if trying to access app
-                    window.location.href = '/access-pending';
+                    window.location.href = '/';
                     return;
                 }
             } else {
@@ -1608,7 +1608,7 @@ function AppContent() {
         <Router>
             <Routes>
                 <Route path="/" element={<LandingWaitlist />} />
-                <Route path="/access-pending" element={<AccessPending />} />
+                {/* <Route path="/access-pending" element={<AccessPending />} /> */}
                 <Route path="/activate-account" element={<ActivateAccount />} />
                 <Route path="/login" element={!session ? <LoginScreen onLogin={() => { }} /> : <Navigate to="/app" />} />
                 <Route path="/register" element={!session ? <LoginScreen onLogin={() => { }} /> : <Navigate to="/app" />} />
