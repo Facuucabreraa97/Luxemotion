@@ -102,7 +102,7 @@ export const LandingWaitlist = () => {
                 </p>
                 <button
                     onClick={() => document.getElementById('waitlist-form')?.scrollIntoView({ behavior: 'smooth' })}
-                    className="group px-8 py-4 bg-white text-black rounded-full font-bold text-lg tracking-wide hover:bg-gray-200 hover:scale-105 transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.3)]"
+                    className="group px-8 py-4 bg-gradient-to-r from-[#D4AF37] to-[#F2C94C] text-black rounded-full font-bold text-lg tracking-wide hover:bg-[#F2C94C] hover:scale-105 transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(212,175,55,0.5)]"
                 >
                     Unirse a la Waitlist
                     <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
