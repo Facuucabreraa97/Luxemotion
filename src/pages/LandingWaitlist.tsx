@@ -1,177 +1,90 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Hexagon, Check, Loader2 } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/supabase'; // Adjusted path
 
-export const LandingWaitlist = () => {
-    const navigate = useNavigate();
+export default function LandingWaitlist() {
     const [email, setEmail] = useState('');
-    const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-    const [errorMsg, setErrorMsg] = useState('');
+    const [status, setStatus] = useState<'IDLE' | 'LOADING' | 'SUCCESS' | 'ERROR'>('IDLE');
+    const [msg, setMsg] = useState('');
 
-    const validateEmail = (email: string) => {
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleJoin = async (e: React.FormEvent) => {
         e.preventDefault();
-        setErrorMsg('');
-
-        if (!validateEmail(email)) {
-            setErrorMsg('Por favor ingresa un email válido.');
-            return;
-        }
-
-        setStatus('loading');
+        setStatus('LOADING');
+        setMsg('');
 
         try {
-            // REAL DB INSERTION
-            // We use 'upsert' to handle re-submissions or updates
+            // 1. Direct Insert to Profiles (No Auth Signup needed for waitlist)
             const { error } = await supabase
                 .from('profiles')
-                .upsert(
-                    { email, status: 'PENDING', updated_at: new Date() },
-                    { onConflict: 'email', ignoreDuplicates: false }
-                ); // If exists, update status to PENDING (or keep current? User said "Non-register twice". If exists, we should probably check.)
+                .insert([{ email, status: 'PENDING' }]);
 
-            // Actually, if they are already APPROVED, we shouldn't demote them.
-            // But for simplicity of the "Waitlist" flow, we'll assume they are new or re-applying.
-            // A safer approach: insert, if conflict DO NOTHING?
-            // "onConflict: email" -> ignoreDuplicates: true?
-            // Let's use inserting and check error.
-
-            /* 
-               Better Logic:
-               Check if exists. If yes -> Show "Already registered".
-               If no -> Insert PENDING.
-            */
-
-            const { data: existing } = await supabase.from('profiles').select('status').eq('email', email).single();
-
-            if (existing) {
-                if (existing.status === 'PENDING') {
-                    setStatus('success'); // Just show success again
-                } else {
-                    // If Approved/Active, maybe tell them to login?
-                    // User said: "No se registra dos veces".
-                    // Let's just show success to avoid leaking info, or redirect to Login?
-                    // "Already approved. Go to login."
-                    if (existing.status !== 'PENDING') {
-                        alert("Tu cuenta ya está aprobada. Redirigiendo al login...");
-                        window.location.href = "/login?email=" + encodeURIComponent(email);
-                        return;
-                    }
-                    setStatus('success');
-                }
-            } else {
-                const { error: insertError } = await supabase
-                    .from('profiles')
-                    .insert([{ email, status: 'PENDING' }]);
-
-                if (insertError) throw insertError;
-                setStatus('success');
+            if (error) {
+                if (error.code === '23505') throw new Error('Este correo ya está en la lista.');
+                throw error;
             }
 
+            setStatus('SUCCESS');
+            setMsg('¡Estás dentro! Revisa tu correo pronto.');
             setEmail('');
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
-            setStatus('error');
-            setErrorMsg('Hubo un error. Intenta nuevamente.');
+            setStatus('ERROR');
+            setMsg(err.message || 'Hubo un error. Intenta nuevamente.');
         }
     };
 
     return (
-        <div className="min-h-screen bg-transparent text-gray-100 font-sans selection:bg-[#C6A649]/30 flex flex-col relative overflow-hidden">
+        <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center relative overflow-hidden font-sans">
+            {/* Background Ambience */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-neutral-900 via-black to-black opacity-80 z-0"></div>
 
-            {/* Background Effects */}
-            <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-[#C6A649]/10 blur-[120px] rounded-full pointer-events-none z-0" />
-
-            {/* HERO SECTION */}
-            <header className="relative z-10 w-full max-w-5xl mx-auto px-6 pt-12 pb-20 flex flex-col items-center text-center">
-                {/* Logo */}
-                <div className="flex items-center gap-2 mb-12 self-start md:self-center">
-                    <Hexagon size={24} className="text-white fill-white" />
-                    <span className="text-xl font-bold tracking-tight text-white">MivideoAI</span>
+            <div className="z-10 w-full max-w-4xl px-6 text-center">
+                {/* LOGO AREA */}
+                <div className="mb-12 flex justify-center">
+                    {/* Replace text with Logo Image if available, or keep High-End Text */}
+                    <h1 className="text-4xl md:text-5xl font-bold tracking-tighter text-white">
+                        Mivideo<span className="text-[#F2C94C]">AI</span>
+                    </h1>
                 </div>
 
-                <h1 className="text-5xl md:text-7xl font-serif font-bold tracking-tight mb-8 max-w-4xl text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-gray-500">
-                    Marketplace de influencers creados con inteligencia artificial
-                </h1>
-                <p className="text-xl text-gray-400 leading-relaxed max-w-2xl mb-12 font-light">
+                {/* HERO COPY */}
+                <h2 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-b from-white to-neutral-500">
+                    Marketplace de influencers <br /> creados con <span className="text-[#F2C94C]">inteligencia artificial</span>
+                </h2>
+                <p className="text-xl text-neutral-400 mb-10 max-w-2xl mx-auto">
                     Crea, compra y vende personajes digitales listos para monetizar.
                 </p>
-                <button
-                    onClick={() => document.getElementById('waitlist-form')?.scrollIntoView({ behavior: 'smooth' })}
-                    className="group px-8 py-4 bg-gradient-to-r from-[#D4AF37] to-[#F2C94C] text-black rounded-full font-bold text-lg tracking-wide hover:bg-[#F2C94C] hover:scale-105 transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(212,175,55,0.5)]"
-                >
-                    Unirse a la Waitlist
-                    <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                </button>
-            </header>
 
-            {/* VALUE PROPOSITION: Problem/Solution */}
-            <section className="relative z-10 w-full border-y border-white/10 bg-black/20 backdrop-blur-sm py-20">
-                <div className="max-w-4xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-12">
-                    {/* Problem */}
-                    <div>
-                        <h3 className="text-xs font-bold uppercase tracking-widest text-[#C6A649] mb-4">El Problema</h3>
-                        <p className="text-lg font-medium text-gray-300 leading-relaxed">
-                            No existe una plataforma que permita crear un influencer completo de forma fácil y rápida. Las herramientas actuales son complejas y fragmentadas.
+                {/* INPUT FORM */}
+                <div className="max-w-md mx-auto bg-neutral-900/50 backdrop-blur-md border border-white/10 p-8 rounded-2xl shadow-2xl">
+                    <p className="text-sm text-[#F2C94C] uppercase tracking-widest mb-4 font-semibold">Acceso Anticipado</p>
+
+                    <form onSubmit={handleJoin} className="flex flex-col gap-4">
+                        <input
+                            type="email"
+                            required
+                            placeholder="tu@email.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="w-full bg-black/60 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#F2C94C] transition-colors"
+                        />
+
+                        <button
+                            type="submit"
+                            disabled={status === 'LOADING' || status === 'SUCCESS'}
+                            className="w-full py-3 rounded-lg font-bold text-black uppercase tracking-wider transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                            style={{ background: 'linear-gradient(90deg, #D4AF37 0%, #F2C94C 100%)' }}
+                        >
+                            {status === 'LOADING' ? 'Procesando...' : status === 'SUCCESS' ? '¡Registrado!' : 'Unirse a la Waitlist →'}
+                        </button>
+                    </form>
+
+                    {msg && (
+                        <p className={`mt-4 text-sm ${status === 'ERROR' ? 'text-red-400' : 'text-green-400'}`}>
+                            {msg}
                         </p>
-                    </div>
-                    {/* Solution */}
-                    <div>
-                        <h3 className="text-xs font-bold uppercase tracking-widest text-white mb-4">La Solución</h3>
-                        <p className="text-lg font-medium text-gray-300 leading-relaxed">
-                            Una plataforma de inteligencia artificial que genera influencers virtuales listos para producir, publicar y vender contenido de forma automática.
-                        </p>
-                    </div>
-                </div>
-            </section>
-
-            {/* WAITLIST MECHANISM */}
-            <section id="waitlist-form" className="relative z-10 w-full py-24 px-6 flex flex-col items-center">
-                <div className="w-full max-w-md bg-white/5 backdrop-blur-xl border border-white/10 p-8 rounded-2xl shadow-2xl">
-                    <h2 className="text-2xl font-bold text-center mb-2 text-white">Acceso Anticipado</h2>
-                    <p className="text-center text-gray-400 mb-8 text-sm">Sé el primero en acceder al marketplace.</p>
-
-                    {status === 'success' ? (
-                        <div className="p-6 bg-green-500/10 border border-green-500/20 text-green-400 rounded-xl flex flex-col items-center animate-in fade-in zoom-in">
-                            <Check size={32} className="mb-2" />
-                            <h3 className="font-bold text-lg">¡Estás en la lista!</h3>
-                            <button onClick={() => setStatus('idle')} className="mt-4 text-xs underline opacity-60 hover:opacity-100">
-                                Registrar otro
-                            </button>
-                        </div>
-                    ) : (
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div>
-                                <input
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    placeholder="tu@email.com"
-                                    className="w-full px-4 py-3 bg-black/50 border border-white/10 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C6A649] focus:border-transparent transition-all placeholder:text-gray-600"
-                                    disabled={status === 'loading'}
-                                />
-                                {errorMsg && <p className="text-red-400 text-xs mt-2">{errorMsg}</p>}
-                            </div>
-                            <button
-                                type="submit"
-                                disabled={status === 'loading'}
-                                className="w-full py-3 bg-gradient-to-r from-[#D4AF37] to-[#F2C94C] text-black font-bold rounded-lg hover:shadow-[0_0_20px_rgba(212,175,55,0.5)] hover:scale-[1.02] transition-all disabled:opacity-50"
-                            >
-                                {status === 'loading' ? <Loader2 size={20} className="animate-spin mx-auto" /> : "Obtener Acceso Anticipado"}
-                            </button>
-                        </form>
                     )}
                 </div>
-            </section>
-
-            {/* Footer */}
-            <footer className="py-8 text-center text-xs text-gray-600 font-mono border-t border-white/5">
-                MIVIDEOAI © 2026
-            </footer>
+            </div>
         </div>
     );
-};
+}
