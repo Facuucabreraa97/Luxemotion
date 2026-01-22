@@ -20,6 +20,8 @@ import { AccessPending } from './pages/AccessPending';
 import { AdminConsole } from './pages/admin/AdminConsole';
 import ModelSelector from './components/ModelSelector';
 import { GlassCard } from './components/ui/GlassCard';
+import { LandingWaitlist } from './pages/LandingWaitlist';
+import StudioConsole from './pages/StudioConsole';
 
 // --- CONFIGURATION ---
 const getApiUrl = () => {
@@ -1344,7 +1346,7 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile, 
                             <button onClick={() => { setType('vid'); setImg(null); }} className={`px-6 py-2 rounded-full text-[9px] font-bold uppercase transition-all active:scale-95 duration-200 ${toggleClass(type === 'vid')}`}>{t('studio.tabs.remix')}</button>
                         </div>
                     </div>
-                    {}
+                    { }
                     <div className="grid grid-cols-2 gap-6">
                         <div id="studio-source-upload" className={`aspect-[3/4] rounded-[30px] border-2 border-dashed relative overflow-hidden group transition-all duration-300 ${type === 'vid' ? 'border-primary/30' : 'border-white/10 hover:border-primary/50'}`}>
                             {type === 'img' ? (img ? (<><img src={img} className="w-full h-full object-cover" />{img === DEMO_IMG && <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-primary text-black text-[8px] font-bold px-3 py-1 rounded-full uppercase shadow-lg flex gap-2"><Sparkles size={10} /> {t('studio.upload.demo')}</div>}<button onClick={() => { setImg(null); }} className="absolute top-4 right-4 bg-black/60 p-2 rounded-full text-white hover:bg-red-500 transition-all z-20"><X size={14} /></button></>) : <div className={`absolute inset-0 flex flex-col items-center justify-center text-white/20`}><Upload className="mb-4 w-8 h-8" /><span className="text-[9px] uppercase font-bold tracking-widest text-center">{t('studio.upload.subject')}</span><input type="file" onChange={e => handleFile(e, setImg)} className="absolute inset-0 opacity-0 cursor-pointer" /></div>) : (vid ? (<><video src={vid} className="w-full h-full object-cover opacity-50" controls preload="metadata" playsInline crossOrigin="anonymous" /><button onClick={() => setVid(null)} className="absolute top-4 right-4 bg-black/50 p-2 rounded-full text-white hover:bg-red-500 z-20"><X size={14} /></button></>) : <div className="absolute inset-0 flex flex-col items-center justify-center text-primary/40"><Film className="mb-4 w-8 h-8" /><span className="text-[9px] uppercase font-bold tracking-widest text-center">{t('studio.upload.video')}</span><input type="file" onChange={e => handleFile(e, setVid)} className="absolute inset-0 opacity-0 cursor-pointer" /></div>)}
@@ -1359,18 +1361,18 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile, 
 
                 <div className="card-glass p-8">
                     <div className="flex justify-between items-center mb-8"><h2 className="text-heading flex gap-3"><span className="text-primary">02</span> {t('studio.settings')}</h2>{mode === 'velvet' && (<div className="px-4 py-1.5 rounded-full border border-primary/30 bg-primary/10 text-primary text-[9px] font-bold uppercase tracking-widest flex items-center gap-2"><Flame size={12} /> {t('studio.velvet_active')}</div>)}</div>
-                    {}
+                    { }
                     <div className="grid grid-cols-4 gap-4 mb-8">
                         {CAMS.map(m => (<button key={m.id} onClick={() => setCam(m.id)} className={`relative p-4 rounded-3xl border flex flex-col items-center gap-3 transition-all group overflow-hidden active:scale-95 duration-200 ${cam === m.id ? 'bg-primary border-primary text-black shadow-lg' : 'bg-black/40 border-white/5 text-gray-500 hover:bg-white/5'}`}>{m.icon}<span className="text-[7px] font-bold uppercase tracking-widest">{t(`cams.${m.id}.label`)}</span></button>))}
                     </div>
-                    {}
+                    { }
                     {mode === 'velvet' && (
                         <div className="grid grid-cols-4 gap-3 mb-6 animate-in fade-in slide-in-from-top-4">
                             {VELVET_STYLES.map(v => (<button key={v.id} onClick={() => { setVelvetStyle(v.id); handlePromptInjection(t(`velvet_styles.${v.id}.desc`)); }} className={`p-3 rounded-2xl border transition-all text-center group active:scale-95 duration-200 ${velvetStyle === v.id ? 'bg-primary/20 border-primary text-white' : 'bg-black/40 border-white/5 text-white/50'}`}><p className="text-[8px] font-bold uppercase tracking-widest mb-1">{t(`velvet_styles.${v.id}.name`)}</p></button>))}
                         </div>
                     )}
                     <div className="relative group"><textarea value={prompt} onChange={e => setPrompt(e.target.value)} placeholder={t('studio.prompt_placeholder')} className={`${inputClass} h-32 mb-8 resize-none p-6 text-sm border-white/10 focus:border-primary`} /><div className="absolute bottom-10 right-4"><Sparkles size={16} className={`text-primary opacity-50`} /></div></div>
-                    {}
+                    { }
                     <div className={`grid grid-cols-2 gap-8 pt-6 border-t border-white/5`}>
                         <div className="space-y-4">
                             <div className="flex justify-between items-center"><span className="text-[10px] uppercase tracking-widest opacity-40">{t('studio.duration')}</span><span className={`font-bold text-xs text-primary`}>{dur}s</span></div>
@@ -1438,13 +1440,13 @@ function ProtectedLayout({ session, credits, handleLogout, setSelPlan, profile, 
         <div className={`${mode === 'velvet' ? S.bg : 'bg-gray-50 min-h-screen text-gray-900 font-sans'}`}>
             {selPlan && <CheckoutModal planKey={selPlan.key} annual={selPlan.annual} onClose={() => setSelPlan(null)} />}
 
-            {}
+            { }
             <div className="hidden lg:block">
                 <Sidebar credits={credits} onLogout={handleLogout} onUp={() => setSelPlan({ key: 'creator', annual: true })} userProfile={profile} onUpgrade={() => setSelPlan({ key: 'creator', annual: true })} notify={notify} />
                 <main className="ml-80 min-h-screen pt-0 transition-colors duration-500"><Outlet /></main>
             </div>
 
-            {}
+            { }
             <div className="lg:hidden">
                 <MobileLayout>
                     <MobileHeader credits={credits} userProfile={profile} onUpgrade={() => setSelPlan({ key: 'creator', annual: true })} />
@@ -1604,16 +1606,13 @@ function AppContent() {
     return (
         <Router>
             <Routes>
-                <Route path="/" element={<LandingPage />} />
+                <Route path="/" element={<LandingWaitlist />} />
                 <Route path="/access-pending" element={<AccessPending />} />
                 <Route path="/login" element={!session ? <LoginScreen onLogin={() => { }} /> : <Navigate to="/app" />} />
                 <Route path="/register" element={!session ? <LoginScreen onLogin={() => { }} /> : <Navigate to="/app" />} />
                 <Route path="/app" element={<ProtectedLayout session={session} credits={credits} handleLogout={handleLogout} setSelPlan={setSelPlan} profile={profile} mode={mode} selPlan={selPlan} notify={notify} />}>
-                    import StudioConsole from './pages/StudioConsole'; // Import added
-
-                    // ... inside Routes ...
                     <Route index element={<StudioPage onGen={handleVideoSaved} influencers={influencers} credits={credits} notify={notify} onUp={() => setSelPlan({ key: 'creator', annual: true })} userPlan={userPlan} talents={influencers} profile={profile} modelId={modelId} onSelectModel={setModelId} />} />
-                    <Route path="studio" element={<StudioConsole credits={credits} setCredits={setCredits} notify={notify} />} /> {}
+                    <Route path="studio" element={<StudioConsole credits={credits} setCredits={setCredits} notify={notify} />} />
                     <Route path="explore" element={<ExplorePage />} />
                     <Route path="talent" element={<TalentPage list={influencers} add={handleInf.add} del={handleInf.del} notify={notify} videos={videos} profile={profile} />} />
                     <Route path="gallery" element={<GalleryPage videos={videos} setVideos={setVideos} />} />
@@ -1626,7 +1625,7 @@ function AppContent() {
                 <Route path="/vydy-ops/sentinel" element={<SentinelConsole />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
-        </Router>
+        </Router >
     );
 }
 
