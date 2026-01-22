@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Mail, Lock } from 'lucide-react';
+import { Play, Mail, Lock, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { S } from '../styles';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 
-const LOGIN_VID = "https://videos.pexels.com/video-files/3205917/3205917-hd_1920_1080_25fps.mp4";
+const LOGIN_BG = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1964&auto=format&fit=crop"; // High-end fashion/urban
 
 interface LoginScreenProps {
     onLogin?: () => void;
@@ -12,68 +12,185 @@ interface LoginScreenProps {
 }
 
 export const LoginScreen = ({ onLogin, initialMode }: LoginScreenProps) => {
-  // Try to get search params if inside a router context
-  let searchParamsMode = null;
-  try {
-      const [searchParams] = useSearchParams();
-      const m = searchParams.get('mode');
-      if(m === 'register' || m === 'forgot' || m === 'login') searchParamsMode = m;
-  } catch (e) {
-      // Not in a router
-  }
-
-  const [load, setLoad] = useState(false);
-  const [mode, setMode] = useState<'login'|'register'|'forgot'>((searchParamsMode as any) || initialMode || 'login');
-  const [email, setEmail] = useState('');
-  const [pass, setPass] = useState('');
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  useEffect(() => {
-      if(initialMode) setMode(initialMode);
-  }, [initialMode]);
-
-  const handleSubmit = async () => {
-    setLoad(true);
-    setErrorMsg(null);
+    const navigate = useNavigate();
+    let searchParamsMode = null;
     try {
-        if(mode === 'register') {
-            const { error } = await supabase.auth.signUp({ email, password: pass });
-            if(error) setErrorMsg(error.message); else alert("Revisa tu email para confirmar.");
-        } else if (mode === 'login') {
+        const [searchParams] = useSearchParams();
+        const m = searchParams.get('mode');
+        if (m === 'register' || m === 'forgot' || m === 'login') searchParamsMode = m;
+    } catch (e) { }
+
+    const [load, setLoad] = useState(false);
+    const [mode, setMode] = useState<'login' | 'register' | 'forgot'>((searchParamsMode as any) || initialMode || 'login');
+    const [email, setEmail] = useState('');
+    const [pass, setPass] = useState('');
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (initialMode) setMode(initialMode);
+    }, [initialMode]);
+
+    const checkStatusAndLogin = async () => {
+        setLoad(true);
+        setErrorMsg(null);
+
+        try {
+            // GOLDEN GATE LOGIC: Check Status First
+            const { data: profile, error: profileError } = await supabase
+                .from('profiles')
+                .select('status')
+                .eq('email', email)
+                .single();
+
+            if (!profile) {
+                // User doesn't exist -> Redirect to Waitlist
+                alert("No encontramos tu email. Redirigiendo a waitlist...");
+                window.location.href = "/#waitlist-form";
+                setLoad(false);
+                return;
+            }
+
+            if (profile.status === 'PENDING') {
+                setErrorMsg("Tu solicitud sigue en revisión. Te notificaremos pronto.");
+                setLoad(false);
+                return;
+            }
+
+            if (profile.status === 'APPROVED') {
+                // Redirect to Activation
+                navigate(`/activate-account?email=${encodeURIComponent(email)}`);
+                return;
+            }
+
+            if (profile.status === 'ACTIVE') {
+                // Standard Login
+                if (!pass) {
+                    setErrorMsg("Ingresa tu contraseña.");
+                    setLoad(false);
+                    return;
+                }
+                const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
+                if (error) setErrorMsg("Contraseña incorrecta.");
+            }
+
+        } catch (e) {
+            console.error(e);
+            // Fallback for standard login if profile check fails (e.g., table missing)
             const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
-            if(error) setErrorMsg(error.message);
-            // Successful login will trigger onAuthStateChange in App.tsx
+            if (error) setErrorMsg(error.message);
+        }
+        setLoad(false);
+    };
+
+    const handleRegister = async () => {
+        // Direct registration is now BLOCKED by design, but we keep the method for admin/internal bypass if needed
+        // For now, redirect users to waitlist
+        window.location.href = "/#waitlist-form";
+    };
+
+    const handleSubmit = async () => {
+        if (mode === 'login') {
+            await checkStatusAndLogin();
+        } else if (mode === 'register') {
+            await handleRegister();
         } else {
+            // Forgot Password
             const { error } = await supabase.auth.resetPasswordForEmail(email, {
                 redirectTo: window.location.origin + '/settings?mode=reset',
             });
-            if(error) setErrorMsg(error.message); else alert("Correo de recuperación enviado.");
+            if (error) setErrorMsg(error.message); else alert("Correo de recuperación enviado.");
         }
-    } catch(e) { setErrorMsg("Error de conexión"); }
-    setLoad(false);
-  };
+    };
 
-  return (
-    <div className="fixed inset-0 bg-black flex items-center justify-center z-[100]">
-      <video src={LOGIN_VID} autoPlay loop muted className="absolute inset-0 w-full h-full object-cover opacity-40"/>
-      <div className={`relative z-10 w-full max-w-xs p-10 rounded-[40px] text-center ${S.panel}`}>
-        <div className="mb-10"><div className="w-16 h-16 bg-[#C6A649]/10 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-[#C6A649]/20 shadow-lg"><Play fill="#C6A649" className="text-[#C6A649] w-8 h-8 ml-1"/></div><h1 className={S.titleLuxe}>MivideoAI</h1><p className={S.subLuxe}>PRO</p></div>
-
-        {errorMsg && <div className="mb-4 text-red-500 text-[10px] font-bold uppercase">{errorMsg}</div>}
-
-        {mode !== 'forgot' ? (
-            <div className="space-y-4 mb-8">
-                <div className="flex items-center gap-4 bg-black/50 border border-white/10 p-4 rounded-2xl focus-within:border-[#C6A649] transition-colors"><Mail size={18} className="text-white/30"/><input value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email Corporativo" className="bg-transparent text-white text-xs w-full outline-none placeholder:text-white/20"/></div>
-                <div className="flex items-center gap-4 bg-black/50 border border-white/10 p-4 rounded-2xl focus-within:border-[#C6A649] transition-colors"><Lock size={18} className="text-white/30"/><input type="password" value={pass} onChange={e=>setPass(e.target.value)} placeholder="Contraseña" className="bg-transparent text-white text-xs w-full outline-none placeholder:text-white/20"/></div>
+    return (
+        <div className="fixed inset-0 bg-black flex items-center justify-center z-[100] font-sans">
+            {/* Background Image with Blur & Overlay */}
+            <div className="absolute inset-0 z-0">
+                <img src={LOGIN_BG} alt="Fashion Background" className="w-full h-full object-cover opacity-60" />
+                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
             </div>
-        ) : (
-            <div className="mb-8 text-left"><p className="text-xs text-white/60 mb-4 px-1">Recuperar acceso.</p><div className="flex items-center gap-4 bg-black/50 border border-white/10 p-4 rounded-2xl"><Mail size={18} className="text-white/30"/><input value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email" className="bg-transparent text-white text-xs w-full outline-none"/></div></div>
-        )}
-        <button onClick={handleSubmit} disabled={load} className={`w-full py-5 rounded-2xl text-[10px] ${S.btnGold}`}>{load ? "Procesando..." : (mode === 'login' ? "Iniciar Sesión" : mode === 'register' ? "Crear Cuenta" : "Enviar")}</button>
-        <div className="mt-8 flex justify-between text-[9px] text-white/40 uppercase tracking-widest border-t border-white/5 pt-6">
-            {mode === 'login' ? (<><button onClick={()=>setMode('register')} className="hover:text-white">Crear Cuenta</button><button onClick={()=>setMode('forgot')} className="hover:text-white">Recuperar</button></>) : (<button onClick={()=>setMode('login')} className="w-full hover:text-white">Volver</button>)}
+
+            <div className="relative z-10 w-full max-w-sm p-8 rounded-[32px] text-center bg-black/80 border border-[#C6A649]/20 shadow-2xl backdrop-blur-xl">
+
+                {/* Header */}
+                <div className="mb-10 flex flex-col items-center">
+                    <div className="w-16 h-16 bg-gradient-to-br from-[#C6A649]/20 to-black rounded-2xl flex items-center justify-center mb-6 border border-[#C6A649]/40 shadow-[0_0_15px_rgba(198,166,73,0.2)]">
+                        <Play fill="#C6A649" className="text-[#C6A649] w-6 h-6 ml-1" />
+                    </div>
+                    <h1 className="text-2xl font-bold tracking-tight text-white mb-1">MivideoAI</h1>
+                    <p className="text-[10px] font-bold text-[#C6A649] tracking-[0.3em] uppercase">PRO</p>
+                </div>
+
+                {errorMsg && (
+                    <div className="mb-6 p-3 bg-red-500/10 border border-red-500/30 rounded-xl flex items-center gap-2 text-red-200 text-xs text-left animate-in fade-in slide-in-from-top-2">
+                        <AlertCircle size={16} className="shrink-0" />
+                        {errorMsg}
+                    </div>
+                )}
+
+                {mode !== 'forgot' ? (
+                    <div className="space-y-4 mb-8">
+                        <div className="group relative">
+                            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                                <Mail size={16} className="text-white/40 group-focus-within:text-[#C6A649] transition-colors" />
+                            </div>
+                            <input
+                                value={email}
+                                onChange={e => setEmail(e.target.value)}
+                                placeholder="Email Corporativo"
+                                className="w-full bg-black/60 border border-[#C6A649]/30 text-white text-sm py-4 pl-12 pr-4 rounded-xl outline-none focus:border-[#C6A649] focus:ring-1 focus:ring-[#C6A649]/50 transition-all placeholder:text-white/20"
+                            />
+                        </div>
+                        <div className="group relative">
+                            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                                <Lock size={16} className="text-white/40 group-focus-within:text-[#C6A649] transition-colors" />
+                            </div>
+                            <input
+                                type="password"
+                                value={pass}
+                                onChange={e => setPass(e.target.value)}
+                                placeholder="Contraseña"
+                                className="w-full bg-black/60 border border-[#C6A649]/30 text-white text-sm py-4 pl-12 pr-4 rounded-xl outline-none focus:border-[#C6A649] focus:ring-1 focus:ring-[#C6A649]/50 transition-all placeholder:text-white/20"
+                            />
+                        </div>
+                    </div>
+                ) : (
+                    <div className="mb-8 text-left">
+                        <p className="text-xs text-white/60 mb-4 px-1">Ingresa tu email para recuperar el acceso.</p>
+                        <div className="group relative">
+                            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                                <Mail size={16} className="text-white/40 group-focus-within:text-[#C6A649] transition-colors" />
+                            </div>
+                            <input
+                                value={email}
+                                onChange={e => setEmail(e.target.value)}
+                                placeholder="Email"
+                                className="w-full bg-black/60 border border-[#C6A649]/30 text-white text-sm py-4 pl-12 pr-4 rounded-xl outline-none focus:border-[#C6A649] transition-all placeholder:text-white/20"
+                            />
+                        </div>
+                    </div>
+                )}
+
+                <button
+                    onClick={handleSubmit}
+                    disabled={load}
+                    className="w-full py-4 rounded-xl font-bold text-xs tracking-widest uppercase bg-gradient-to-r from-[#D4AF37] to-[#F2C94C] text-black hover:scale-[1.02] active:scale-95 transition-all shadow-[0_0_20px_rgba(212,175,55,0.3)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                    {load ? "Procesando..." : (mode === 'login' ? "INICIAR SESIÓN" : mode === 'register' ? "SOLICITAR ACCESO" : "ENVIAR")}
+                    {!load && <ArrowRight size={14} />}
+                </button>
+
+                <div className="mt-8 flex justify-center gap-6 text-[10px] text-white/40 uppercase tracking-widest border-t border-white/5 pt-6">
+                    {mode === 'login' ? (
+                        <>
+                            <button onClick={() => window.location.href = "/#waitlist-form"} className="hover:text-[#C6A649] transition-colors">Solicitar Acceso</button>
+                            <button onClick={() => setMode('forgot')} className="hover:text-[#C6A649] transition-colors">Recuperar</button>
+                        </>
+                    ) : (
+                        <button onClick={() => setMode('login')} className="hover:text-[#C6A649] transition-colors">Volver al Login</button>
+                    )}
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  );
+    );
 };

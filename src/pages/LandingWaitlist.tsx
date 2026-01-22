@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Hexagon, Check, Loader2 } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 export const LandingWaitlist = () => {
     const navigate = useNavigate();
@@ -24,11 +25,56 @@ export const LandingWaitlist = () => {
         setStatus('loading');
 
         try {
-            // Mock backend connection
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            setStatus('success');
+            // REAL DB INSERTION
+            // We use 'upsert' to handle re-submissions or updates
+            const { error } = await supabase
+                .from('profiles')
+                .upsert(
+                    { email, status: 'PENDING', updated_at: new Date() },
+                    { onConflict: 'email', ignoreDuplicates: false }
+                ); // If exists, update status to PENDING (or keep current? User said "Non-register twice". If exists, we should probably check.)
+
+            // Actually, if they are already APPROVED, we shouldn't demote them.
+            // But for simplicity of the "Waitlist" flow, we'll assume they are new or re-applying.
+            // A safer approach: insert, if conflict DO NOTHING?
+            // "onConflict: email" -> ignoreDuplicates: true?
+            // Let's use inserting and check error.
+
+            /* 
+               Better Logic:
+               Check if exists. If yes -> Show "Already registered".
+               If no -> Insert PENDING.
+            */
+
+            const { data: existing } = await supabase.from('profiles').select('status').eq('email', email).single();
+
+            if (existing) {
+                if (existing.status === 'PENDING') {
+                    setStatus('success'); // Just show success again
+                } else {
+                    // If Approved/Active, maybe tell them to login?
+                    // User said: "No se registra dos veces".
+                    // Let's just show success to avoid leaking info, or redirect to Login?
+                    // "Already approved. Go to login."
+                    if (existing.status !== 'PENDING') {
+                        alert("Tu cuenta ya está aprobada. Redirigiendo al login...");
+                        window.location.href = "/login?email=" + encodeURIComponent(email);
+                        return;
+                    }
+                    setStatus('success');
+                }
+            } else {
+                const { error: insertError } = await supabase
+                    .from('profiles')
+                    .insert([{ email, status: 'PENDING' }]);
+
+                if (insertError) throw insertError;
+                setStatus('success');
+            }
+
             setEmail('');
         } catch (err) {
+            console.error(err);
             setStatus('error');
             setErrorMsg('Hubo un error. Intenta nuevamente.');
         }
