@@ -28,7 +28,11 @@ export default function LandingWaitlist() {
         } catch (err: any) {
             console.error(err);
             setStatus('ERROR');
-            setMsg(err.message || 'Hubo un error. Intenta nuevamente.');
+            if (err.code === '42501') {
+                setMsg('Sistema actualizándose. Intenta en 1 minuto.');
+            } else {
+                setMsg(err.message || 'Hubo un error. Intenta nuevamente.');
+            }
         }
     };
 
