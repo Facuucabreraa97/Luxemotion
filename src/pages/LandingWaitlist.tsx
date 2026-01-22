@@ -159,7 +159,7 @@ export const LandingWaitlist = () => {
                             <button
                                 type="submit"
                                 disabled={status === 'loading'}
-                                className="w-full py-3 bg-gradient-to-r from-[#C6A649] to-[#FBF5B7] text-black font-bold rounded-lg hover:shadow-[0_0_20px_rgba(198,166,73,0.5)] hover:scale-[1.02] transition-all disabled:opacity-50"
+                                className="w-full py-3 bg-gradient-to-r from-[#D4AF37] to-[#F2C94C] text-black font-bold rounded-lg hover:shadow-[0_0_20px_rgba(212,175,55,0.5)] hover:scale-[1.02] transition-all disabled:opacity-50"
                             >
                                 {status === 'loading' ? <Loader2 size={20} className="animate-spin mx-auto" /> : "Obtener Acceso Anticipado"}
                             </button>
