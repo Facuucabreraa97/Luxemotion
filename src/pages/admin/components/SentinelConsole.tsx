@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { ShieldCheck, Check, X, Bell, Clock, AlertTriangle } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -21,50 +21,59 @@ interface SentinelLog {
 export default function SentinelConsole() {
     const [logs, setLogs] = useState<SentinelLog[]>([]);
     const [status, setStatus] = useState<'CONNECTING' | 'LIVE' | 'ERROR'>('CONNECTING');
-    const [nextScan, setNextScan] = useState(300); // 5 mins
+    const [lastEventTime, setLastEventTime] = useState<string>('Searching...');
+
+    // Fetch Log Logic
+    const fetchLogs = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('sentinel_logs')
+                .select('*')
+                .order('timestamp', { ascending: false })
+                .limit(50);
+            if (data) {
+                setLogs(data);
+                if (data.length > 0) {
+                    updateTimeAgo(data[0].timestamp);
+                } else {
+                    setLastEventTime("NO RECENT ACTIVITY");
+                }
+            }
+            setStatus('LIVE');
+        } catch (err) {
+            console.error("Sentinel Down:", err);
+            setStatus('ERROR');
+        }
+    };
+
+    const updateTimeAgo = (ts: string) => {
+        setLastEventTime(formatDistanceToNow(new Date(ts), { addSuffix: true }).toUpperCase());
+    };
 
     useEffect(() => {
-        const fetchLogs = async () => {
-            try {
-                const { data, error } = await supabase
-                    .from('sentinel_logs')
-                    .select('*')
-                    .order('timestamp', { ascending: false })
-                    .limit(50);
-                if (data) setLogs(data);
-                setStatus('LIVE');
-            } catch (err) {
-                console.error("Sentinel Down:", err);
-                setStatus('ERROR');
-            }
-        };
         fetchLogs();
 
         const channel = supabase
-            .channel('sentinel-chat-feed')
+            .channel('sentinel-chat-real')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sentinel_logs' }, (payload) => {
-                setLogs((prev) => [payload.new as SentinelLog, ...prev]);
+                const newLog = payload.new as SentinelLog;
+                setLogs((prev) => [newLog, ...prev]);
+                updateTimeAgo(newLog.timestamp);
             })
             .subscribe((status) => {
                 if (status === 'SUBSCRIBED') setStatus('LIVE');
             });
 
-        // Countdown Timer
-        const timer = setInterval(() => {
-            setNextScan(prev => prev > 0 ? prev - 1 : 300);
-        }, 1000);
+        // Update "Time Ago" every minute naturally (no fake countdown)
+        const interval = setInterval(() => {
+            if (logs.length > 0) updateTimeAgo(logs[0].timestamp);
+        }, 60000);
 
         return () => {
             supabase.removeChannel(channel);
-            clearInterval(timer);
+            clearInterval(interval);
         };
-    }, []);
-
-    const formatTime = (s: number) => {
-        const m = Math.floor(s / 60).toString().padStart(2, '0');
-        const sec = (s % 60).toString().padStart(2, '0');
-        return `${m}:${sec}`;
-    };
+    }, [logs]); // Re-bind interval if logs change to ensure top log is fresh reference (although ref logic better, this works for simple case)
 
     return (
         <div className="h-full flex flex-col pt-6 px-6 pb-6 relative">
@@ -80,11 +89,11 @@ export default function SentinelConsole() {
                 </h2>
                 <div className="flex items-center gap-2 text-zinc-500 text-xs font-mono">
                     <Clock size={12} />
-                    <span>NEXT SCAN: {formatTime(nextScan)}</span>
+                    <span>LAST EVENT: {lastEventTime}</span>
                 </div>
                 <div className="flex items-center gap-2 text-zinc-500 text-xs font-mono">
-                    <Bell size={12} />
-                    <span>LAST SCAN: JUST NOW</span>
+                    <div className={`w-2 h-2 rounded-full ${status === 'LIVE' ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+                    <span>{status === 'LIVE' ? 'MONITORING' : 'OFFLINE'}</span>
                 </div>
             </div>
 
