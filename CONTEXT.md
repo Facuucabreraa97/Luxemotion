@@ -56,3 +56,16 @@
 3.  **Anti-Hallucination:**
     - Before editing a file, verify it exists. Do not import "ghost files".
     - Adhere strictly to the "Black & Gold" visual standard defined in Section 1.
+
+## 7. SYSTEM STATUS SNAPSHOT (Confirmed Wins)
+1. **Landing Page:** OPERATIONAL. "Black & Gold" UI deployed. Direct DB inserts active.
+2. **Auth & Email:** OPERATIONAL.
+   - HTML Templates applied manually in Supabase.
+   - Custom Domain URL (`mivideoai.com`) configured in Supabase.
+   - DO NOT OVERWRITE Email Logic without checking Supabase Settings first.
+3. **Sentinel System:** OPERATIONAL.
+   - Table: `sentinel_logs` verified.
+   - Schema: Uses `sentinel_name`, `action_type`, `report_text`.
+4. **Admin Dashboard:** REFACTORED (Fintech Standard).
+   - Stack: `lucide-react`, `date-fns`.
+   - Layout: Centralized `AdminLayout.tsx`.
