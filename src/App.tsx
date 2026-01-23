@@ -1638,7 +1638,7 @@ function AppContent() {
                     <Route index element={<Navigate to="studio" replace />} />
                     <Route path="studio" element={<AppStudio />} />
                     <Route path="explore" element={<Explore />} />
-                    <Route path="casting" element={<Casting />} />
+                    {/* Casting removed */}
                     <Route path="gallery" element={<Gallery />} />
                     <Route path="earnings" element={<Earnings />} />
                     <Route path="plan" element={<Plan />} />
