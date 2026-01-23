@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, ShieldAlert, Users, CreditCard, LogOut } from 'lucide-react';
+import { LayoutDashboard, ShieldAlert, Users, CreditCard, LogOut, Sparkles } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -7,6 +7,7 @@ import { twMerge } from 'tailwind-merge';
 import AdminOverview from './components/AdminOverview';
 import SentinelConsole from './components/SentinelConsole';
 import UsersDatabase from './components/UsersDatabase';
+import StudioConsole from '../studio/StudioConsole';
 
 // UTILS
 function cn(...inputs: ClassValue[]) {
@@ -17,9 +18,10 @@ function cn(...inputs: ClassValue[]) {
 const TreasuryView = () => <div className="p-10 text-zinc-500 font-mono">TREASURY MODULE LOCKED</div>;
 
 export default function AdminLayout() {
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'sentinel' | 'users' | 'billing'>('dashboard'); // Default to Dashboard now
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'sentinel' | 'users' | 'billing' | 'studio'>('dashboard');
 
     const MENU = [
+        { id: 'studio', label: 'AI STUDIO', icon: Sparkles },
         { id: 'dashboard', label: 'OVERVIEW', icon: LayoutDashboard },
         { id: 'sentinel', label: 'SENTINEL AI', icon: ShieldAlert },
         { id: 'users', label: 'PRIVATE BANKING', icon: Users },
@@ -79,6 +81,7 @@ export default function AdminLayout() {
                     {activeTab === 'sentinel' && <SentinelConsole />}
                     {activeTab === 'users' && <UsersDatabase />}
                     {activeTab === 'billing' && <TreasuryView />}
+                    {activeTab === 'studio' && <StudioConsole />}
                 </div>
             </main>
         </div>
