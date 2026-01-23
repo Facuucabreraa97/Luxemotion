@@ -955,4 +955,37 @@ app.post('/api/admin/ban', requireAdmin, async (req, res) => {
     }
 });
 
+// --- ADMIN: DELETE USER (NUCLEAR) ---
+app.post('/api/admin/delete-user', requireAdmin, async (req, res) => {
+    const { userId } = req.body;
+    console.log(`[ADMIN] Request to DELETE user: ${userId}`);
+
+    if (!userId) return res.status(400).json({ error: 'Missing User ID' });
+
+    try {
+        // 1. Delete from Supabase Auth (This usually cascades to profiles if set up, but we do both)
+        const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+
+        if (authError) {
+            console.error(`[ADMIN] Auth Delete Failed: ${authError.message}`);
+            throw authError;
+        }
+
+        // 2. Explicitly delete profile (Double Tap) just in case cascade is missing
+        const { error: dbError } = await supabaseAdmin
+            .from('profiles')
+            .delete()
+            .eq('id', userId);
+
+        // Ignore error here if record is already gone via cascade
+
+        console.log(`[ADMIN] 🗑️ User ${userId} deleted forever.`);
+        return res.json({ success: true, message: 'User deleted permanently' });
+
+    } catch (e) {
+        console.error("[ADMIN] Delete Error:", e.message);
+        return res.status(500).json({ error: e.message });
+    }
+});
+
 app.listen(port, () => console.log(`🛡️  LUXEMOTION SENIOR SERVER RUNNING ON PORT ${port}`));
