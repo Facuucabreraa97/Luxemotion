@@ -18,39 +18,36 @@ export default function Sidebar() {
   ];
 
   return (
-    <div className="hidden lg:flex flex-col w-[280px] h-full bg-[#050505] border-r border-white/5 p-6 z-50 relative">
-      {/* BRAND */}
-      <div className="flex items-center gap-3 px-2 mb-10">
-        <div className="w-8 h-8 bg-[#D4AF37] rounded-lg flex items-center justify-center">
+    <div className="hidden lg:flex flex-col w-[280px] h-full bg-[#050505] border-r border-white/5 p-6 font-sans">
+      <div className="flex items-center gap-3 px-2 mb-12">
+        <div className="w-8 h-8 bg-gradient-to-br from-[#D4AF37] to-[#8C721F] rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(212,175,55,0.3)]">
           <span className="font-bold text-black text-xl">L</span>
         </div>
-        <span className="text-xl font-bold text-white tracking-wider">LUXEMOTION</span>
+        <span className="text-xl font-bold text-white tracking-widest">LUXEMOTION</span>
       </div>
 
-      {/* NAV */}
       <nav className="flex-1 flex flex-col gap-2">
         {navItems.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${isActive
-                ? 'bg-[#D4AF37] text-black font-bold shadow-[0_0_20px_rgba(212,175,55,0.2)]'
-                : 'text-zinc-500 hover:text-white hover:bg-white/5'
+              `flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-300 group ${isActive
+                ? 'bg-white/5 border border-white/10 text-[#D4AF37] shadow-[0_4px_20px_rgba(0,0,0,0.5)]'
+                : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5'
               }`
             }
           >
-            <item.icon size={20} />
-            <span className="text-sm uppercase tracking-widest">{item.label}</span>
+            <item.icon size={20} className={({ isActive }) => isActive ? "text-[#D4AF37] drop-shadow-[0_0_5px_rgba(212,175,55,0.5)]" : ""} />
+            <span className="text-xs font-bold uppercase tracking-[0.15em]">{item.label}</span>
           </NavLink>
         ))}
       </nav>
 
-      {/* FOOTER */}
       <div className="mt-auto pt-6 border-t border-white/5">
-        <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-900/10 rounded-xl w-full transition-colors">
+        <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 text-red-500/70 hover:text-red-500 hover:bg-red-500/5 rounded-xl w-full transition-all">
           <LogOut size={20} />
-          <span className="text-sm font-bold uppercase tracking-widest">Sign Out</span>
+          <span className="text-xs font-bold uppercase tracking-widest">Sign Out</span>
         </button>
       </div>
     </div>
