@@ -95,9 +95,8 @@
    - **RPC Functions:** `add_credits`, `update_user_status` are REQUIRED in DB.
    - **Sentinel Protocol:** Context-Awareness Badge enforced in UI.
    - **User Management:** Ban/Inject Credits features enabled via RPC.
-5. **Studio V2 (Freemotion):** Active.
-   - **Frontend:** Freepik-Style Consoles (Black/Gold).
-   - **Strategy:** Replicate (Flux/Video) + OpenAI (Prompt Enhancer).
-   - **Ops:** Hybrid (AI on Vercel Functions).
-   - Stack: `lucide-react`, `date-fns`.
-   - Layout: Centralized `AdminLayout.tsx`.
+5. **Studio V2 (Velvet Native):** Active.
+   - **Frontend:** Integrated directly into User App (`/app/studio`).
+   - **DB:** Connected to `public.generations` and `profiles`.
+   - **Mobile:** Input zoom locked for "Native App" feel.
+   - **UI:** Custom "Creative Suite" interface matching Velvet aesthetic.
