@@ -1,24 +1,30 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { AlertTriangle, CheckCircle, Zap, Activity } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Zap, Activity, Terminal } from 'lucide-react';
 
 export default function SentinelConsole() {
-    const [reports, setReports] = useState<any[]>([]);
+    const [logs, setLogs] = useState<any[]>([]);
     const [listening, setListening] = useState(false);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         // 1. Initial Fetch
-        const fetchReports = async () => {
-            const { data } = await supabase.from('admin_reports').select('*').order('created_at', { ascending: false });
-            if (data) setReports(data);
-        };
-        fetchReports();
+        const fetchLogs = async () => {
+            const { data, error } = await supabase
+                .from('sentinel_logs')
+                .select('*')
+                .order('timestamp', { ascending: false });
 
-        // 2. REALTIME SUBSCRIPTION (The "God View" connection)
+            if (data) setLogs(data);
+            setLoading(false);
+        };
+        fetchLogs();
+
+        // 2. REALTIME SUBSCRIPTION
         const channel = supabase
             .channel('sentinel-feed')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'admin_reports' }, (payload) => {
-                setReports((prev) => [payload.new, ...prev]);
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sentinel_logs' }, (payload) => {
+                setLogs((prev) => [payload.new, ...prev]);
             })
             .subscribe((status) => setListening(status === 'SUBSCRIBED'));
 
@@ -37,31 +43,32 @@ export default function SentinelConsole() {
                 </div>
             </div>
 
-            <div className="grid gap-6">
-                {reports.map((report) => (
-                    <div key={report.id} className={`p-6 rounded-2xl backdrop-blur-md border transition-all ${report.status === 'CRITICAL' ? 'bg-red-900/10 border-red-500/30 shadow-[0_0_30px_rgba(220,38,38,0.1)]' : 'bg-zinc-900/50 border-white/10'}`}>
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <div className="flex items-center gap-2 mb-2">
-                                    {report.status === 'CRITICAL' ? (
-                                        <span className="bg-red-500/20 text-red-400 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1"><AlertTriangle size={12} /> CRITICAL INTERVENTION</span>
-                                    ) : (
-                                        <span className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1"><CheckCircle size={12} /> SYSTEM NOMINAL</span>
-                                    )}
-                                    <span className="text-zinc-500 text-xs">{new Date(report.created_at).toLocaleTimeString()}</span>
-                                </div>
-                                <h3 className="text-xl font-bold">Health Score: {report.health_score}/100</h3>
-                            </div>
-
-                            {}
-                            {report.suggested_fix_pr_url && (
-                                <a href={report.suggested_fix_pr_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-black px-6 py-3 rounded-xl font-bold transition-all hover:scale-105 active:scale-95 shadow-lg shadow-yellow-400/20">
-                                    <Zap size={18} /> MERGE FIX
-                                </a>
-                            )}
-                        </div>
+            <div className="bg-zinc-900/50 border border-white/10 rounded-2xl overflow-hidden min-h-[400px]">
+                {loading ? (
+                    <div className="p-8 text-center text-zinc-500 animate-pulse">Initializing Sentinel Protocol...</div>
+                ) : logs.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center p-20 text-center">
+                        <CheckCircle size={64} className="text-green-500/50 mb-6" />
+                        <h2 className="text-2xl font-bold text-white mb-2">NO SENTINEL ACTIVITY DETECTED</h2>
+                        <p className="text-zinc-500 tracking-widest uppercase text-sm">SYSTEM SECURE</p>
                     </div>
-                ))}
+                ) : (
+                    <div className="grid gap-2 p-4">
+                        {logs.map((log) => (
+                            <div key={log.id} className={`p-4 rounded-lg font-mono text-sm border-l-4 flex justify-between items-center ${log.status === 'FAILURE' || log.status === 'CRITICAL'
+                                    ? 'bg-red-500/10 border-red-500 text-red-200'
+                                    : 'bg-green-500/10 border-green-500 text-green-200'
+                                }`}>
+                                <div className="flex items-center gap-4">
+                                    <span className="opacity-50 text-xs">{new Date(log.timestamp).toLocaleTimeString()}</span>
+                                    <span className="font-bold uppercase tracking-wider">{log.action || 'EVENT'}</span>
+                                    <span className="text-white/80">{log.message}</span>
+                                </div>
+                                {log.status === 'FAILURE' && <AlertTriangle size={16} />}
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );
