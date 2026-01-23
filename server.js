@@ -947,49 +947,67 @@ app.post('/api/admin/ban', requireAdmin, async (req, res) => {
 });
 
 // --- ADMIN: DELETE USER (NUCLEAR) ---
+// --- ADMIN SYSTEM V3 (GOD MODE INJECTION) ---
+
+// 1. APPROVE USER
+app.post('/api/admin/approve-user', requireAdmin, async (req, res) => {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Missing email' });
+
+    try {
+        console.log(`[ADMIN] Approving: ${email}`);
+        // Native Supabase Invite
+        const { error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email);
+        if (inviteError) console.warn("Invite Warning:", inviteError.message);
+
+        // Force DB Status
+        const { error: dbError } = await supabaseAdmin
+            .from('profiles')
+            .update({ status: 'APPROVED' })
+            .eq('email', email);
+
+        if (dbError) throw dbError;
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// 2. DELETE USER (CASCADE SAFETY PROTOCOL)
 app.post('/api/admin/delete-user', requireAdmin, async (req, res) => {
     const { userId } = req.body;
-    console.log(`[ADMIN] NUCLEAR DELETE REQUEST FOR: ${userId}`);
+    console.log(`[ADMIN] NUCLEAR DELETE FOR: ${userId}`);
 
     if (!userId) return res.status(400).json({ error: 'Missing User ID' });
 
     try {
-        // STEP A: Clean up dependencies (Generations, Jobs, Talents)
-        // We delete these first to avoid "Foreign Key Violation" errors.
-
-        // 1. Delete Jobs
-        await supabaseAdmin.from('generation_jobs').delete().eq('user_id', userId);
-
-        // 2. Delete Generations (Videos/Images)
-        await supabaseAdmin.from('generations').delete().eq('user_id', userId);
-
-        // 3. Delete Talents (Created Models)
+        // STEP 1: Delete DEPENDENTS first (Children)
+        // Talents depend on Generations, so delete Talents first.
         await supabaseAdmin.from('talents').delete().eq('user_id', userId);
 
-        // 4. Delete Transactions
+        // Jobs depend on Users
+        await supabaseAdmin.from('generation_jobs').delete().eq('user_id', userId);
+
+        // Transactions depend on Users
         await supabaseAdmin.from('transactions').delete().eq('user_id', userId);
 
-        // STEP B: Delete Profile
-        const { error: profileError } = await supabaseAdmin
-            .from('profiles')
-            .delete()
-            .eq('id', userId);
+        // STEP 2: Delete ASSETS (Parents)
+        // Now safe to delete Generations
+        await supabaseAdmin.from('generations').delete().eq('user_id', userId);
 
-        if (profileError) console.warn("Profile delete warning:", profileError.message);
+        // STEP 3: Delete USER DATA
+        await supabaseAdmin.from('profiles').delete().eq('id', userId);
 
-        // STEP C: Delete Auth Account ( The Final Blow )
+        // STEP 4: Delete AUTH (Root)
         const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
-        if (authError) {
-            console.error("Auth Delete Failed:", authError);
-            throw new Error("Could not delete Auth User: " + authError.message);
-        }
+        if (authError) throw new Error("Auth Delete Error: " + authError.message);
 
-        console.log(`[ADMIN] ✅ User ${userId} has been completely erased.`);
-        res.json({ success: true, message: "User wiped from existence." });
+        console.log(`[ADMIN] ✅ User ${userId} obliterated.`);
+        res.json({ success: true });
 
     } catch (e) {
-        console.error("[ADMIN] ❌ DELETE FAILED:", e.message);
+        console.error("[ADMIN] DELETE ERROR:", e.message);
         res.status(500).json({ error: e.message });
     }
 });
