@@ -90,6 +90,7 @@
    - Table: `sentinel_logs` verified.
    - Schema: Uses `sentinel_name`, `action_type`, `report_text`.
    - **Sentinel UI:** Upgraded to 'Glass Terminal' Table. Maps `sentinel_name` & `action_type` correctly. No more 'EVENT' placeholders.
+   - **Admin Email System:** Native (Supabase SMTP). Wired via `server.js` route `/api/admin/approve-user`. No external providers (Resend) required.
 4. **Dashboard v2 (God Mode):** Active.
    - Stack: `recharts` for Analytics.
    - **RPC Functions:** `add_credits`, `update_user_status` are REQUIRED in DB.

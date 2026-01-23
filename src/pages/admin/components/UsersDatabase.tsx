@@ -41,12 +41,24 @@ export default function UsersDatabase() {
     const handleApprove = async (id: string, email: string) => {
         setActionId(id);
         try {
-            // Optimistic
             setUsers(prev => prev.map(u => u.id === id ? { ...u, status: 'APPROVED' } : u));
-            await callRpc('update_user_status', { user_id: id, new_status: 'APPROVED' });
+
+            const session = (await supabase.auth.getSession()).data.session;
+            const res = await fetch('/api/admin/approve-user', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify({ email })
+            });
+
+            if (!res.ok) throw new Error('Server rejected approval');
+            console.log("Native Approval Success");
+
         } catch (err) {
-            console.error(err);
-            setError(`Failed to approve ${email}`);
+            console.error("Approval Failed:", err);
+            setError("Failed to approve user");
             fetchUsers();
         } finally { setActionId(null); }
     };
@@ -135,8 +147,8 @@ export default function UsersDatabase() {
                                 </td>
                                 <td className="p-4">
                                     <span className={`px-3 py-1 rounded-full text-[10px] uppercase tracking-widest font-bold border ${user.status === 'APPROVED' ? 'text-green-500 border-green-900/50 bg-green-900/10' :
-                                            user.status === 'BANNED' ? 'text-red-500 border-red-900/50 bg-red-900/10 line-through' :
-                                                'text-yellow-500 border-yellow-900/50 bg-yellow-900/10'
+                                        user.status === 'BANNED' ? 'text-red-500 border-red-900/50 bg-red-900/10 line-through' :
+                                            'text-yellow-500 border-yellow-900/50 bg-yellow-900/10'
                                         }`}>
                                         {user.status}
                                     </span>

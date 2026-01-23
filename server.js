@@ -783,6 +783,39 @@ app.get('/api/casting', async (req, res) => {
 
 // --- API ADMIN ---
 
+// --- NATIVE EMAIL SYSTEM (SUPABASE SMTP) ---
+app.post('/api/admin/approve-user', requireAdmin, async (req, res) => {
+    const { email } = req.body;
+    console.log(`[ADMIN] Request to approve (Native): ${email}`);
+
+    if (!email) return res.status(400).json({ error: 'Missing email' });
+
+    try {
+        // 1. Send Native Invite
+        const { data, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email);
+
+        if (inviteError) {
+            console.warn(`[ADMIN] Invite warning: ${inviteError.message}`);
+        } else {
+            console.log(`[ADMIN] Native Invite Sent to ${email}`);
+        }
+
+        // 2. Approve in Database
+        const { error: dbError } = await supabaseAdmin
+            .from('profiles')
+            .update({ status: 'APPROVED' })
+            .eq('email', email);
+
+        if (dbError) throw dbError;
+
+        return res.json({ success: true, message: 'User approved & Supabase Invite Sent' });
+
+    } catch (e) {
+        console.error("[ADMIN] Error:", e.message);
+        return res.status(500).json({ error: e.message });
+    }
+});
+
 // PHASE 1: ATOMIC NORMALIZATION (AUTO-FIX)
 app.post('/api/admin/fix-schema', requireAdmin, async (req, res) => {
     try {
