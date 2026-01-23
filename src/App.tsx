@@ -21,6 +21,7 @@ import ModelSelector from './components/ModelSelector';
 import { ActivateAccount } from './pages/ActivateAccount';
 import LandingWaitlist from './pages/LandingWaitlist';
 import StudioConsole from './pages/StudioConsole';
+import AdminLayout from './pages/admin/AdminLayout';
 
 // --- CONFIGURATION ---
 const getApiUrl = () => {
@@ -1634,8 +1635,7 @@ function AppContent() {
                     <Route path="earnings" element={<EarningsDashboard />} />
                     <Route path="*" element={<Navigate to="/app" replace />} />
                 </Route>
-                <Route path="/vydy-ops/console" element={<Sentinel_V3 />} />
-                <Route path="/vydy-ops/sentinel" element={<SentinelConsole />} />
+                <Route path="/vydy-ops/console" element={<AdminLayout />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
         </Router >

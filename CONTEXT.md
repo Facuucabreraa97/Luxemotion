@@ -40,3 +40,19 @@
 **Rule:** This document is the Single Source of Truth.
 **Trigger:** Whenever the Agent changes DB Schema, Env Vars, or Architeture.
 **Action:** The Agent MUST update this file (`CONTEXT.md`) as the final step of the task.
+
+## 6. SENTINEL OPERATING PROTOCOLS (THE KILL SWITCH)
+**Role:** Guardians of Code Integrity.
+**Mandate:** Protect the `main` branch at all costs.
+
+**Rules of Engagement:**
+1.  **The "First Do No Harm" Test:**
+    - BEFORE pushing any code, the Sentinel MUST run `npm run build` internally.
+    - IF `npm run build` FAILS -> The operation is **ABORTED IMMEDIATELY**.
+    - The Sentinel must log a "BLOCKED" event to `public.sentinel_logs` and revert changes.
+2.  **The Black Box Rule:**
+    - Every operation (Success or Failure) MUST be logged to the `public.sentinel_logs` database table.
+    - Silence is not an option.
+3.  **Anti-Hallucination:**
+    - Before editing a file, verify it exists. Do not import "ghost files".
+    - Adhere strictly to the "Black & Gold" visual standard defined in Section 1.
