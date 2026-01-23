@@ -134,12 +134,12 @@ export default function AppStudio() {
     };
 
     return (
-        <div className="flex flex-col lg:flex-row h-full rounded-[40px] overflow-hidden bg-[#050505] border border-white/5 relative">
+        <div className="flex flex-col lg:flex-row h-full rounded-none lg:rounded-[40px] overflow-hidden bg-[#050505] border-none lg:border border-white/5 relative shadow-2xl">
             {/* AMBIENCE */}
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#D4AF37]/5 blur-[120px] rounded-full pointer-events-none" />
 
             {/* LEFT PANEL: CONTROLS */}
-            <aside className="w-full lg:w-[400px] bg-white/5 backdrop-blur-xl border-r border-white/5 p-8 flex flex-col z-10">
+            <aside className="w-full lg:w-[400px] bg-zinc-900/50 backdrop-blur-xl border-b lg:border-r border-white/5 p-6 lg:p-8 flex flex-col z-10 lg:h-full overflow-y-auto shrink-0">
                 <div className="mb-8">
                     <h1 className="text-2xl font-serif text-white tracking-widest">Creative Suite</h1>
                     <p className="text-[10px] text-white/30 uppercase tracking-[0.2em] font-bold mt-1">Velvet Engine v2.0</p>
@@ -203,9 +203,9 @@ export default function AppStudio() {
             </aside>
 
             {/* RIGHT PANEL: PREVIEW & HISTORY */}
-            <main className="flex-1 flex flex-col relative bg-[#080808]">
+            <main className="flex-1 flex flex-col relative bg-[#080808] min-h-[500px] lg:min-h-auto overflow-hidden">
                 {/* PREVIEW AREA */}
-                <div className="flex-1 flex items-center justify-center p-8 overflow-hidden relative">
+                <div className="flex-1 flex items-center justify-center p-4 lg:p-8 overflow-hidden relative">
                     {/* Grid */}
                     <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'linear-gradient(#333 1px, transparent 1px), linear-gradient(to right, #333 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
 
@@ -240,7 +240,7 @@ export default function AppStudio() {
                 </div>
 
                 {/* HISTORY STRIP */}
-                <div className="h-32 bg-[#0A0A0A] border-t border-white/5 flex items-center px-6 gap-4 overflow-x-auto z-20">
+                <div className="h-24 lg:h-32 bg-[#0A0A0A] border-t border-white/5 flex items-center px-4 lg:px-6 gap-4 overflow-x-auto z-20 shrink-0">
                     <div className="flex-shrink-0">
                         <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-600 -rotate-90 w-4 whitespace-nowrap">Recent</p>
                     </div>
