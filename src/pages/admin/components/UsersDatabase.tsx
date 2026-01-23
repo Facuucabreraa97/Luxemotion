@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { CheckCircle, Search, Mail, Trash2, AlertCircle, Zap, Ban, Loader2 } from 'lucide-react';
+import { CheckCircle, Search, Mail, Trash2, RefreshCw, AlertCircle, Zap, Ban, Loader2 } from 'lucide-react';
 
 interface Profile {
     id: string;
@@ -18,14 +18,12 @@ export default function UsersDatabase() {
     const [injectModal, setInjectModal] = useState<{ id: string, email: string } | null>(null);
     const [injectAmount, setInjectAmount] = useState(100);
 
-    // FETCH (Single Source of Truth)
     const fetchUsers = async () => {
-        // Don't set global loading to true to avoid flashing, just refresh data
+        // Background refresh without full loader to avoid flicker
         const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
         if (data) setUsers(data as Profile[]);
     };
 
-    // Initial Load
     useEffect(() => {
         const init = async () => {
             setLoading(true);
@@ -35,10 +33,9 @@ export default function UsersDatabase() {
         init();
     }, []);
 
-    // APPROVE HANDLER (Fixed Logic)
+    // HANDLER: APPROVE (Server Call)
     const handleApprove = async (id: string, email: string) => {
         setActionId(id);
-        setError(null);
         try {
             const session = (await supabase.auth.getSession()).data.session;
             const res = await fetch('/api/admin/approve-user', {
@@ -46,23 +43,19 @@ export default function UsersDatabase() {
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
                 body: JSON.stringify({ email })
             });
-
-            if (!res.ok) throw new Error('Server Failed');
-
-            // SYNC: Re-fetch list to ensure no duplicates/ghosts
-            await fetchUsers();
+            if (!res.ok) throw new Error('Server Approval Failed');
+            await fetchUsers(); // Sync
         } catch (err) {
             console.error(err);
-            setError("Approval Failed");
+            setError(`Failed to approve ${email}`);
         } finally { setActionId(null); }
     };
 
-    // DELETE HANDLER (New Feature)
+    // HANDLER: DELETE (Server Call)
     const handleDelete = async (id: string, email: string) => {
-        if (!confirm(`Are you sure you want to PERMANENTLY DELETE ${email}? This cannot be undone.`)) return;
+        if (!confirm(`CONFIRM: Permanently delete ${email}? This erases all their videos and cannot be undone.`)) return;
 
         setActionId(id);
-        setError(null);
         try {
             const session = (await supabase.auth.getSession()).data.session;
             const res = await fetch('/api/admin/delete-user', {
@@ -73,24 +66,24 @@ export default function UsersDatabase() {
 
             if (!res.ok) throw new Error('Delete Failed');
 
-            // Remove locally immediately for snappy feel, then sync
+            // Remove locally
             setUsers(prev => prev.filter(u => u.id !== id));
-            await fetchUsers();
+            await fetchUsers(); // Sync to be sure
         } catch (err) {
             console.error(err);
             setError("Delete Failed");
         } finally { setActionId(null); }
     };
 
-    // INJECT CREDITS
+    // HANDLER: INJECT (RPC)
     const handleInject = async () => {
         if (!injectModal) return;
         const { id } = injectModal;
         setActionId(id);
         try {
             await supabase.rpc('add_credits', { user_id: id, amount: injectAmount });
+            await fetchUsers();
             setInjectModal(null);
-            await fetchUsers(); // Sync
         } catch (err) {
             setError("Injection Failed");
         } finally { setActionId(null); }
@@ -98,7 +91,6 @@ export default function UsersDatabase() {
 
     return (
         <div className="min-h-full font-sans relative pb-20">
-            {/* Header */}
             <header className="px-6 py-4 border-b border-[#222] bg-[#050505] flex justify-between items-center sticky top-0 z-20">
                 <div className="flex items-center gap-3">
                     <h2 className="text-sm font-bold tracking-[0.2em] text-[#E5E5E5]">CLIENT LEDGER</h2>
@@ -106,7 +98,7 @@ export default function UsersDatabase() {
                 </div>
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#444]" size={14} />
-                    <input type="text" placeholder="SEARCH..." className="bg-[#0A0A0A] border border-[#222] rounded-full pl-9 pr-4 py-1.5 text-xs text-[#E5E5E5] focus:border-[#444] w-64 outline-none" />
+                    <input type="text" placeholder="SEARCH..." className="bg-[#0A0A0A] border border-[#222] rounded-full pl-9 pr-4 py-1.5 text-xs text-[#E5E5E5] w-64 outline-none" />
                 </div>
             </header>
 
@@ -123,7 +115,7 @@ export default function UsersDatabase() {
                         </tr>
                     </thead>
                     <tbody className="text-sm text-[#888]">
-                        {loading ? <tr className="animate-pulse"><td colSpan={4} className="p-4 text-center">Loading Ledger...</td></tr> :
+                        {loading ? <tr><td colSpan={4} className="p-4 text-center animate-pulse">Loading...</td></tr> :
                             users.map((user) => (
                                 <tr key={user.id} className="border-b border-[#111] hover:bg-[#080808] transition-colors">
                                     <td className="p-4 text-[#E5E5E5] font-medium flex items-center gap-3">
@@ -137,12 +129,11 @@ export default function UsersDatabase() {
                                     <td className="p-4 text-right flex items-center justify-end gap-2">
                                         <button onClick={() => setInjectModal({ id: user.id, email: user.email })} className="p-2 hover:bg-[#D4AF37]/10 rounded-full text-[#555] hover:text-[#D4AF37] transition-colors"><Zap size={16} /></button>
 
-                                        {/* DELETE BUTTON (TRASH) */}
+                                        {/* DELETE BUTTON (ADDED) */}
                                         <button onClick={() => handleDelete(user.id, user.email)} disabled={actionId === user.id} className="p-2 hover:bg-red-900/20 rounded-full text-[#555] hover:text-red-500 transition-colors" title="Delete User">
-                                            {actionId === user.id && error ? <Loader2 className="animate-spin" size={16} /> : <Trash2 size={16} />}
+                                            {actionId === user.id ? <Loader2 className="animate-spin" size={16} /> : <Trash2 size={16} />}
                                         </button>
 
-                                        {/* APPROVE BUTTON */}
                                         {user.status === 'PENDING' && (
                                             <button onClick={() => handleApprove(user.id, user.email)} disabled={actionId === user.id} className="p-2 hover:bg-green-500/10 rounded-full text-[#555] hover:text-green-500 transition-colors">
                                                 {actionId === user.id ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle size={16} />}
@@ -157,10 +148,10 @@ export default function UsersDatabase() {
 
             {/* INJECT MODAL */}
             {injectModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
                     <div className="bg-[#0a0a0a] border border-white/10 p-6 rounded-2xl w-80 shadow-2xl">
                         <h3 className="text-[#D4AF37] font-bold text-lg mb-4 uppercase tracking-widest">Inject Credits</h3>
-                        <input type="number" value={injectAmount} onChange={(e) => setInjectAmount(Number(e.target.value))} className="w-full bg-black border border-white/20 rounded p-2 text-white font-mono mb-4 text-center focus:border-[#D4AF37] outline-none" />
+                        <input type="number" value={injectAmount} onChange={(e) => setInjectAmount(Number(e.target.value))} className="w-full bg-black border border-white/20 rounded p-2 text-white text-center focus:border-[#D4AF37] outline-none mb-4" />
                         <div className="flex gap-2">
                             <button onClick={() => setInjectModal(null)} className="flex-1 py-2 text-xs font-bold uppercase text-zinc-500 hover:text-white">Cancel</button>
                             <button onClick={handleInject} className="flex-1 py-2 text-xs font-bold uppercase bg-[#D4AF37] text-black rounded hover:bg-[#C6A649]">Confirm</button>
