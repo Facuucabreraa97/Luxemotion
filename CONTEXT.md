@@ -66,6 +66,11 @@
 3. **Sentinel System:** OPERATIONAL.
    - Table: `sentinel_logs` verified.
    - Schema: Uses `sentinel_name`, `action_type`, `report_text`.
-4. **Admin Dashboard:** REFACTORED (Fintech Standard).
+   - **Sentinel UI:** Upgraded to 'Glass Terminal' Table. Maps `sentinel_name` & `action_type` correctly. No more 'EVENT' placeholders.
+5. **Dashboard v2 (God Mode):** Active.
+   - Stack: `recharts` for Analytics.
+   - **RPC Functions:** `add_credits`, `update_user_status` are REQUIRED in DB.
+   - **Sentinel Protocol:** Context-Awareness Badge enforced in UI.
+   - **User Management:** Ban/Inject Credits features enabled via RPC.
    - Stack: `lucide-react`, `date-fns`.
    - Layout: Centralized `AdminLayout.tsx`.

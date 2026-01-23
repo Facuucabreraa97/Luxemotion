@@ -3,26 +3,24 @@ import { LayoutDashboard, ShieldAlert, Users, CreditCard, LogOut } from 'lucide-
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-// Component Imports
+// COMPONENT IMPORTS
+import AdminOverview from './components/AdminOverview';
 import SentinelConsole from './components/SentinelConsole';
 import UsersDatabase from './components/UsersDatabase';
-// Placeholder for Treasury if not fully implemented in this turn, or simple placeholder
-// Assuming TreasuryLogs exists from previous file listing or I'll genericize it.
-// Step 2956 showed "import TreasuryLogs from './components/TreasuryLogs';"
-// I will assume it exists. If not, I'll create a placeholder.
 
+// UTILS
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
 
-// Placeholder for Treasury to ensure build passes if file missing
+// Placeholder for Treasury
 const TreasuryView = () => <div className="p-10 text-zinc-500 font-mono">TREASURY MODULE LOCKED</div>;
 
 export default function AdminLayout() {
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'sentinel' | 'users' | 'billing'>('sentinel');
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'sentinel' | 'users' | 'billing'>('dashboard'); // Default to Dashboard now
 
     const MENU = [
-        { id: 'dashboard', label: 'OVERVIEW', icon: LayoutDashboard }, // Placeholder tab
+        { id: 'dashboard', label: 'OVERVIEW', icon: LayoutDashboard },
         { id: 'sentinel', label: 'SENTINEL AI', icon: ShieldAlert },
         { id: 'users', label: 'PRIVATE BANKING', icon: Users },
         { id: 'billing', label: 'TREASURY', icon: CreditCard },
@@ -77,15 +75,10 @@ export default function AdminLayout() {
                 <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#D4AF37]/5 blur-[120px] rounded-full pointer-events-none" />
 
                 <div className="relative z-10 h-full">
+                    {activeTab === 'dashboard' && <AdminOverview />}
                     {activeTab === 'sentinel' && <SentinelConsole />}
                     {activeTab === 'users' && <UsersDatabase />}
                     {activeTab === 'billing' && <TreasuryView />}
-                    {activeTab === 'dashboard' && (
-                        <div className="p-10 flex flex-col items-center justify-center h-full text-[#333]">
-                            <LayoutDashboard size={48} className="mb-4 opacity-20" />
-                            <p className="tracking-widest text-sm">SELECT A MODULE</p>
-                        </div>
-                    )}
                 </div>
             </main>
         </div>

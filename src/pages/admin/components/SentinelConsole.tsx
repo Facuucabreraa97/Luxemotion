@@ -1,7 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { format } from 'date-fns';
-import { Shield, AlertTriangle } from 'lucide-react';
+import { ShieldCheck, Check, X, Bell, Clock, AlertTriangle } from 'lucide-react';
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+function cn(...inputs: ClassValue[]) {
+    return twMerge(clsx(inputs));
+}
 
 interface SentinelLog {
     id: number;
@@ -15,6 +21,7 @@ interface SentinelLog {
 export default function SentinelConsole() {
     const [logs, setLogs] = useState<SentinelLog[]>([]);
     const [status, setStatus] = useState<'CONNECTING' | 'LIVE' | 'ERROR'>('CONNECTING');
+    const [nextScan, setNextScan] = useState(300); // 5 mins
 
     useEffect(() => {
         const fetchLogs = async () => {
@@ -23,9 +30,7 @@ export default function SentinelConsole() {
                     .from('sentinel_logs')
                     .select('*')
                     .order('timestamp', { ascending: false })
-                    .limit(100);
-
-                if (error) throw error;
+                    .limit(50);
                 if (data) setLogs(data);
                 setStatus('LIVE');
             } catch (err) {
@@ -33,78 +38,100 @@ export default function SentinelConsole() {
                 setStatus('ERROR');
             }
         };
-
         fetchLogs();
 
         const channel = supabase
-            .channel('sentinel-feed')
+            .channel('sentinel-chat-feed')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sentinel_logs' }, (payload) => {
                 setLogs((prev) => [payload.new as SentinelLog, ...prev]);
             })
-            .subscribe();
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') setStatus('LIVE');
+            });
 
-        return () => { supabase.removeChannel(channel); };
+        // Countdown Timer
+        const timer = setInterval(() => {
+            setNextScan(prev => prev > 0 ? prev - 1 : 300);
+        }, 1000);
+
+        return () => {
+            supabase.removeChannel(channel);
+            clearInterval(timer);
+        };
     }, []);
 
-    if (status === 'ERROR') return (
-        <div className="p-10 flex flex-col items-center justify-center text-red-500 h-full font-mono">
-            <AlertTriangle size={48} className="mb-4 animate-pulse" />
-            <h2 className="text-xl tracking-widest">CONNECTION SEVERED</h2>
-        </div>
-    );
+    const formatTime = (s: number) => {
+        const m = Math.floor(s / 60).toString().padStart(2, '0');
+        const sec = (s % 60).toString().padStart(2, '0');
+        return `${m}:${sec}`;
+    };
 
     return (
-        <div className="min-h-full font-sans">
-            {/* Header */}
-            <header className="px-6 py-4 border-b border-[#222] bg-[#050505] flex justify-between items-center sticky top-0 z-20">
-                <div className="flex items-center gap-3">
-                    <Shield className="text-[#D4AF37]" size={20} />
-                    <h2 className="text-sm font-bold tracking-[0.2em] text-[#E5E5E5]">SENTINEL CONTROL</h2>
-                </div>
-                <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                    <span className="text-[10px] font-mono text-green-500 tracking-widest">LIVE FEED</span>
-                </div>
-            </header>
+        <div className="h-full flex flex-col pt-6 px-6 pb-6 relative">
+            {/* CONTEXT BADGE */}
+            <div className="absolute top-6 right-6 px-3 py-1 bg-[#D4AF37] text-black text-[9px] font-bold uppercase tracking-widest rounded shadow-[0_0_15px_rgba(212,175,55,0.4)] flex items-center gap-2">
+                <ShieldCheck size={12} /> CONTEXT AWARENESS: ACTIVE
+            </div>
 
-            {/* Terminal Table */}
-            <div className="p-0">
-                <table className="w-full text-left border-collapse">
-                    <thead className="bg-[#0A0A0A] text-[#444] text-[10px] uppercase font-bold tracking-widest sticky top-[57px] z-10 shadow-sm">
-                        <tr>
-                            <th className="p-4 border-b border-[#111]">Timestamp</th>
-                            <th className="p-4 border-b border-[#111]">Sentinel</th>
-                            <th className="p-4 border-b border-[#111]">Action</th>
-                            <th className="p-4 border-b border-[#111]">Status</th>
-                            <th className="p-4 border-b border-[#111] w-1/2">Report Payload</th>
-                        </tr>
-                    </thead>
-                    <tbody className="font-mono text-xs text-[#888]">
-                        {logs.map((log) => (
-                            <tr key={log.id} className="border-b border-[#111] hover:bg-[#080808] transition-colors group">
-                                <td className="p-4 text-[#555] group-hover:text-[#777]">
-                                    {log.timestamp ? format(new Date(log.timestamp), 'MMM dd, HH:mm:ss') : '-'}
-                                </td>
-                                <td className="p-4 text-[#D4AF37] opacity-80">{log.sentinel_name}</td>
-                                <td className="p-4 text-[#AAA]">{log.action_type}</td>
-                                <td className="p-4">
-                                    <span className={`px-2 py-1 rounded text-[10px] font-bold ${log.status === 'SUCCESS' ? 'text-green-500 bg-green-900/10' :
-                                            log.status === 'BLOCKED' ? 'text-orange-500 bg-orange-900/10' :
-                                                'text-red-500 bg-red-900/10'
-                                        }`}>
-                                        {log.status}
+            {/* TOP BAR */}
+            <div className="flex items-center gap-8 mb-6 border-b border-white/10 pb-4">
+                <h2 className="text-xl font-bold tracking-widest text-[#E5E5E5] flex items-center gap-3">
+                    SENTINEL FEED
+                </h2>
+                <div className="flex items-center gap-2 text-zinc-500 text-xs font-mono">
+                    <Clock size={12} />
+                    <span>NEXT SCAN: {formatTime(nextScan)}</span>
+                </div>
+                <div className="flex items-center gap-2 text-zinc-500 text-xs font-mono">
+                    <Bell size={12} />
+                    <span>LAST SCAN: JUST NOW</span>
+                </div>
+            </div>
+
+            {/* CHAT AREA */}
+            <div className="flex-1 overflow-y-auto pr-2 space-y-4">
+                {logs.map((log) => {
+                    const isFail = log.status === 'FAILURE' || log.status === 'BLOCKED';
+                    return (
+                        <div key={log.id} className={cn(
+                            "flex gap-4 p-4 rounded-xl border backdrop-blur-md transition-all",
+                            isFail ? "bg-red-900/10 border-red-500/30" : "bg-zinc-900/40 border-white/5 hover:bg-white/5"
+                        )}>
+                            <div className="flex-shrink-0 pt-1">
+                                <div className={cn(
+                                    "w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs",
+                                    isFail ? "bg-red-500/20 text-red-500" : "bg-[#D4AF37]/20 text-[#D4AF37]"
+                                )}>
+                                    {log.sentinel_name.charAt(0)}
+                                </div>
+                            </div>
+                            <div className="flex-1">
+                                <div className="flex items-center justify-between mb-1">
+                                    <span className={cn("text-xs font-bold uppercase tracking-widest", isFail ? "text-red-400" : "text-[#D4AF37]")}>
+                                        {log.sentinel_name}
                                     </span>
-                                </td>
-                                <td className="p-4 text-[#666] truncate group-hover:whitespace-normal group-hover:text-[#AAA] transition-all max-w-md">
-                                    {log.report_text}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-                {logs.length === 0 && status !== 'ERROR' && (
-                    <div className="p-20 text-center text-[#333] font-mono tracking-widest text-sm">
-                        Waiting for signal...
+                                    <span className="text-[10px] text-zinc-600 font-mono">
+                                        {log.timestamp ? format(new Date(log.timestamp), 'HH:mm:ss') : ''}
+                                    </span>
+                                </div>
+                                <div className="text-sm text-white font-mono mb-1">
+                                    <span className="opacity-50 mr-2">OP: {log.action_type}</span>
+                                    <span className={isFail ? "text-red-300" : "text-zinc-300"}>
+                                        {log.report_text}
+                                    </span>
+                                </div>
+                                {isFail && (
+                                    <div className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded bg-red-500/20 text-red-500 text-[9px] font-bold uppercase tracking-wider">
+                                        <AlertTriangle size={10} /> ALERT
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    );
+                })}
+                {logs.length === 0 && (
+                    <div className="text-center p-20 text-zinc-600 font-mono text-sm tracking-widest">
+                        NO LOGS DETECTED.
                     </div>
                 )}
             </div>
