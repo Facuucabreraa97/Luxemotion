@@ -1,43 +1,36 @@
 import React from 'react';
-import { useLocation, Link } from 'react-router-dom';
-import { Home, Globe, Users, Image as ImageIcon, DollarSign, CreditCard, Settings } from 'lucide-react';
+import { NavLink } from 'react-router-dom';
+import { Sparkles, Image as ImageIcon, LayoutGrid, CreditCard, Settings } from 'lucide-react';
 
-export default function BottomNav() {
-  const location = useLocation();
-  const pathname = location.pathname;
-
-  // DICTIONARY: STRICT SPANISH (LATAM NEUTRAL)
+export default function MobileNav() {
   const navItems = [
-    { label: 'ESTUDIO', icon: Home, path: '/app' },
-    { label: 'EXPLORAR', icon: Globe, path: '/app/explore' },
-    // Casting removed
-    { label: 'GALERÍA', icon: ImageIcon, path: '/app/gallery' },
-    { label: 'GANANCIAS', icon: DollarSign, path: '/app/earnings' },
-    { label: 'PLAN', icon: CreditCard, path: '/app/billing' }, // Fixed path /app/plan -> /app/billing
-    { label: 'AJUSTES', icon: Settings, path: '/app/settings' },
+    { icon: Sparkles, label: 'Studio', path: '/app/studio' },
+    { icon: ImageIcon, label: 'Gallery', path: '/app/gallery' },
+    { icon: LayoutGrid, label: 'Explore', path: '/app/explore' },
+    { icon: CreditCard, label: 'Plan', path: '/app/plan' },
+    { icon: Settings, label: 'Settings', path: '/app/settings' },
   ];
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-[100] pb-[env(safe-area-inset-bottom)]">
-      { }
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-xl border-t border-white/10" />
-
-      <div className="relative flex justify-around items-center px-2 py-4">
-        {navItems.map((item) => {
-          const isActive = pathname === item.path || (item.path !== '/app' && pathname.startsWith(item.path));
-          const Icon = item.icon;
-
-          return (
-            <Link
-              key={item.label}
-              to={item.path}
-              className={`flex flex-col items-center gap-1 transition-all duration-300 active:scale-95 ${isActive ? 'text-[#C6A649] scale-105' : 'text-white/40 hover:text-white'}`}
-            >
-              <Icon size={20} strokeWidth={isActive ? 2.5 : 1.5} />
-              <span className="text-[8px] font-bold tracking-wider">{item.label}</span>
-            </Link>
-          );
-        })}
+    <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#050505]/95 backdrop-blur-xl border-t border-white/10 z-[100] pb-[env(safe-area-inset-bottom)]">
+      <div className="flex justify-around items-center p-2">
+        {navItems.map((item) => (
+          <NavLink
+            key={item.path}
+            to={item.path}
+            className={({ isActive }) =>
+              `flex flex-col items-center gap-1 p-3 rounded-xl transition-all ${isActive ? 'text-[#D4AF37]' : 'text-zinc-600'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <item.icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+                {isActive && <div className="w-1 h-1 bg-[#D4AF37] rounded-full mt-1" />}
+              </>
+            )}
+          </NavLink>
+        ))}
       </div>
     </div>
   );
