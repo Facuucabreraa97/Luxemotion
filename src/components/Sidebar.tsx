@@ -10,8 +10,8 @@ export default function Sidebar() {
   };
 
   const navItems = [
-    { icon: Sparkles, label: 'Studio', path: '/app/studio' },      // FIXED: Absolute Path
-    { icon: ImageIcon, label: 'Gallery', path: '/app/gallery' },    // Unified Gallery
+    { icon: Sparkles, label: 'Studio', path: '/app/studio' },
+    { icon: ImageIcon, label: 'Gallery', path: '/app/gallery' },
     { icon: LayoutGrid, label: 'Explore', path: '/app/explore' },
     { icon: CreditCard, label: 'Plan', path: '/app/plan' },
     { icon: Settings, label: 'Settings', path: '/app/settings' },
@@ -20,7 +20,7 @@ export default function Sidebar() {
   return (
     <div className="hidden lg:flex flex-col w-[280px] h-full bg-[#050505] border-r border-white/5 p-6 font-sans">
       <div className="flex items-center gap-3 px-2 mb-12">
-        <div className="w-8 h-8 bg-gradient-to-br from-[#D4AF37] to-[#8C721F] rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(212,175,55,0.2)]">
+        <div className="w-8 h-8 bg-[#D4AF37] rounded-lg flex items-center justify-center">
           <span className="font-bold text-black text-xl">L</span>
         </div>
         <span className="text-xl font-bold text-white tracking-widest">LUXEMOTION</span>
