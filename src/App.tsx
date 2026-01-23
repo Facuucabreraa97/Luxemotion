@@ -16,7 +16,7 @@ import { EarningsDashboard } from './pages/EarningsDashboard';
 import { useMode } from './context/ModeContext';
 // import { LandingPage } from './pages/LandingPage';
 // import { AccessPending } from './pages/AccessPending';
-import { AdminConsole } from './pages/admin/AdminConsole';
+import AdminConsole from './pages/admin/AdminConsole';
 import ModelSelector from './components/ModelSelector';
 import { ActivateAccount } from './pages/ActivateAccount';
 import LandingWaitlist from './pages/LandingWaitlist';
@@ -155,7 +155,7 @@ const ONBOARDING_STEPS = [
 ];
 
 // --- SUPABASE ---
-const supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+
 
 // --- CONTEXTS ---
 
