@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Sparkles, Image as ImageIcon, Video, Layers, Settings2, Download, Maximize2, Loader2, UploadCloud } from 'lucide-react';
-import * as Tabs from '@radix-ui/react-tabs';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -8,7 +7,7 @@ function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
 
-export default function StudioConsole() {
+export default function AppStudio() {
     const [mode, setMode] = useState<'image' | 'video'>('image');
     const [prompt, setPrompt] = useState('');
     const [aspectRatio, setAspectRatio] = useState('16:9');
@@ -42,9 +41,9 @@ export default function StudioConsole() {
     };
 
     return (
-        <div className="flex h-screen bg-[#050505] text-white font-sans overflow-hidden">
+        <div className="flex bg-[#050505] text-white font-sans overflow-hidden h-full rounded-[40px] border border-white/5 shadow-2xl">
             {/* LEFT SIDEBAR (COCKPIT) */}
-            <aside className="w-[350px] bg-zinc-900/50 backdrop-blur-xl border-r border-white/5 flex flex-col p-6 z-20 shadow-2xl">
+            <aside className="w-[350px] bg-zinc-900/50 backdrop-blur-xl border-r border-white/5 flex flex-col p-6 z-20">
                 <div className="mb-8 flex items-center gap-2">
                     <Sparkles className="text-[#D4AF37]" />
                     <h1 className="text-xl font-bold tracking-widest text-[#E5E5E5]">STUDIO<span className="text-[#D4AF37]">.AI</span></h1>
@@ -123,7 +122,7 @@ export default function StudioConsole() {
                 />
 
                 {/* Content */}
-                <div className="relative z-10 w-full h-full max-w-5xl max-h-[80vh] flex items-center justify-center">
+                <div className="relative z-10 w-full h-full flex items-center justify-center">
                     {!result && !loading && (
                         <div className="text-center opacity-30">
                             <Layers size={64} className="mx-auto mb-4 text-[#D4AF37]" />

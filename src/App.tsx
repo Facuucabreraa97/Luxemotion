@@ -22,6 +22,13 @@ import { ActivateAccount } from './pages/ActivateAccount';
 import LandingWaitlist from './pages/LandingWaitlist';
 import StudioConsole from './pages/StudioConsole';
 import AdminLayout from './pages/admin/AdminLayout';
+import AppStudio from './pages/app/studio';
+import Explore from './pages/app/explore';
+import Casting from './pages/app/casting';
+import Gallery from './pages/app/gallery';
+import Earnings from './pages/app/earnings';
+import Plan from './pages/app/plan';
+import AppSettings from './pages/app/settings';
 
 // --- CONFIGURATION ---
 const getApiUrl = () => {
@@ -507,12 +514,12 @@ const Sidebar = ({ credits, onLogout, onUp, userProfile, onUpgrade, notify }: an
     const [showVelvetBenefits, setShowVelvetBenefits] = React.useState(false);
 
     const links = [
-        { icon: Video, label: t('common.nav.studio'), path: '/app' },
+        { icon: Video, label: t('common.nav.studio'), path: '/app/studio' },
         { icon: Globe, label: t('common.nav.explore'), path: '/app/explore' },
-        { icon: Users, label: t('common.nav.talent'), path: '/app/talent' },
+        { icon: Users, label: t('common.nav.casting') || 'CASTING', path: '/app/casting' },
         { icon: ImageIcon, label: t('common.nav.gallery'), path: '/app/gallery' },
         { icon: DollarSign, label: t('common.nav.earnings'), path: '/app/earnings' },
-        { icon: CreditCard, label: t('common.nav.billing'), path: '/app/billing' },
+        { icon: Crown, label: 'PLAN', path: '/app/plan' },
         { icon: Settings, label: t('common.nav.settings'), path: '/app/settings' },
     ];
 
@@ -1077,6 +1084,7 @@ const GalleryPage = ({ videos, setVideos }: any) => {
     const { mode } = useMode();
     const { showToast } = useToast();
     const { t } = useTranslation();
+    const navigate = useNavigate();
     const [publishing, setPublishing] = useState<string | null>(null);
 
     const togglePublish = async (video: any) => {
@@ -1429,7 +1437,7 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile, 
 };
 
 import MobileLayout from './components/MobileLayout';
-import SentinelConsole from './pages/admin/SentinelConsole';
+
 import Sentinel_V3 from './pages/admin/Sentinel_V3';
 
 // --- APP LAYOUT ---
@@ -1477,6 +1485,7 @@ function AppContent() {
     const [modelId, setModelId] = useState<string | null>(null); // ENGINE STATE
     const { mode, setMode } = useMode();
     const { showToast } = useToast();
+    const { t } = useTranslation();
     const notify = (msg: string) => showToast(msg);
 
     const handleInf = {
@@ -1621,19 +1630,20 @@ function AppContent() {
                     // Logic: If session && (status === 'APPROVED' || status === 'ACTIVE' || profile.is_admin) -> Allow.
                     // If session && status === 'PENDING' -> Redirect to / with alert? Or Logout?
 
-                    session && (profile?.status === 'APPROVED' || profile?.status === 'ACTIVE' || profile?.is_admin)
+                    // Relaxed Guard for Login Loop Fix
+                    session
                         ? <ProtectedLayout session={session} credits={credits} handleLogout={handleLogout} setSelPlan={setSelPlan} profile={profile} mode={mode} selPlan={selPlan} notify={notify} />
-                        : (session ? <Navigate to="/" replace /> : <Navigate to="/login" replace />)
+                        : <Navigate to="/login" replace />
                 }>
-                    <Route index element={<StudioPage onGen={handleVideoSaved} influencers={influencers} credits={credits} notify={notify} onUp={() => setSelPlan({ key: 'creator', annual: true })} userPlan={userPlan} talents={influencers} profile={profile} modelId={modelId} onSelectModel={setModelId} />} />
-                    <Route path="studio" element={<StudioConsole credits={credits} setCredits={setCredits} notify={notify} />} />
-                    <Route path="explore" element={<ExplorePage />} />
-                    <Route path="talent" element={<TalentPage list={influencers} add={handleInf.add} del={handleInf.del} notify={notify} videos={videos} profile={profile} />} />
-                    <Route path="gallery" element={<GalleryPage videos={videos} setVideos={setVideos} />} />
-                    <Route path="billing" element={<BillingPage onSelect={(k: string, a: boolean) => setSelPlan({ key: k, annual: a })} />} />
-                    <Route path="settings" element={<SettingsPage credits={credits} profile={profile} setProfile={handleUpdateProfile} notify={notify} />} />
-                    <Route path="earnings" element={<EarningsDashboard />} />
-                    <Route path="*" element={<Navigate to="/app" replace />} />
+                    <Route index element={<Navigate to="studio" replace />} />
+                    <Route path="studio" element={<AppStudio />} />
+                    <Route path="explore" element={<Explore />} />
+                    <Route path="casting" element={<Casting />} />
+                    <Route path="gallery" element={<Gallery />} />
+                    <Route path="earnings" element={<Earnings />} />
+                    <Route path="plan" element={<Plan />} />
+                    <Route path="settings" element={<AppSettings />} />
+                    <Route path="*" element={<Navigate to="studio" replace />} />
                 </Route>
                 <Route path="/vydy-ops/console" element={<AdminLayout />} />
                 <Route path="*" element={<Navigate to="/" replace />} />

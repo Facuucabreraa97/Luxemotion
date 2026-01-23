@@ -1,10 +1,21 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase'; // Adjusted path
+import { useNavigate } from 'react-router-dom';
 
 export default function LandingWaitlist() {
     const [email, setEmail] = useState('');
     const [status, setStatus] = useState<'IDLE' | 'LOADING' | 'SUCCESS' | 'ERROR'>('IDLE');
     const [msg, setMsg] = useState('');
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        // Redirect if already logged in
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session) navigate('/app');
+        });
+    }, [navigate]);
+
 
     const handleJoin = async (e: React.FormEvent) => {
         e.preventDefault();
