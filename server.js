@@ -394,11 +394,11 @@ app.post('/api/buy', async (req, res) => {
 
         if (error || !item) {
             return res.status(404).json({ success: false, message: "Asset not found", debug_error: error });
-        }
 
+            // 3. VALIDATIONS
+        }
         const sellerId = item.user_id;
 
-        // 3. VALIDATIONS
         if (buyerId === sellerId) {
             return res.status(400).json({ success: false, message: "You cannot purchase your own asset." });
         }
@@ -786,33 +786,24 @@ app.get('/api/casting', async (req, res) => {
 // --- NATIVE EMAIL SYSTEM (SUPABASE SMTP) ---
 app.post('/api/admin/approve-user', requireAdmin, async (req, res) => {
     const { email } = req.body;
-    console.log(`[ADMIN] Processing approval for: ${email}`);
-
     if (!email) return res.status(400).json({ error: 'Missing email' });
 
     try {
-        // 1. Send Native Invite
-        const { data, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email);
+        console.log(`[ADMIN] Approving: ${email}`);
+        // Native Invite
+        const { error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email);
+        if (inviteError) console.warn("Invite warning:", inviteError.message);
 
-        if (inviteError) {
-            console.warn(`[ADMIN] Invite Warning (User might exist): ${inviteError.message}`);
-        } else {
-            console.log(`[ADMIN] ✅ Invite Email dispatched to ${email}`);
-        }
-
-        // 2. Approve in Database
+        // DB Update
         const { error: dbError } = await supabaseAdmin
             .from('profiles')
             .update({ status: 'APPROVED' })
             .eq('email', email);
 
         if (dbError) throw dbError;
-
-        res.json({ success: true, message: 'User approved & Invite sent' });
-
+        res.json({ success: true });
     } catch (e) {
-        console.error("[ADMIN] ❌ Approval Failed:", e.message);
-        return res.status(500).json({ error: e.message });
+        res.status(500).json({ error: e.message });
     }
 });
 
@@ -958,33 +949,48 @@ app.post('/api/admin/ban', requireAdmin, async (req, res) => {
 // --- ADMIN: DELETE USER (NUCLEAR) ---
 app.post('/api/admin/delete-user', requireAdmin, async (req, res) => {
     const { userId } = req.body;
-    console.log(`[ADMIN] Request to DELETE user: ${userId}`);
+    console.log(`[ADMIN] NUCLEAR DELETE REQUEST FOR: ${userId}`);
 
     if (!userId) return res.status(400).json({ error: 'Missing User ID' });
 
     try {
-        // 1. Delete from Supabase Auth (This usually cascades to profiles if set up, but we do both)
-        const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+        // STEP A: Clean up dependencies (Generations, Jobs, Talents)
+        // We delete these first to avoid "Foreign Key Violation" errors.
 
-        if (authError) {
-            console.error(`[ADMIN] Auth Delete Failed: ${authError.message}`);
-            throw authError;
-        }
+        // 1. Delete Jobs
+        await supabaseAdmin.from('generation_jobs').delete().eq('user_id', userId);
 
-        // 2. Explicitly delete profile (Double Tap) just in case cascade is missing
-        const { error: dbError } = await supabaseAdmin
+        // 2. Delete Generations (Videos/Images)
+        await supabaseAdmin.from('generations').delete().eq('user_id', userId);
+
+        // 3. Delete Talents (Created Models)
+        await supabaseAdmin.from('talents').delete().eq('user_id', userId);
+
+        // 4. Delete Transactions
+        await supabaseAdmin.from('transactions').delete().eq('user_id', userId);
+
+        // STEP B: Delete Profile
+        const { error: profileError } = await supabaseAdmin
             .from('profiles')
             .delete()
             .eq('id', userId);
 
-        // Ignore error here if record is already gone via cascade
+        if (profileError) console.warn("Profile delete warning:", profileError.message);
 
-        console.log(`[ADMIN] 🗑️ User ${userId} deleted forever.`);
-        return res.json({ success: true, message: 'User deleted permanently' });
+        // STEP C: Delete Auth Account ( The Final Blow )
+        const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+
+        if (authError) {
+            console.error("Auth Delete Failed:", authError);
+            throw new Error("Could not delete Auth User: " + authError.message);
+        }
+
+        console.log(`[ADMIN] ✅ User ${userId} has been completely erased.`);
+        res.json({ success: true, message: "User wiped from existence." });
 
     } catch (e) {
-        console.error("[ADMIN] Delete Error:", e.message);
-        return res.status(500).json({ error: e.message });
+        console.error("[ADMIN] ❌ DELETE FAILED:", e.message);
+        res.status(500).json({ error: e.message });
     }
 });
 

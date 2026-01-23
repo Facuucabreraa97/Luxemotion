@@ -98,6 +98,7 @@
    - **Sentinel Protocol:** Context-Awareness Badge enforced in UI.
    - **User Management:** Ban/Inject Credits features enabled via RPC.
    - **Admin Tools:** Users Database now includes Server-Side Delete (`auth.deleteUser`) & Duplication Fix (Sync-on-Action).
+   - **Delete Strategy:** Server-side Cascade (Jobs -> Gens -> Profile -> Auth).
 5. **Studio V2 (Velvet Native):** Active.
    - **Frontend:** Integrated directly into User App (`/app/studio`).
    - **DB:** Connected to `public.generations` and `profiles`.
