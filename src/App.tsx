@@ -24,7 +24,7 @@ import StudioConsole from './pages/StudioConsole';
 import AdminLayout from './pages/admin/AdminLayout';
 import AppStudio from './pages/app/studio';
 import Explore from './pages/app/explore';
-import Casting from './pages/app/casting';
+// Casting removed
 import Gallery from './pages/app/gallery';
 import Earnings from './pages/app/earnings';
 import Plan from './pages/app/plan';

@@ -42,8 +42,7 @@
   - `/app` -> Redirects to `/app/studio`
   - `/app/studio` -> **Studio Console** (The New Freepik-Style Studio)
   - `/app/explore` -> Explore Page
-  - `/app/casting` -> Casting
-  - `/app/gallery` -> Gallery
+  - `/app/gallery` -> **Unified Gallery** (Personal Library + Casting Actions)
   - `/app/earnings` -> Earnings
   - `/app/plan` -> Plan
   - `/app/settings` -> Settings

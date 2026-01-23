@@ -10,7 +10,7 @@ export default function BottomNav() {
   const navItems = [
     { label: 'ESTUDIO', icon: Home, path: '/app' },
     { label: 'EXPLORAR', icon: Globe, path: '/app/explore' },
-    { label: 'CASTING', icon: Users, path: '/app/talent' }, // Fixed path from /app/casting to /app/talent based on consistency
+    // Casting removed
     { label: 'GALERÍA', icon: ImageIcon, path: '/app/gallery' },
     { label: 'GANANCIAS', icon: DollarSign, path: '/app/earnings' },
     { label: 'PLAN', icon: CreditCard, path: '/app/billing' }, // Fixed path /app/plan -> /app/billing
@@ -19,7 +19,7 @@ export default function BottomNav() {
 
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 z-[100] pb-[env(safe-area-inset-bottom)]">
-      {}
+      { }
       <div className="absolute inset-0 bg-black/80 backdrop-blur-xl border-t border-white/10" />
 
       <div className="relative flex justify-around items-center px-2 py-4">
