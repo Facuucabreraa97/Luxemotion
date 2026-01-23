@@ -786,7 +786,7 @@ app.get('/api/casting', async (req, res) => {
 // --- NATIVE EMAIL SYSTEM (SUPABASE SMTP) ---
 app.post('/api/admin/approve-user', requireAdmin, async (req, res) => {
     const { email } = req.body;
-    console.log(`[ADMIN] Request to approve (Native): ${email}`);
+    console.log(`[ADMIN] Processing approval for: ${email}`);
 
     if (!email) return res.status(400).json({ error: 'Missing email' });
 
@@ -795,9 +795,9 @@ app.post('/api/admin/approve-user', requireAdmin, async (req, res) => {
         const { data, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email);
 
         if (inviteError) {
-            console.warn(`[ADMIN] Invite warning: ${inviteError.message}`);
+            console.warn(`[ADMIN] Invite Warning (User might exist): ${inviteError.message}`);
         } else {
-            console.log(`[ADMIN] Native Invite Sent to ${email}`);
+            console.log(`[ADMIN] ✅ Invite Email dispatched to ${email}`);
         }
 
         // 2. Approve in Database
@@ -808,10 +808,10 @@ app.post('/api/admin/approve-user', requireAdmin, async (req, res) => {
 
         if (dbError) throw dbError;
 
-        return res.json({ success: true, message: 'User approved & Supabase Invite Sent' });
+        res.json({ success: true, message: 'User approved & Invite sent' });
 
     } catch (e) {
-        console.error("[ADMIN] Error:", e.message);
+        console.error("[ADMIN] ❌ Approval Failed:", e.message);
         return res.status(500).json({ error: e.message });
     }
 });

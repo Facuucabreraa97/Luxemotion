@@ -41,8 +41,10 @@ export default function UsersDatabase() {
     const handleApprove = async (id: string, email: string) => {
         setActionId(id);
         try {
+            // 1. Optimistic UI Update
             setUsers(prev => prev.map(u => u.id === id ? { ...u, status: 'APPROVED' } : u));
 
+            // 2. Call Server API (This triggers the email)
             const session = (await supabase.auth.getSession()).data.session;
             const res = await fetch('/api/admin/approve-user', {
                 method: 'POST',
@@ -53,13 +55,15 @@ export default function UsersDatabase() {
                 body: JSON.stringify({ email })
             });
 
-            if (!res.ok) throw new Error('Server rejected approval');
-            console.log("Native Approval Success");
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Server rejected approval');
+
+            console.log("✅ Approval Success:", data);
 
         } catch (err) {
-            console.error("Approval Failed:", err);
-            setError("Failed to approve user");
-            fetchUsers();
+            console.error("❌ Approval Failed:", err);
+            setError("Failed to approve user. Check console.");
+            fetchUsers(); // Revert UI on error
         } finally { setActionId(null); }
     };
 
