@@ -100,4 +100,11 @@
    - **Frontend:** Integrated directly into User App (`/app/studio`).
    - **DB:** Connected to `public.generations` and `profiles`.
    - **Mobile:** Input zoom locked for "Native App" feel.
-   - **UI:** Custom "Creative Suite" interface matching Velvet aesthetic.
+
+## SYSTEM STATUS UPDATE (LATEST)
+
+- **Architecture:** Unified Gallery (Casting removed).
+- **Navigation:** Absolute Paths enforced to prevent routing loops.
+- **Admin:** Nuclear Delete implemented in `server.js` (handles FK constraints).
+- **UI:** Studio V3 "Velvet Glass" deployed.
+- **Backend:** Native Supabase Auth used for approvals (No Resend).
