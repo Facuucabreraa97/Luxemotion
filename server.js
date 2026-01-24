@@ -26,6 +26,7 @@ const requireAdmin = async (req, res, next) => {
     next();
 };
 
+// --- API ROUTES ---
 app.post('/api/admin/approve-user', requireAdmin, async (req, res) => {
     const { email } = req.body;
     try {
@@ -53,4 +54,4 @@ app.post('/api/studio/generate', async (req, res) => {
 });
 
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'dist', 'index.html')));
-app.listen(port, () => console.log(`Server running on ${port}`));
+app.listen(port, () => console.log(`Server on ${port}`));

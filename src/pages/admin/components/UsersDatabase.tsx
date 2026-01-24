@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { CheckCircle, Search, Mail, Trash2, Loader2 } from 'lucide-react';
+import { CheckCircle, Trash2, Loader2 } from 'lucide-react';
 
 export default function UsersDatabase() {
     const [users, setUsers] = useState<any[]>([]);
@@ -41,13 +41,10 @@ export default function UsersDatabase() {
 
     return (
         <div className="p-4 bg-black min-h-full text-white font-sans">
-            <h2 className="text-[#D4AF37] font-bold mb-4">USERS</h2>
+            <h2 className="text-[#D4AF37] font-bold mb-4">USERS DATABASE</h2>
             {loading ? <div>Loading...</div> : users.map(user => (
                 <div key={user.id} className="flex justify-between items-center border-b border-white/10 p-3 hover:bg-white/5">
-                    <div>
-                        <div className="font-bold text-sm">{user.email}</div>
-                        <div className="text-[10px] text-zinc-500">{user.status}</div>
-                    </div>
+                    <div><div className="font-bold text-sm">{user.email}</div><div className="text-[10px] text-zinc-500">{user.status}</div></div>
                     <div className="flex gap-2">
                         {user.status === 'PENDING' && (
                             <button onClick={() => handleApprove(user.id, user.email)} disabled={actionId === user.id} className="p-2 text-green-500 hover:bg-green-900/20 rounded">
