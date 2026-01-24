@@ -17,7 +17,6 @@ app.use(express.static(path.join(__dirname, 'dist')));
 
 const supabaseAdmin = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-// MIDDLEWARE
 const requireAdmin = async (req, res, next) => {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ error: 'No token' });
@@ -27,7 +26,6 @@ const requireAdmin = async (req, res, next) => {
     next();
 };
 
-// ADMIN ROUTES
 app.post('/api/admin/approve-user', requireAdmin, async (req, res) => {
     const { email } = req.body;
     try {
