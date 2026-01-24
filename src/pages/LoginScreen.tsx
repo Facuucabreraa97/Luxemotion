@@ -11,7 +11,7 @@ interface LoginScreenProps {
     initialMode?: 'login' | 'register' | 'forgot';
 }
 
-export const LoginScreen = ({ onLogin, initialMode }: LoginScreenProps) => {
+const LoginScreen = ({ onLogin, initialMode }: LoginScreenProps) => {
     const navigate = useNavigate();
     let searchParamsMode = null;
     try {
@@ -194,3 +194,5 @@ export const LoginScreen = ({ onLogin, initialMode }: LoginScreenProps) => {
         </div>
     );
 };
+
+export default LoginScreen;
