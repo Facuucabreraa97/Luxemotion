@@ -1,87 +1,49 @@
-import React, { useState } from 'react';
-import { LayoutDashboard, ShieldAlert, Users, CreditCard, LogOut, Sparkles } from 'lucide-react';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-
-// COMPONENT IMPORTS
-import AdminOverview from './components/AdminOverview';
-import SentinelConsole from './components/SentinelConsole';
+import React from 'react';
+import { Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
+import AdminConsole from './AdminConsole';
 import UsersDatabase from './components/UsersDatabase';
-
-
-// UTILS
-function cn(...inputs: ClassValue[]) {
-    return twMerge(clsx(inputs));
-}
-
-// Placeholder for Treasury
-const TreasuryView = () => <div className="p-10 text-zinc-500 font-mono">TREASURY MODULE LOCKED</div>;
+import TreasuryLogs from './components/TreasuryLogs';
+import { LayoutDashboard, Users, Wallet, ShieldAlert, LogOut } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 export default function AdminLayout() {
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'sentinel' | 'users' | 'billing'>('dashboard');
-
-    const MENU = [
-        { id: 'dashboard', label: 'OVERVIEW', icon: LayoutDashboard },
-        { id: 'sentinel', label: 'SENTINEL AI', icon: ShieldAlert },
-        { id: 'users', label: 'PRIVATE BANKING', icon: Users },
-        { id: 'billing', label: 'TREASURY', icon: CreditCard },
-    ] as const;
+    const location = useLocation();
+    const isActive = (path: string) => location.pathname === path;
 
     return (
-        <div className="flex h-screen bg-[#000000] text-[#E5E5E5] font-sans selection:bg-[#D4AF37] selection:text-black">
+        <div className="min-h-screen bg-black text-white flex font-sans">
             {/* SIDEBAR */}
-            <aside className="w-64 bg-[#050505] border-r border-[#222222] flex flex-col justify-between">
-                <div>
-                    {/* Header */}
-                    <div className="h-16 flex items-center px-6 border-b border-[#111111]">
-                        <h1 className="text-lg font-bold tracking-tighter text-white">
-                            VYDY<span className="text-[#D4AF37]">.OPS</span>
-                        </h1>
-                    </div>
-
-                    {/* Navigation */}
-                    <nav className="p-4 space-y-2">
-                        {MENU.map((item) => {
-                            const isActive = activeTab === item.id;
-                            return (
-                                <button
-                                    key={item.id}
-                                    onClick={() => setActiveTab(item.id)}
-                                    className={cn(
-                                        "w-full flex items-center gap-3 px-4 py-3 text-xs font-bold tracking-widest transition-all duration-300 rounded-r-lg border-l-2",
-                                        isActive
-                                            ? "text-[#D4AF37] bg-[#D4AF37]/5 border-[#D4AF37]"
-                                            : "text-[#737373] hover:text-white border-transparent hover:bg-white/5"
-                                    )}
-                                >
-                                    <item.icon size={16} className={isActive ? "text-[#D4AF37]" : "text-[#555] group-hover:text-white"} />
-                                    {item.label}
-                                </button>
-                            );
-                        })}
-                    </nav>
+            <aside className="w-64 border-r border-white/10 p-6 flex flex-col">
+                <div className="mb-10 flex items-center gap-2 text-[#D4AF37]">
+                    <ShieldAlert size={24} />
+                    <span className="font-bold tracking-widest text-lg">ADMIN</span>
                 </div>
 
-                {/* Footer */}
-                <div className="p-4 border-t border-[#111]">
-                    <button className="flex items-center gap-3 px-4 py-3 text-xs font-bold text-[#737373] hover:text-red-500 w-full transition-colors">
-                        <LogOut size={16} /> LOGOUT
-                    </button>
-                </div>
+                <nav className="space-y-2 flex-1">
+                    <Link to="/admin" className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive('/admin') ? 'bg-[#D4AF37] text-black font-bold' : 'text-zinc-500 hover:text-white'}`}>
+                        <LayoutDashboard size={20} /> <span className="text-xs uppercase tracking-widest">Overview</span>
+                    </Link>
+                    <Link to="/admin/users" className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive('/admin/users') ? 'bg-[#D4AF37] text-black font-bold' : 'text-zinc-500 hover:text-white'}`}>
+                        <Users size={20} /> <span className="text-xs uppercase tracking-widest">Users DB</span>
+                    </Link>
+                    <Link to="/admin/treasury" className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive('/admin/treasury') ? 'bg-[#D4AF37] text-black font-bold' : 'text-zinc-500 hover:text-white'}`}>
+                        <Wallet size={20} /> <span className="text-xs uppercase tracking-widest">Treasury</span>
+                    </Link>
+                </nav>
+
+                <button onClick={() => window.location.href = '/app/studio'} className="mt-auto flex items-center gap-3 px-4 py-3 text-zinc-500 hover:text-white transition-colors">
+                    <LogOut size={20} /> <span className="text-xs uppercase tracking-widest">Exit Admin</span>
+                </button>
             </aside>
 
-            {/* MAIN CONTENT */}
-            <main className="flex-1 overflow-auto bg-black relative">
-                {/* Background Ambience */}
-                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#D4AF37]/5 blur-[120px] rounded-full pointer-events-none" />
-
-                <div className="relative z-10 h-full">
-                    {activeTab === 'dashboard' && <AdminOverview />}
-                    {activeTab === 'sentinel' && <SentinelConsole />}
-                    {activeTab === 'users' && <UsersDatabase />}
-                    {activeTab === 'billing' && <TreasuryView />}
-
-                </div>
+            {/* CONTENT AREA */}
+            <main className="flex-1 bg-[#050505] overflow-y-auto">
+                <Routes>
+                    <Route path="/" element={<AdminConsole />} />
+                    <Route path="/users" element={<UsersDatabase />} />
+                    <Route path="/treasury" element={<TreasuryLogs />} />
+                    <Route path="*" element={<Navigate to="/admin" replace />} />
+                </Routes>
             </main>
         </div>
     );

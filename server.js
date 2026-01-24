@@ -27,7 +27,7 @@ const requireAdmin = async (req, res, next) => {
     next();
 };
 
-// --- ADMIN ROUTES ---
+// ADMIN ROUTES
 app.post('/api/admin/approve-user', requireAdmin, async (req, res) => {
     const { email } = req.body;
     try {
@@ -40,7 +40,6 @@ app.post('/api/admin/approve-user', requireAdmin, async (req, res) => {
 app.post('/api/admin/delete-user', requireAdmin, async (req, res) => {
     const { userId } = req.body;
     try {
-        // Cascade Delete
         await supabaseAdmin.from('talents').delete().eq('user_id', userId);
         await supabaseAdmin.from('generation_jobs').delete().eq('user_id', userId);
         await supabaseAdmin.from('transactions').delete().eq('user_id', userId);
@@ -51,11 +50,9 @@ app.post('/api/admin/delete-user', requireAdmin, async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// GENERATE PROXY (Placeholder/Active)
 app.post('/api/studio/generate', async (req, res) => {
-    // ... (Existing replicate logic preserved or standard response)
-    res.json({ outputUrl: "https://placehold.co/600x400/1a1a1a/D4AF37?text=Generation+Success" });
+    res.json({ outputUrl: "https://placehold.co/600x400/1a1a1a/D4AF37?text=Asset+Generated" });
 });
 
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'dist', 'index.html')));
-app.listen(port, () => console.log(`Server on ${port}`));
+app.listen(port, () => console.log(`Server running on ${port}`));
