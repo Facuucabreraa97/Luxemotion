@@ -1,0 +1,322 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "back": "Back",
+    "confirm": "Confirm",
+    "processing": "Processing...",
+    "mode": {
+      "velvet": "Velvet Mode",
+      "agency": "Agency Mode"
+    },
+    "nav": {
+      "studio": "Studio",
+      "explore": "Explore",
+      "talent": "Casting",
+      "gallery": "Gallery",
+      "billing": "Plan",
+      "earnings": "Earnings",
+      "settings": "Settings"
+    },
+    "currency": {
+      "usdt": "USDT / Crypto",
+      "ars": "Pesos (ARS)"
+    }
+  },
+  "landing": {
+    "hero": {
+      "badge": "The Future of Content",
+      "title_suffix": "AI",
+      "subtitle": "From Ecommerce to Velvet: Create Viral Content in Seconds.",
+      "start_btn": "Get Started for Free",
+      "demo_btn": "View Demo",
+      "login": "Log In",
+      "get_started": "Get Started"
+    },
+    "velvet": {
+      "title_prefix": "Unlock the power of",
+      "title_highlight": "unrestricted content",
+      "description": "Experience the Velvet Mode. Designed for creators who demand freedom and elegance. Generate high-end aesthetics without boundaries.",
+      "access_btn": "Access Velvet Mode"
+    }
+  },
+  "auth": {
+    "login": "Log In",
+    "register": "Create Account",
+    "forgot": "Recover Password",
+    "send": "Send",
+    "email_placeholder": "Email",
+    "pass_placeholder": "Password",
+    "back_login": "Back to Login",
+    "recover_desc": "Recover access.",
+    "check_email": "Check your email to confirm.",
+    "email_sent": "Recovery email sent.",
+    "connection_error": "Connection Error"
+  },
+  "studio": {
+    "generate": "Generate Video",
+    "processing": "Creating Magic...",
+    "source": "Source",
+    "settings": "Settings",
+    "preview": "Preview",
+    "ready_render": "Ready to Render",
+    "download": "Download 4K",
+    "tabs": {
+      "photo": "Photo",
+      "remix": "Remix"
+    },
+    "upload": {
+      "subject": "Subject / AI Model",
+      "video": "Upload Video",
+      "product": "Product / Service",
+      "demo": "Demo"
+    },
+    "quick_cast": "Quick Cast",
+    "prompt_placeholder": "Describe your vision...",
+    "duration": "Duration",
+    "ratio": "Ratio",
+    "credits_cost": "{{cost}}cr",
+    "insufficient_credits": "Insufficient Credits",
+    "generated_success": "Video Generated!",
+    "velvet_active": "Velvet Mode Active"
+  },
+  "explore": {
+    "title": "Explore",
+    "subtitle": "Discover & Collect",
+    "suffix": "Community",
+    "tabs": {
+      "all": "All",
+      "videos": "Videos",
+      "models": "Models",
+      "community": "Community",
+      "marketplace": "Marketplace"
+    },
+    "empty": {
+      "community": "No public content available.",
+      "marketplace": "There are no models for sale yet. Go to Casting and be the first to sell.",
+      "all": "No content found.",
+      "videos": "No videos found.",
+      "models": "No models found."
+    },
+    "buy": {
+      "confirm_title": "Confirm Purchase",
+      "item_price": "Item Price",
+      "service_fee": "Service Fee",
+      "total": "Total",
+      "confirm_btn": "Confirm Purchase",
+      "success": "Purchase successful! Talent added to your casting.",
+      "error": "Error processing purchase",
+      "button": "Buy for {{price}} CR",
+      "login_required": "Please log in to purchase."
+    },
+    "card": {
+      "by": "by"
+    }
+  },
+  "talent": {
+    "title": "Casting",
+    "subtitle_agency": "Brand Assets",
+    "subtitle_velvet": "Database",
+    "new_btn": "New Persona",
+    "upload_portrait": "Upload Portrait",
+    "select_gallery": "Select from Gallery",
+    "form": {
+      "name": "Persona Name",
+      "notes": "DNA / Notes",
+      "notes_placeholder": "Ex: Pale skin, neck tattoo, blue eyes...",
+      "sell": "Sell on Marketplace?",
+      "price": "Price (Credits)",
+      "model": "Virtual Model",
+      "brand": "Product / Logo",
+      "asset_type": "Asset Type",
+      "error_required": "Image and Name are required",
+      "error_price": "Price must be greater than 0"
+    },
+    "sell_modal": {
+      "title": "Sell {{name}}",
+      "price_placeholder": "Price (Credits)",
+      "list": "List",
+      "selling_price": "Selling Price",
+      "royalty": "Royalty to Creator (10%)",
+      "you_receive": "You will receive"
+    },
+    "list_price": "Price (Credits)",
+    "list_btn": "List",
+    "for_sale_badge": "For Sale",
+    "listed_success": "Listed on Marketplace",
+    "created_success": "Persona created successfully"
+  },
+  "gallery": {
+    "title": "Portfolio",
+    "published": "Published!",
+    "unpublished": "Unpublished",
+    "publish_to_explore": "Publish to Explore",
+    "unpublish_from_explore": "Unpublish from Explore",
+    "empty": "No productions yet"
+  },
+  "billing": {
+    "title": "Membership",
+    "monthly": "Monthly",
+    "annual": "Annual",
+    "discount": "-20%",
+    "recommended": "Recommended",
+    "credits_mo": "Credits",
+    "select_plan": "Select Plan",
+    "terms_title": "Terms & Conditions",
+    "terms_text": "Subscription renews automatically. Cancel anytime. Content ownership belongs to you.",
+    "pay_crypto": "Pay with Crypto (USDT)",
+    "pay_card": "Pay with Card",
+    "pay_mp": "Pay with Mercado Pago",
+    "crypto_disabled": "Crypto payments temporarily disabled. Use Mercado Pago.",
+    "checkout": {
+      "title": "Checkout",
+      "summary_title": "Summary:",
+      "access": "Immediate access to {{credits}} credits",
+      "unlock": "Unlock {{plan}} features",
+      "cancel": "Cancel anytime",
+      "total": "Total",
+      "vat_included": "VAT Included",
+      "confirm_pay": "Confirm & Pay",
+      "secure": "Payments processed securely. By continuing you accept the terms."
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "plan_pro": "Pro Plan",
+    "instagram": "Instagram",
+    "telegram": "Telegram",
+    "phone": "Phone",
+    "saved_error": "Error saving",
+    "saved_success": "Profile Updated"
+  },
+  "sidebar": {
+    "credits_avail": "Available Credits",
+    "reload": "Reload",
+    "logout": "Log Out"
+  },
+  "modals": {
+    "velvet": {
+      "title": "Velvet Mode",
+      "adults_only": "Adults Only +18",
+      "desc": "Uncensored generation optimized for hyperrealism, skin textures, and suggestive content.",
+      "unlock": "Unlock"
+    },
+    "velvet_benefits": {
+      "title": "Unlock Velvet Mode",
+      "unlock_access": "Unlock Access",
+      "benefits": {
+        "adult": "Adult Content",
+        "uncensored": "Uncensored",
+        "models": "5 Extra Models",
+        "skin": "Hyperrealistic Skin (8K)"
+      }
+    },
+    "onboarding": {
+      "step1": "Upload your model's photo here",
+      "step2": "Upload what you want to sell here (or leave it empty)",
+      "step3": "Activate this for special modes (Requires a Plan)",
+      "step4": "Create your video",
+      "next": "Next",
+      "finish": "Finish"
+    }
+  },
+  "pricing": {
+    "starter": {
+      "name": "Starter",
+      "features": [
+        "HD Quality",
+        "1 Model",
+        "Watermark",
+        "Basic Support"
+      ]
+    },
+    "creator": {
+      "name": "Influencer",
+      "features": [
+        "4K Ultra",
+        "Velvet Mode",
+        "5 Models",
+        "Commercial License",
+        "No Watermark"
+      ]
+    },
+    "agency": {
+      "name": "Agency",
+      "features": [
+        "Unlimited Everything",
+        "API Access",
+        "Total Priority",
+        "Account Manager",
+        "24/7 Support"
+      ]
+    }
+  },
+  "cams": {
+    "static": {
+      "label": "TRIPOD",
+      "desc": "Fixed camera. Ideal for highlighting details."
+    },
+    "zoom": {
+      "label": "ZOOM IN",
+      "desc": "Slow and dramatic zoom."
+    },
+    "eye": {
+      "label": "GAZE",
+      "desc": "Intense eye contact."
+    },
+    "hand": {
+      "label": "HANDHELD",
+      "desc": "Organic vlog-style movement."
+    }
+  },
+  "ratios": {
+    "stories": "Stories",
+    "cinema": "Cinema",
+    "square": "Square"
+  },
+  "velvet_styles": {
+    "leaked": {
+      "name": "Leaked Tape",
+      "desc": "Raw & Amateur"
+    },
+    "boudoir": {
+      "name": "Glamour",
+      "desc": "Cinematic & Spicy"
+    },
+    "cosplay": {
+      "name": "Cosplay",
+      "desc": "Anime Realism"
+    }
+  },
+  "earnings": {
+    "title": "Earnings & Assets",
+    "total_revenue": "Total Revenue",
+    "assets_sold": "Assets Sold",
+    "pipeline_value": "Pipeline Value",
+    "projected": "Projected",
+    "empty_state": "No earnings yet. Create and sell talents to start earning.",
+    "go_casting": "Go to Casting",
+    "sold": "SOLD",
+    "example": "Example",
+    "subtitle": "Financial Overview",
+    "portfolio": "Sold Assets Portfolio",
+    "locked": "Locked Asset",
+    "performance": "Performance",
+    "empty_title": "No Assets Sold Yet",
+    "empty_desc": "Your portfolio is empty. Start casting models to generate revenue streams.",
+    "history_title": "Transaction History",
+    "col_date": "Date",
+    "col_concept": "Concept",
+    "col_amount": "Amount",
+    "col_status": "Status",
+    "status_completed": "Completed"
+  },
+  "badges": {
+    "sold": "SOLD",
+    "royalty": "Royalty Asset",
+    "acquired": "ACQUIRED"
+  }
+}

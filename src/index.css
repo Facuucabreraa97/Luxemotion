@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* FORCE DARK MODE & NATIVE FONT */
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  @apply bg-[#030014] text-[#E0E0E0] antialiased selection:bg-purple-500/30;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+  background-image: radial-gradient(circle at 50% 0%, #1a1a2e 0%, #030014 100%);
+  background-attachment: fixed;
+}
+
+/* STANDARDIZED COMPONENTS (The "Vydy Class") */
+@layer components {
+  .btn-primary {
+    @apply w-full py-4 rounded-xl font-bold text-sm tracking-widest uppercase transition-all active:scale-95 shadow-lg;
+    @apply bg-[#FCD34D] text-black hover:bg-yellow-300;
+    /* Cyberpunk Yellow */
+  }
+
+  .card-glass {
+    @apply bg-zinc-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-6;
+  }
+
+  .text-heading {
+    @apply text-xl font-bold tracking-tight text-white mb-4;
+  }
+}
