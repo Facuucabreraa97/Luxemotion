@@ -48,5 +48,9 @@ app.post('/api/admin/delete-user', requireAdmin, async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+app.post('/api/studio/generate', async (req, res) => {
+    res.json({ outputUrl: "https://placehold.co/600x400/1a1a1a/D4AF37?text=Asset+Generated" });
+});
+
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'dist', 'index.html')));
-app.listen(port, () => console.log(`Server on ${port}`));
+app.listen(port, () => console.log(`Server running on ${port}`));
