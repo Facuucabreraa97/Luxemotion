@@ -880,7 +880,6 @@ const LoginScreen = ({ onLogin }: { onLogin: () => void }) => {
     );
 };
 
-const TalentPage = ({ list, add, del, notify, videos, profile }: any) => {
     const { mode } = useMode();
     const { t } = useTranslation();
     const navigate = useNavigate();
@@ -1627,7 +1626,6 @@ function AppContent() {
                     <Route index element={<StudioPage onGen={handleVideoSaved} influencers={influencers} credits={credits} notify={notify} onUp={() => setSelPlan({ key: 'creator', annual: true })} userPlan={userPlan} talents={influencers} profile={profile} modelId={modelId} onSelectModel={setModelId} />} />
                     <Route path="studio" element={<StudioConsole credits={credits} setCredits={setCredits} notify={notify} />} />
                     <Route path="explore" element={<ExplorePage />} />
-                    <Route path="talent" element={<TalentPage list={influencers} add={handleInf.add} del={handleInf.del} notify={notify} videos={videos} profile={profile} />} />
                     <Route path="gallery" element={<GalleryPage videos={videos} setVideos={setVideos} />} />
                     <Route path="billing" element={<BillingPage onSelect={(k: string, a: boolean) => setSelPlan({ key: k, annual: a })} />} />
                     <Route path="settings" element={<SettingsPage credits={credits} profile={profile} setProfile={handleUpdateProfile} notify={notify} />} />
