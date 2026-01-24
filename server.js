@@ -26,7 +26,6 @@ const requireAdmin = async (req, res, next) => {
     next();
 };
 
-// --- API ROUTES ---
 app.post('/api/admin/approve-user', requireAdmin, async (req, res) => {
     const { email } = req.body;
     try {
@@ -47,10 +46,6 @@ app.post('/api/admin/delete-user', requireAdmin, async (req, res) => {
         await supabaseAdmin.auth.admin.deleteUser(userId);
         res.json({ success: true });
     } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.post('/api/studio/generate', async (req, res) => {
-    res.json({ outputUrl: "https://placehold.co/600x400/1a1a1a/D4AF37?text=Asset+Generated" });
 });
 
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'dist', 'index.html')));
