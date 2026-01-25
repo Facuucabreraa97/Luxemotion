@@ -7,8 +7,17 @@ export const config = {
 };
 
 export default async function handler(request) {
+    const token = process.env.REPLICATE_API_TOKEN;
+
+    if (!token) {
+        return new Response(JSON.stringify({ error: "Missing REPLICATE_API_TOKEN in Config. Please add it to Vercel Environment Variables." }), {
+            status: 500,
+            headers: { 'content-type': 'application/json' },
+        });
+    }
+
     const replicate = new Replicate({
-        auth: process.env.REPLICATE_API_TOKEN,
+        auth: token,
     });
 
     try {
