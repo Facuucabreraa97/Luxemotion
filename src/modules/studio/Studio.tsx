@@ -24,8 +24,13 @@ export const Studio = ({ credits, setCredits }: any) => {
         const file = e.target.files?.[0];
         if (file) {
             const url = URL.createObjectURL(file);
-            setStartImage(file);
-            setStartPreview(url);
+            if (type === 'start') {
+                setStartImage(file);
+                setStartPreview(url);
+            } else {
+                setEndImage(file);
+                setEndPreview(url);
+            }
         }
     };
 
@@ -37,9 +42,17 @@ export const Studio = ({ credits, setCredits }: any) => {
 
         try {
             let startUrl = '';
-            if (mode === 'image' && startImage) {
-                setStatus('UPLOADING');
-                startUrl = await StorageService.uploadFile(startImage, 'studio_uploads');
+            let endUrl = '';
+
+            if (mode === 'image') {
+                if (startImage) {
+                    setStatus('UPLOADING');
+                    startUrl = await StorageService.uploadFile(startImage, 'studio_uploads');
+                }
+                if (endImage) {
+                    setStatus('UPLOADING');
+                    endUrl = await StorageService.uploadFile(endImage, 'studio_uploads');
+                }
             }
 
             setStatus('PROCESSING');
@@ -49,6 +62,7 @@ export const Studio = ({ credits, setCredits }: any) => {
                 body: JSON.stringify({
                     prompt,
                     start_image_url: startUrl || undefined,
+                    end_image_url: endUrl || undefined,
                     aspect_ratio: aspectRatio // PASSING RATIO
                 })
             });
@@ -146,8 +160,9 @@ export const Studio = ({ credits, setCredits }: any) => {
                         <div className="flex-1">
                             <label className="text-[10px] font-bold text-gray-500 uppercase block mb-3">Input</label>
 
-                            {mode === 'image' && (
-                                <div className="mb-4 aspect-video rounded-xl border border-dashed border-white/20 hover:border-white/40 transition-colors relative flex items-center justify-center bg-black/30 overflow-hidden group">
+                            <div className="grid grid-cols-2 gap-4 mb-4">
+                                {/* START IMAGE */}
+                                <div className="aspect-square rounded-2xl border-2 border-dashed border-white/10 hover:border-white/30 transition-colors relative flex flex-col items-center justify-center overflow-hidden group bg-black/20">
                                     {startPreview ? (
                                         <>
                                             <img src={startPreview} className="w-full h-full object-cover opacity-80" />
@@ -156,12 +171,29 @@ export const Studio = ({ credits, setCredits }: any) => {
                                     ) : (
                                         <div className="text-center p-4">
                                             <Upload className="mx-auto text-gray-500 mb-2" size={20} />
-                                            <span className="text-xs text-gray-500">Upload Base Image</span>
+                                            <span className="text-[10px] uppercase font-bold text-gray-500">Subject</span>
                                         </div>
                                     )}
-                                    <input type="file" onChange={e => handleImageUpload(e, 'start')} className="absolute inset-0 opacity-0 cursor-pointer" />
+                                    <input type="file" onChange={e => handleImageUpload(e, 'start')} className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" />
                                 </div>
-                            )}
+
+                                {/* END IMAGE (OPTIONAL) */}
+                                <div className="aspect-square rounded-2xl border-2 border-dashed border-white/10 hover:border-white/30 transition-colors relative flex flex-col items-center justify-center overflow-hidden group bg-black/20">
+                                    {endPreview ? (
+                                        <>
+                                            <img src={endPreview} className="w-full h-full object-cover opacity-80" />
+                                            <button onClick={() => { setEndImage(null); setEndPreview(''); }} className="absolute top-2 right-2 p-1 bg-black/50 rounded-full hover:bg-red-500 text-white"><X size={12} /></button>
+                                        </>
+                                    ) : (
+                                        <div className="text-center p-4">
+                                            <Film className="mx-auto text-gray-500 mb-2" size={20} />
+                                            <span className="text-[10px] uppercase font-bold text-gray-500">Context (End)</span>
+                                        </div>
+                                    )}
+                                    <input type="file" onChange={e => handleImageUpload(e, 'end')} className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" />
+                                </div>
+                            </div>
+                        )}
 
                             <textarea
                                 value={prompt}
