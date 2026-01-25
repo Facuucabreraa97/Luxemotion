@@ -2,6 +2,17 @@ import { supabase } from '@/lib/supabase';
 import { UserProfile } from '@/types';
 
 export const UserService = {
+    async checkWhitelist(email: string) {
+        const { data, error } = await supabase
+            .from('whitelist')
+            .select('status')
+            .eq('email', email)
+            .single();
+
+        if (error || !data) return 'pending'; // Default to pending if not found (or rejected/error)
+        return data.status;
+    },
+
     // Obtener perfil completo
     async getProfile(userId: string): Promise<UserProfile | null> {
         const { data, error } = await supabase
