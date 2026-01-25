@@ -1,3 +1,4 @@
+import MobileLayout from './components/MobileLayout';
 import React, { useState, useEffect, useRef, createContext, useContext } from 'react';
 import { createPortal } from 'react-dom';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useLocation, NavLink, useNavigate, useSearchParams } from 'react-router-dom';
@@ -607,7 +608,7 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile, 
     );
 };
 
-import MobileLayout from './components/MobileLayout';
+
 // [REMOVED SENTINEL IMPORT]
 // [REMOVED SENTINEL IMPORT]
 
