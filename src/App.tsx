@@ -5,10 +5,10 @@ import { ToastProvider } from '@/modules/core/ui/Toast';
 import { Layout } from '@/modules/core/Layout';
 import { Login } from '@/modules/auth/Login';
 import { Studio } from '@/modules/studio/Studio';
+import Profile from '@/pages/Profile';
 
 // Placeholders for other routes
 const Marketplace = () => <div className="p-8 text-center text-gray-400">Marketplace Coming Soon</div>;
-const Gallery = () => <div className="p-8 text-center text-gray-400">Gallery Empty</div>;
 
 function App() {
     const [session, setSession] = useState<any>(null);
@@ -34,12 +34,12 @@ function App() {
             <BrowserRouter>
                 <Routes>
                     <Route path="/login" element={!session ? <Login /> : <Navigate to="/app/studio" />} />
-                    
+
                     <Route path="/app" element={<Layout session={session} />}>
                         <Route index element={<Navigate to="/app/studio" />} />
                         <Route path="studio" element={<Studio />} />
                         <Route path="marketplace" element={<Marketplace />} />
-                        <Route path="gallery" element={<Gallery />} />
+                        <Route path="gallery" element={<Profile />} />
                     </Route>
 
                     <Route path="*" element={<Navigate to={session ? "/app/studio" : "/login"} />} />
