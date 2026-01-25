@@ -53,34 +53,35 @@ export const Layout: React.FC<LayoutProps> = ({ session }) => {
                 </div>
             </>
         );
-
-        return (
-            <div className="flex h-screen bg-black overflow-hidden relative">
-                {/* Desktop Sidebar */}
-                <aside className="hidden md:flex w-64 flex-col border-r border-white/10 bg-[#0A0A0A]">
-                    <NavItems />
-                </aside>
-
-                {/* Mobile Header */}
-                <div className="md:hidden fixed top-0 w-full z-50 bg-black/80 backdrop-blur border-b border-white/10 flex items-center justify-between p-4">
-                    <span className="font-bold">MIVIDEOAI</span>
-                    <button onClick={() => setMobileMenu(!mobileMenu)}><Menu /></button>
-                </div>
-
-                {/* Mobile Menu Overlay */}
-                {mobileMenu && (
-                    <div className="fixed inset-0 z-[100] bg-black">
-                        <div className="absolute top-4 right-4"><button onClick={() => setMobileMenu(false)}><X /></button></div>
-                        <NavItems />
-                    </div>
-                )}
-
-                {/* Main Content */}
-                <main className="flex-1 overflow-y-auto pt-16 md:pt-0 bg-black relative">
-                    <div className="max-w-7xl mx-auto p-4 md:p-8">
-                        <Outlet />
-                    </div>
-                </main>
-            </div>
-        );
     };
+
+    return (
+        <div className="flex h-screen bg-black overflow-hidden relative">
+            {/* Desktop Sidebar */}
+            <aside className="hidden md:flex w-64 flex-col border-r border-white/10 bg-[#0A0A0A]">
+                <NavItems />
+            </aside>
+
+            {/* Mobile Header */}
+            <div className="md:hidden fixed top-0 w-full z-50 bg-black/80 backdrop-blur border-b border-white/10 flex items-center justify-between p-4">
+                <span className="font-bold">MIVIDEOAI</span>
+                <button onClick={() => setMobileMenu(!mobileMenu)}><Menu /></button>
+            </div>
+
+            {/* Mobile Menu Overlay */}
+            {mobileMenu && (
+                <div className="fixed inset-0 z-[100] bg-black">
+                    <div className="absolute top-4 right-4"><button onClick={() => setMobileMenu(false)}><X /></button></div>
+                    <NavItems />
+                </div>
+            )}
+
+            {/* Main Content */}
+            <main className="flex-1 overflow-y-auto pt-16 md:pt-0 bg-black relative">
+                <div className="max-w-7xl mx-auto p-4 md:p-8">
+                    <Outlet />
+                </div>
+            </main>
+        </div>
+    );
+};
