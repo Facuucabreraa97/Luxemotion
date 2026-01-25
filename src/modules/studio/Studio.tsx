@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { MarketService } from '@/services/market.service';
+import { StorageService } from '@/services/storage.service';
 import { supabase } from '@/lib/supabase';
 import { Image, Type, Upload, X, Film, Sparkles } from 'lucide-react';
 
@@ -42,20 +43,38 @@ export const Studio = ({ credits, setCredits }: any) => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) console.warn("Demo Mode: No user");
 
-            // 1. Upload Images to Storage (if applicable)
+            // 1. Upload Images to Storage
             let startUrl = '';
-            // const endUrl = ''; 
 
             if (mode === 'image' && startImage) {
                 setStatus('UPLOADING');
-                // Simulate Upload
-                await new Promise(r => setTimeout(r, 1000));
-                startUrl = 'https://temp_storage_url';
+                startUrl = await StorageService.uploadFile(startImage, 'studio_uploads');
             }
 
             setStatus('PROCESSING');
-            // 2. Call AI Service (Mock for now, replacing next)
-            await new Promise(r => setTimeout(r, 3000));
+            // 2. Call AI Service (Real Replicate)
+            const response = await fetch('/api/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prompt,
+                    start_image_url: startUrl || undefined
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Generation failed');
+            }
+
+            const { output } = await response.json();
+            // Replicate returns the prediction immediately or a polling URL?
+            // NOTE: The simple generate.js uses `replicate.run` which WAITS for completion by default.
+            // If output is array (video frames) or string (url).
+            console.log("AI Output:", output);
+
+            // Assuming output is the video URL (or first item of array)
+            const videoUrl = Array.isArray(output) ? output[0] : output;
 
             setStatus('MINTING');
             // 3. Mint Asset
@@ -63,8 +82,9 @@ export const Studio = ({ credits, setCredits }: any) => {
                 await MarketService.mintAsset({
                     name: prompt.substring(0, 30) || 'Untitled Creation',
                     description: prompt,
-                    image_url: startPreview || 'https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?q=80',
-                    video_url: 'https://cdn.openai.com/sora/video.mp4', // Placeholder result
+                    // Preview image is either the uploaded one or a placeholder (since we can't extract frame 0 easily on frontend without processing)
+                    image_url: startUrl || 'https://via.placeholder.com/1080x1920?text=Video+Asset',
+                    video_url: videoUrl,
                     price: price,
                     supply_total: supply,
                     royalty_percent: 5,
@@ -179,8 +199,8 @@ export const Studio = ({ credits, setCredits }: any) => {
                         onClick={handleCreate}
                         disabled={status !== 'IDLE' || (!prompt && mode === 'text') || (!startImage && mode === 'image')}
                         className={`w-full py-4 rounded-xl font-bold text-lg tracking-wide shadow-2xl transition-all ${status === 'IDLE'
-                                ? 'bg-white text-black hover:scale-[1.01] hover:shadow-white/20'
-                                : 'bg-accent text-white cursor-not-allowed'
+                            ? 'bg-white text-black hover:scale-[1.01] hover:shadow-white/20'
+                            : 'bg-accent text-white cursor-not-allowed'
                             }`}
                     >
                         <div className="flex items-center justify-center gap-2">
