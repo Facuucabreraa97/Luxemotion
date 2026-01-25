@@ -5,8 +5,10 @@ import { StorageService } from '@/services/storage.service';
 import { supabase } from '@/lib/supabase';
 import { Image, Type, Upload, X, Film, Sparkles } from 'lucide-react';
 
+
 export const Studio = ({ credits, setCredits }: any) => {
     const [mode, setMode] = useState<'text' | 'image'>('text');
+    const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16' | '1:1'>('16:9'); // NEW STATE
     const [prompt, setPrompt] = useState('');
     const [startImage, setStartImage] = useState<File | null>(null);
     const [endImage, setEndImage] = useState<File | null>(null);
@@ -17,20 +19,13 @@ export const Studio = ({ credits, setCredits }: any) => {
     const [videoUrl, setVideoUrl] = useState<string>('');
 
     const [status, setStatus] = useState<'IDLE' | 'UPLOADING' | 'PROCESSING' | 'SAVING'>('IDLE');
-    // const [supply, setSupply] = useState(1);
-    // const [price, setPrice] = useState(0);
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'start' | 'end') => {
         const file = e.target.files?.[0];
         if (file) {
             const url = URL.createObjectURL(file);
-            if (type === 'start') {
-                setStartImage(file);
-                setStartPreview(url);
-            } else {
-                setEndImage(file);
-                setEndPreview(url);
-            }
+            setStartImage(file);
+            setStartPreview(url);
         }
     };
 
@@ -41,22 +36,20 @@ export const Studio = ({ credits, setCredits }: any) => {
         setStatus('PROCESSING');
 
         try {
-            // 1. Upload Images to Storage
             let startUrl = '';
-
             if (mode === 'image' && startImage) {
                 setStatus('UPLOADING');
                 startUrl = await StorageService.uploadFile(startImage, 'studio_uploads');
             }
 
             setStatus('PROCESSING');
-            // 2. Call AI Service (Real Replicate)
             const response = await fetch('/api/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     prompt,
-                    start_image_url: startUrl || undefined
+                    start_image_url: startUrl || undefined,
+                    aspect_ratio: aspectRatio // PASSING RATIO
                 })
             });
 
@@ -86,7 +79,7 @@ export const Studio = ({ credits, setCredits }: any) => {
             await MarketService.saveDraft({
                 name: prompt.substring(0, 30) || 'Untitled Creation',
                 description: prompt,
-                image_url: startPreview || 'https://via.placeholder.com/1080x1920?text=Video+Asset', // Using preview as cover for now
+                image_url: startPreview || 'https://via.placeholder.com/1080x1920?text=Video+Asset',
                 video_url: videoUrl,
                 price: 0,
                 supply_total: 1,
@@ -94,7 +87,6 @@ export const Studio = ({ credits, setCredits }: any) => {
             }, user.id);
 
             alert("Saved to Gallery Drafts!");
-            // Reset
             setVideoUrl('');
             setPrompt('');
             setStartPreview('');
@@ -108,155 +100,144 @@ export const Studio = ({ credits, setCredits }: any) => {
     };
 
     return (
-        <div className="max-w-7xl mx-auto h-full flex flex-col gap-6 animate-slide-up text-white p-6 md:p-8">
-            <header className="flex flex-col gap-1">
-                <h2 className="text-4xl md:text-5xl font-display font-medium tracking-tight text-white">
-                    Creation Studio
-                </h2>
-                <p className="text-gray-400 font-light max-w-2xl">
-                    Generate cinematic assets. Choose your input modality.
-                </p>
+        <div className="max-w-7xl mx-auto h-full flex flex-col gap-6 animate-fade-in text-white p-6 md:p-8">
+            <header className="mb-4">
+                <h2 className="text-4xl font-display font-semibold tracking-tight text-white">Studio</h2>
             </header>
 
             <div className="grid lg:grid-cols-12 gap-8 h-full min-h-[400px] md:min-h-[600px]">
-                {/* CONTROLS */}
-                <div className="lg:col-span-5 flex flex-col gap-6">
 
-                    {/* MODE SWITCHER */}
-                    <div className="glass-panel p-1 rounded-xl flex">
-                        <button
-                            onClick={() => setMode('text')}
-                            className={`flex-1 py-3 rounded-lg flex items-center justify-center gap-2 text-sm font-bold tracking-wide transition-all ${mode === 'text' ? 'bg-white text-black shadow-lg' : 'text-gray-500 hover:text-white'}`}
-                        >
-                            <Type size={16} /> Text to Video
-                        </button>
-                        <button
-                            onClick={() => setMode('image')}
-                            className={`flex-1 py-3 rounded-lg flex items-center justify-center gap-2 text-sm font-bold tracking-wide transition-all ${mode === 'image' ? 'bg-white text-black shadow-lg' : 'text-gray-500 hover:text-white'}`}
-                        >
-                            <Image size={16} /> Image to Video
-                        </button>
-                    </div>
+                {/* SETTINGS COLUMN */}
+                <div className="lg:col-span-4 flex flex-col gap-6">
 
-                    {/* INPUT AREA */}
-                    <div className="glass-panel p-6 rounded-3xl flex-1 flex flex-col gap-4">
+                    {/* INPUT CARD */}
+                    <div className="bg-[#111] border border-white/5 rounded-3xl p-6 flex flex-col gap-6 shadow-2xl">
 
-                        {mode === 'image' && (
-                            <div className="grid grid-cols-2 gap-4 mb-2">
-                                {/* START IMAGE */}
-                                <div className="aspect-square rounded-2xl border-2 border-dashed border-white/10 hover:border-white/30 transition-colors relative flex flex-col items-center justify-center overflow-hidden group bg-black/20">
+                        {/* MODE TABS */}
+                        <div className="flex bg-black/50 p-1 rounded-xl">
+                            {['text', 'image'].map((m) => (
+                                <button
+                                    key={m}
+                                    onClick={() => setMode(m as any)}
+                                    className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${mode === m ? 'bg-white text-black' : 'text-gray-500 hover:text-white'}`}
+                                >
+                                    {m} to Video
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* ASPECT RATIO */}
+                        <div>
+                            <label className="text-[10px] font-bold text-gray-500 uppercase block mb-3">Format</label>
+                            <div className="flex gap-2">
+                                {['16:9', '9:16', '1:1'].map((ratio) => (
+                                    <button
+                                        key={ratio}
+                                        onClick={() => setAspectRatio(ratio as any)}
+                                        className={`px-4 py-2 rounded-lg text-xs font-bold border transition-all ${aspectRatio === ratio ? 'bg-white text-black border-white' : 'border-white/10 text-gray-500 hover:border-white/30'}`}
+                                    >
+                                        {ratio}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* PROMPT / IMAGE INPUT */}
+                        <div className="flex-1">
+                            <label className="text-[10px] font-bold text-gray-500 uppercase block mb-3">Input</label>
+
+                            {mode === 'image' && (
+                                <div className="mb-4 aspect-video rounded-xl border border-dashed border-white/20 hover:border-white/40 transition-colors relative flex items-center justify-center bg-black/30 overflow-hidden group">
                                     {startPreview ? (
                                         <>
-                                            <img src={startPreview} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" />
-                                            <button onClick={() => { setStartImage(null); setStartPreview(''); }} className="absolute top-2 right-2 p-1 bg-black/50 rounded-full hover:bg-red-500/80 transition-colors"><X size={14} /></button>
+                                            <img src={startPreview} className="w-full h-full object-cover opacity-80" />
+                                            <button onClick={() => { setStartImage(null); setStartPreview(''); }} className="absolute top-2 right-2 p-1 bg-black/50 rounded-full hover:bg-red-500 text-white"><X size={12} /></button>
                                         </>
                                     ) : (
-                                        <>
-                                            <Upload className="text-gray-500 mb-2" />
-                                            <span className="text-[10px] uppercase font-bold text-gray-500">Start Image</span>
-                                        </>
+                                        <div className="text-center p-4">
+                                            <Upload className="mx-auto text-gray-500 mb-2" size={20} />
+                                            <span className="text-xs text-gray-500">Upload Base Image</span>
+                                        </div>
                                     )}
-                                    <input type="file" onChange={e => handleImageUpload(e, 'start')} className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" />
+                                    <input type="file" onChange={e => handleImageUpload(e, 'start')} className="absolute inset-0 opacity-0 cursor-pointer" />
                                 </div>
+                            )}
 
-                                {/* END IMAGE (OPTIONAL) */}
-                                <div className="aspect-square rounded-2xl border-2 border-dashed border-white/10 hover:border-white/30 transition-colors relative flex flex-col items-center justify-center overflow-hidden group bg-black/20">
-                                    {endPreview ? (
-                                        <>
-                                            <img src={endPreview} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" />
-                                            <button onClick={() => { setEndImage(null); setEndPreview(''); }} className="absolute top-2 right-2 p-1 bg-black/50 rounded-full hover:bg-red-500/80 transition-colors"><X size={14} /></button>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Film className="text-gray-500 mb-2" />
-                                            <span className="text-[10px] uppercase font-bold text-gray-500">End Frame (Opt)</span>
-                                        </>
-                                    )}
-                                    <input type="file" onChange={e => handleImageUpload(e, 'end')} className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" />
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="flex-1 flex flex-col">
-                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Prompt</label>
                             <textarea
                                 value={prompt}
                                 onChange={e => setPrompt(e.target.value)}
-                                className="w-full flex-1 bg-transparent text-white text-lg font-light outline-none resize-none placeholder-gray-700 leading-relaxed"
-                                placeholder={mode === 'text' ? "A futuristic city with neon lights..." : "Describe the motion... (e.g. Camera zooms in, explosion happens)"}
+                                className="w-full h-32 bg-transparent border-0 outline-none text-white placeholder-gray-700 text-sm leading-relaxed resize-none font-medium"
+                                placeholder={mode === 'text' ? "Describe your vision in detail..." : "Describe the motion for this image..."}
                             />
                         </div>
-                    </div>
 
-
-                    {/* SETTINGS REMOVED FOR DRAFT WORKFLOW */}
-
-                    {!videoUrl ? (
-                        <button
-                            onClick={() => {
-                                handleCreate();
-                                // Scroll to preview on mobile
-                                if (window.innerWidth < 1024) {
-                                    setTimeout(() => document.getElementById('preview-area')?.scrollIntoView({ behavior: 'smooth' }), 100);
-                                }
-                            }}
-                            disabled={status !== 'IDLE' || (!prompt && mode === 'text') || (!startImage && mode === 'image')}
-                            className={`w-full py-4 rounded-xl font-bold text-lg tracking-wide shadow-2xl transition-all ${status === 'IDLE'
-                                ? 'bg-white text-black hover:scale-[1.01] hover:shadow-white/20'
-                                : 'bg-accent text-white cursor-not-allowed'
-                                }`}
-                        >
-                            <div className="flex items-center justify-center gap-2">
-                                {status === 'IDLE' && <Sparkles size={20} fill="black" />}
-                                {status === 'IDLE' ? 'Generate Preview' : status === 'UPLOADING' ? 'Uploading Assets...' : 'Generating...'}
+                        {/* ACTION BUTTON */}
+                        {!videoUrl ? (
+                            <button
+                                onClick={() => {
+                                    handleCreate();
+                                    if (window.innerWidth < 1024) {
+                                        setTimeout(() => document.getElementById('preview-area')?.scrollIntoView({ behavior: 'smooth' }), 100);
+                                    }
+                                }}
+                                disabled={status !== 'IDLE' || (!prompt && mode === 'text')}
+                                className="w-full py-4 bg-white text-black rounded-xl font-bold text-sm tracking-wide hover:scale-[1.02] transition-transform disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                                {status === 'IDLE' ? (
+                                    <>
+                                        <Sparkles size={16} /> Generate Preview
+                                    </>
+                                ) : (
+                                    <span className="animate-pulse">Processing...</span>
+                                )}
+                            </button>
+                        ) : (
+                            <div className="flex gap-2">
+                                <button onClick={handleSaveDraft} disabled={status === 'SAVING'} className="flex-1 py-3 bg-white text-black rounded-lg font-bold text-sm hover:bg-gray-200 transition-colors">
+                                    {status === 'SAVING' ? 'Saving...' : 'Save Draft'}
+                                </button>
+                                <button onClick={() => { setVideoUrl(''); setStatus('IDLE'); }} className="px-4 py-3 border border-white/20 rounded-lg text-white font-bold text-sm hover:bg-white/10 transition-colors">
+                                    Discard
+                                </button>
                             </div>
-                        </button>
-                    ) : (
-                        <div className="flex gap-4">
-                            <button
-                                onClick={handleSaveDraft}
-                                disabled={status === 'SAVING'}
-                                className="flex-1 bg-white text-black py-4 rounded-xl font-bold text-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
-                            >
-                                {status === 'SAVING' ? 'Saving...' : 'Save to Gallery'}
-                            </button>
-                            <button
-                                onClick={() => { setVideoUrl(''); setStatus('IDLE'); }}
-                                className="px-6 border border-white/20 rounded-xl hover:bg-white/10 transition-colors"
-                            >
-                                Discard
-                            </button>
-                        </div>
-                    )}
+                        )}
 
+                    </div>
                 </div>
 
-                {/* VISUALIZER */}
-                <div className="lg:col-span-7" id="preview-area">
-                    <div className="w-full h-full min-h-[300px] glass-panel rounded-3xl flex items-center justify-center relative overflow-hidden bg-black/40">
-                        {status === 'IDLE' && !startPreview && !videoUrl && (
-                            <div className="text-center opacity-30">
-                                <div className="text-6xl mb-4 grayscale flex justify-center">💠</div>
-                                <p className="font-light tracking-widest uppercase text-xs">Waiting for Input</p>
+                {/* PREVIEW COLUMN */}
+                <div className="lg:col-span-8 h-full" id="preview-area">
+                    <div className="w-full h-full min-h-[400px] bg-[#0A0A0A] border border-white/5 rounded-3xl flex items-center justify-center relative overflow-hidden group">
+
+                        {/* Empty State */}
+                        {!videoUrl && !startPreview && status === 'IDLE' && (
+                            <div className="text-center opacity-20 group-hover:opacity-30 transition-opacity">
+                                <div className="text-8xl mb-4 font-thin">❖</div>
+                                <p className="text-xs uppercase tracking-[0.2em]">Waiting for Input</p>
                             </div>
                         )}
 
-                        {startPreview && status === 'IDLE' && !videoUrl && (
-                            <img src={startPreview} className="w-full h-full object-contain opacity-50 blur-sm scale-105" />
+                        {/* Image Preview */}
+                        {startPreview && !videoUrl && (
+                            <img src={startPreview} className="w-full h-full object-contain opacity-50 blur-lg scale-110" />
                         )}
 
+                        {/* Video Result */}
                         {videoUrl && (
-                            <video src={videoUrl} controls autoPlay loop className="w-full h-full object-contain" />
+                            <video src={videoUrl} controls autoPlay loop className="w-full h-full object-contain shadow-2xl" />
                         )}
 
+                        {/* Loading Overlay */}
                         {status !== 'IDLE' && status !== 'SAVING' && (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-md z-20">
-                                <div className="w-16 h-16 border-4 border-t-accent border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin mb-6"></div>
-                                <p className="text-accent font-mono text-sm animate-pulse tracking-widest uppercase">{status}...</p>
+                            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-20">
+                                <div className="w-12 h-12 border-2 border-white/20 border-t-white rounded-full animate-spin mb-4"></div>
+                                <p className="text-xs font-mono text-white/70 animate-pulse">GENERATING PIXELS...</p>
                             </div>
                         )}
+
                     </div>
                 </div>
+
             </div>
         </div>
     );

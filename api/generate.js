@@ -38,14 +38,26 @@ export default async function handler(request) {
             // Injecting Hyper-Realism keywords
             const hyperRealismWrapper = ", Shot on ARRI Alexa Mini LF, Cooke S7/i lenses, 8k resolution, photorealistic, cinematic lighting, volumetric fog, high contrast, hyper-realistic, subsurface scattering, micro-details";
 
+            // Determine dimensions based on aspect ratio
+            let width = 1024;
+            let height = 576;
+
+            if (aspect_ratio === '9:16') {
+                width = 576;
+                height = 1024;
+            } else if (aspect_ratio === '1:1') {
+                width = 768;
+                height = 768;
+            }
+
             output = await replicate.run(
                 "anotherjesse/zeroscope-v2-xl:9f747673945c62801b13b84701c783929c0ee784e4748ec062204894dda1a351",
                 {
                     input: {
                         prompt: prompt + hyperRealismWrapper,
                         num_frames: 24,
-                        width: 1024,
-                        height: 576
+                        width: width,
+                        height: height
                     }
                 }
             );
