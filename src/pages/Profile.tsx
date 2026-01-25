@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { MarketService } from '@/services/market.service';
-import { NFTAsset } from '@/types';
+import { Asset } from '@/types';
 
 const Profile = () => {
     const [activeTab, setActiveTab] = useState<'created' | 'collected' | 'activity'>('created');
     const [user, setUser] = useState<any>(null);
-    const [assets, setAssets] = useState<NFTAsset[]>([]);
+    const [assets, setAssets] = useState<Asset[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -21,7 +21,7 @@ const Profile = () => {
 
         // Cargar Assets reales
         try {
-            const myAssets = await MarketService.getUserAssets(session.user.id);
+            const myAssets = await MarketService.getMyAssets(session.user.id);
             setAssets(myAssets);
         } catch (e) {
             console.error("Error cargando assets:", e);

@@ -1,60 +1,93 @@
+
 import React, { useState } from 'react';
-import { useToast } from '@/modules/core/ui/Toast';
+import { MarketService } from '@/services/market.service';
+import { supabase } from '@/lib/supabase';
 
-export const Studio = () => {
+export const Studio = ({ credits, setCredits }: any) => {
     const [prompt, setPrompt] = useState('');
-    const [loading, setLoading] = useState(false);
-    const { toast } = useToast();
+    const [status, setStatus] = useState<'IDLE' | 'PROCESSING' | 'MINTING'>('IDLE');
+    const [supply, setSupply] = useState(1);
+    const [price, setPrice] = useState(0);
 
-    const handleGen = () => {
-        if (!prompt) return toast("Enter a prompt first", 'error');
-        setLoading(true);
-        setTimeout(() => {
-            setLoading(false);
-            toast("Creation initiated!", 'success');
-        }, 1500);
+    const handleCreate = async () => {
+        if (!prompt) return;
+        // if (credits < 50) return alert("Necesitas 50 CR para crear."); // Credits check commented out if credits prop isn't passed yet or we handle it differently
+
+        setStatus('PROCESSING');
+
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error("No autenticado");
+
+            // Simular Generación
+            await new Promise(r => setTimeout(r, 2000));
+
+            setStatus('MINTING');
+
+            // Guardar en DB
+            await MarketService.mintAsset({
+                name: prompt.substring(0, 20),
+                description: prompt,
+                image_url: 'https://via.placeholder.com/500',
+                price: price,
+                supply_total: supply,
+                royalty_percent: 5
+            }, user.id);
+
+            if (setCredits) setCredits((prev: number) => prev - 50);
+            alert("¡Activo creado y guardado en tu Wallet!");
+            setPrompt('');
+            setStatus('IDLE');
+
+        } catch (e: any) {
+            alert("Error: " + e.message);
+            setStatus('IDLE');
+        }
     };
 
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-500">
+        <div className="max-w-6xl mx-auto h-full flex flex-col gap-6 animate-in fade-in text-white p-8">
             <header>
-                <h1 className="text-3xl font-bold mb-2">Create New Video</h1>
-                <p className="text-gray-400">Transform your text into cinematic motion.</p>
+                <h2 className="text-4xl font-bold tracking-tighter">Studio Creator</h2>
+                <p className="text-gray-400">Diseña, Genera y Acuña tu Influencer IA.</p>
             </header>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-1 space-y-6">
-                    <div className="bg-[#0f0f0f] border border-white/5 p-6 rounded-2xl">
-                        <label className="text-xs uppercase tracking-wider text-gray-500 font-bold mb-4 block">Prompt</label>
-                        <textarea 
+            <div className="grid lg:grid-cols-2 gap-8 h-full">
+                <div className="space-y-6">
+                    <div className="bg-white/5 border border-white/10 p-6 rounded-2xl backdrop-blur-sm">
+                        <label className="text-xs font-bold text-gray-500 uppercase mb-2 block">Prompt</label>
+                        <textarea
                             value={prompt}
                             onChange={e => setPrompt(e.target.value)}
-                            className="w-full bg-black border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-blue-500/50 transition-colors h-40 resize-none" 
-                            placeholder="A futuristic city with neon lights..."
+                            disabled={status !== 'IDLE'}
+                            className="w-full h-32 bg-transparent text-white text-lg outline-none resize-none placeholder-gray-600"
+                            placeholder="Describe a tu influencer..."
                         />
-                        <button 
-                            onClick={handleGen}
-                            disabled={loading}
-                            className="w-full mt-4 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-all"
-                        >
-                            {loading ? 'Generating...' : 'Generate Video'}
-                        </button>
                     </div>
-                </div>
 
-                <div className="lg:col-span-2">
-                    <div className="aspect-video bg-[#0f0f0f] border border-white/5 rounded-2xl flex items-center justify-center text-gray-600">
-                        <span className="text-sm">Preview Output</span>
-                    </div>
-                    
-                    <div className="mt-8">
-                        <h3 className="text-lg font-bold mb-4">Recent Creations</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                            {[1,2,3].map(i => (
-                                <div key={i} className="aspect-[9/16] bg-[#0f0f0f] rounded-xl border border-white/5 hover:border-white/20 transition-all cursor-pointer" />
-                            ))}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-white/5 border border-white/10 p-4 rounded-xl">
+                            <label className="text-xs text-gray-500 uppercase block">Supply</label>
+                            <input type="number" value={supply} onChange={e => setSupply(Number(e.target.value))} className="bg-transparent text-white font-bold w-full mt-1 outline-none" />
+                        </div>
+                        <div className="bg-white/5 border border-white/10 p-4 rounded-xl">
+                            <label className="text-xs text-gray-500 uppercase block">Precio (CR)</label>
+                            <input type="number" value={price} onChange={e => setPrice(Number(e.target.value))} className="bg-transparent text-white font-bold w-full mt-1 outline-none" />
                         </div>
                     </div>
+
+                    <button
+                        onClick={handleCreate}
+                        disabled={status !== 'IDLE' || !prompt}
+                        className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${status === 'IDLE' ? 'bg-white text-black hover:scale-[1.02]' : 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                            }`}
+                    >
+                        {status === 'IDLE' ? 'Generar & Acuñar (-50 CR)' : status === 'PROCESSING' ? 'Generando...' : 'Guardando...'}
+                    </button>
+                </div>
+
+                <div className="bg-black/40 border border-white/10 rounded-3xl flex items-center justify-center relative overflow-hidden min-h-[400px]">
+                    <span className="text-6xl">🎨</span>
                 </div>
             </div>
         </div>
