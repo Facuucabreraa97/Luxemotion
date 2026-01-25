@@ -62,26 +62,35 @@ export const Layout: React.FC<LayoutProps> = ({ session }) => {
                 <NavItems />
             </aside>
 
-            {/* Mobile Header */}
-            <div className="md:hidden fixed top-0 w-full z-50 bg-black/80 backdrop-blur border-b border-white/10 flex items-center justify-between p-4">
-                <span className="font-bold">MIVIDEOAI</span>
-                <button onClick={() => setMobileMenu(!mobileMenu)}><Menu /></button>
+            {/* Mobile Top Bar */}
+            <div className="md:hidden fixed top-0 w-full z-40 bg-black/80 backdrop-blur-md border-b border-white/5 flex items-center justify-center p-4">
+                <h1 className="text-sm font-bold tracking-[0.2em] text-white">MIVIDEO<span className="text-blue-500">AI</span></h1>
             </div>
 
-            {/* Mobile Menu Overlay */}
-            {mobileMenu && (
-                <div className="fixed inset-0 z-[100] bg-black">
-                    <div className="absolute top-4 right-4"><button onClick={() => setMobileMenu(false)}><X /></button></div>
-                    <NavItems />
-                </div>
-            )}
-
             {/* Main Content */}
-            <main className="flex-1 overflow-y-auto pt-16 md:pt-0 bg-black relative">
+            <main className="flex-1 overflow-y-auto overflow-x-hidden pt-16 pb-24 md:pt-0 md:pb-0 bg-black relative scroll-smooth">
                 <div className="max-w-7xl mx-auto p-4 md:p-8">
                     <Outlet />
                 </div>
             </main>
+
+            {/* Mobile Bottom Dock */}
+            <div className="md:hidden fixed bottom-6 left-4 right-4 z-50">
+                <nav className="bg-[#111]/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl flex justify-around items-center p-1">
+                    <NavLink to="/app/studio" className={({ isActive }) => `p-3 rounded-xl transition-all ${isActive ? 'bg-white text-black shadow-lg scale-105' : 'text-gray-500'}`}>
+                        <Video size={20} />
+                    </NavLink>
+                    <NavLink to="/app/gallery" className={({ isActive }) => `p-3 rounded-xl transition-all ${isActive ? 'bg-white text-black shadow-lg scale-105' : 'text-gray-500'}`}>
+                        <LayoutGrid size={20} />
+                    </NavLink>
+                    <NavLink to="/app/marketplace" className={({ isActive }) => `p-3 rounded-xl transition-all ${isActive ? 'bg-white text-black shadow-lg scale-105' : 'text-gray-500'}`}>
+                        <ShoppingBag size={20} />
+                    </NavLink>
+                    <button onClick={handleLogout} className="p-3 text-red-500/50 hover:text-red-500">
+                        <LogOut size={20} />
+                    </button>
+                </nav>
+            </div>
         </div>
     );
 };

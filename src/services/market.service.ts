@@ -175,5 +175,15 @@ export const MarketService = {
 
         if (error) throw error;
         return data;
+    },
+
+    // HISTORIAL DE TRANSACCIONES
+    async getTransactions(userId: string) {
+        const { data } = await supabase
+            .from('market_transactions')
+            .select('*, talent:talents(name)')
+            .or(`user_id.eq.${userId},metadata->to.eq.${userId}`)
+            .order('created_at', { ascending: false });
+        return data || [];
     }
 };
