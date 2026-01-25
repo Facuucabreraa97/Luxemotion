@@ -14,10 +14,11 @@ export const Studio = ({ credits, setCredits }: any) => {
     // Preview URLs for UI
     const [startPreview, setStartPreview] = useState<string>('');
     const [endPreview, setEndPreview] = useState<string>('');
+    const [videoUrl, setVideoUrl] = useState<string>('');
 
-    const [status, setStatus] = useState<'IDLE' | 'UPLOADING' | 'PROCESSING' | 'MINTING'>('IDLE');
-    const [supply, setSupply] = useState(1);
-    const [price, setPrice] = useState(0);
+    const [status, setStatus] = useState<'IDLE' | 'UPLOADING' | 'PROCESSING' | 'SAVING'>('IDLE');
+    // const [supply, setSupply] = useState(1);
+    // const [price, setPrice] = useState(0);
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'start' | 'end') => {
         const file = e.target.files?.[0];
@@ -40,9 +41,6 @@ export const Studio = ({ credits, setCredits }: any) => {
         setStatus('PROCESSING');
 
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) console.warn("Demo Mode: No user");
-
             // 1. Upload Images to Storage
             let startUrl = '';
 
@@ -68,36 +66,43 @@ export const Studio = ({ credits, setCredits }: any) => {
             }
 
             const { output } = await response.json();
-            // Replicate returns the prediction immediately or a polling URL?
-            // NOTE: The simple generate.js uses `replicate.run` which WAITS for completion by default.
-            // If output is array (video frames) or string (url).
-            console.log("AI Output:", output);
+            const resultUrl = Array.isArray(output) ? output[0] : output;
 
-            // Assuming output is the video URL (or first item of array)
-            const videoUrl = Array.isArray(output) ? output[0] : output;
-
-            setStatus('MINTING');
-            // 3. Mint Asset
-            if (user) {
-                await MarketService.mintAsset({
-                    name: prompt.substring(0, 30) || 'Untitled Creation',
-                    description: prompt,
-                    // Preview image is either the uploaded one or a placeholder (since we can't extract frame 0 easily on frontend without processing)
-                    image_url: startUrl || 'https://via.placeholder.com/1080x1920?text=Video+Asset',
-                    video_url: videoUrl,
-                    price: price,
-                    supply_total: supply,
-                    royalty_percent: 5,
-                    for_sale: true
-                }, user.id);
-            }
-
-            if (setCredits) setCredits((prev: number) => prev - 50);
+            setVideoUrl(resultUrl);
             setStatus('IDLE');
-            alert("Asset Generated & Minted Successfully!");
 
         } catch (e: any) {
             alert("Error: " + e.message);
+            setStatus('IDLE');
+        }
+    };
+
+    const handleSaveDraft = async () => {
+        setStatus('SAVING');
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error("Please Login to Save");
+
+            await MarketService.saveDraft({
+                name: prompt.substring(0, 30) || 'Untitled Creation',
+                description: prompt,
+                image_url: startPreview || 'https://via.placeholder.com/1080x1920?text=Video+Asset', // Using preview as cover for now
+                video_url: videoUrl,
+                price: 0,
+                supply_total: 1,
+                royalty_percent: 5
+            }, user.id);
+
+            alert("Saved to Gallery Drafts!");
+            // Reset
+            setVideoUrl('');
+            setPrompt('');
+            setStartPreview('');
+            setStartImage(null);
+            setStatus('IDLE');
+
+        } catch (e: any) {
+            alert("Save Failed: " + e.message);
             setStatus('IDLE');
         }
     };
@@ -183,48 +188,62 @@ export const Studio = ({ credits, setCredits }: any) => {
                         </div>
                     </div>
 
-                    {/* SETTINGS */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="glass-panel p-4 rounded-2xl">
-                            <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Supply</label>
-                            <input type="number" value={supply} onChange={e => setSupply(Number(e.target.value))} className="bg-transparent text-xl font-medium text-white w-full outline-none" />
-                        </div>
-                        <div className="glass-panel p-4 rounded-2xl">
-                            <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Price (CR)</label>
-                            <input type="number" value={price} onChange={e => setPrice(Number(e.target.value))} className="bg-transparent text-xl font-medium text-white w-full outline-none" />
-                        </div>
-                    </div>
 
-                    <button
-                        onClick={handleCreate}
-                        disabled={status !== 'IDLE' || (!prompt && mode === 'text') || (!startImage && mode === 'image')}
-                        className={`w-full py-4 rounded-xl font-bold text-lg tracking-wide shadow-2xl transition-all ${status === 'IDLE'
-                            ? 'bg-white text-black hover:scale-[1.01] hover:shadow-white/20'
-                            : 'bg-accent text-white cursor-not-allowed'
-                            }`}
-                    >
-                        <div className="flex items-center justify-center gap-2">
-                            {status === 'IDLE' && <Sparkles size={20} fill="black" />}
-                            {status === 'IDLE' ? 'Generate & Mint' : status === 'UPLOADING' ? 'Uploading Assets...' : 'Generating...'}
+                    {/* SETTINGS REMOVED FOR DRAFT WORKFLOW */}
+
+                    {!videoUrl ? (
+                        <button
+                            onClick={handleCreate}
+                            disabled={status !== 'IDLE' || (!prompt && mode === 'text') || (!startImage && mode === 'image')}
+                            className={`w-full py-4 rounded-xl font-bold text-lg tracking-wide shadow-2xl transition-all ${status === 'IDLE'
+                                ? 'bg-white text-black hover:scale-[1.01] hover:shadow-white/20'
+                                : 'bg-accent text-white cursor-not-allowed'
+                                }`}
+                        >
+                            <div className="flex items-center justify-center gap-2">
+                                {status === 'IDLE' && <Sparkles size={20} fill="black" />}
+                                {status === 'IDLE' ? 'Generate Preview' : status === 'UPLOADING' ? 'Uploading Assets...' : 'Generating...'}
+                            </div>
+                        </button>
+                    ) : (
+                        <div className="flex gap-4">
+                            <button
+                                onClick={handleSaveDraft}
+                                disabled={status === 'SAVING'}
+                                className="flex-1 bg-white text-black py-4 rounded-xl font-bold text-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
+                            >
+                                {status === 'SAVING' ? 'Saving...' : 'Save to Gallery'}
+                            </button>
+                            <button
+                                onClick={() => { setVideoUrl(''); setStatus('IDLE'); }}
+                                className="px-6 border border-white/20 rounded-xl hover:bg-white/10 transition-colors"
+                            >
+                                Discard
+                            </button>
                         </div>
-                    </button>
+                    )}
+
                 </div>
 
                 {/* VISUALIZER */}
                 <div className="lg:col-span-7">
                     <div className="w-full h-full glass-panel rounded-3xl flex items-center justify-center relative overflow-hidden bg-black/40">
-                        {status === 'IDLE' && !startPreview && (
+                        {status === 'IDLE' && !startPreview && !videoUrl && (
                             <div className="text-center opacity-30">
                                 <div className="text-6xl mb-4 grayscale flex justify-center">💠</div>
                                 <p className="font-light tracking-widest uppercase text-xs">Waiting for Input</p>
                             </div>
                         )}
 
-                        {startPreview && status === 'IDLE' && (
+                        {startPreview && status === 'IDLE' && !videoUrl && (
                             <img src={startPreview} className="w-full h-full object-contain opacity-50 blur-sm scale-105" />
                         )}
 
-                        {status !== 'IDLE' && (
+                        {videoUrl && (
+                            <video src={videoUrl} controls autoPlay loop className="w-full h-full object-contain" />
+                        )}
+
+                        {status !== 'IDLE' && status !== 'SAVING' && (
                             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-md z-20">
                                 <div className="w-16 h-16 border-4 border-t-accent border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin mb-6"></div>
                                 <p className="text-accent font-mono text-sm animate-pulse tracking-widest uppercase">{status}...</p>

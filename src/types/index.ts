@@ -23,6 +23,7 @@ export interface Asset {
     for_sale: boolean;
     supply_total: number;
     supply_sold: number;
+    is_draft?: boolean;
 }
 
 export interface Transaction {

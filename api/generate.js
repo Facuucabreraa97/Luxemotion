@@ -14,11 +14,11 @@ export default async function handler(request) {
     try {
         const { prompt, start_image_url } = await request.json();
 
-        // Determine model based on input (if start_image_url exists, use Img2Video model)
         let output;
+
         if (start_image_url) {
-            // Using Stability or Luma for Img2Video (Example: stability-ai/stable-video-diffusion)
-            // Adjust model version as needed for 'Unicorn' quality
+            // Screen-to-Video / Image-to-Video
+            // Using a high quality model for consistency
             output = await replicate.run(
                 "stability-ai/stable-video-diffusion:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
                 {
@@ -34,12 +34,15 @@ export default async function handler(request) {
                 }
             );
         } else {
-            // Text to Video (e.g. Zeroscope or similar open model on Replicate)
+            // Text to Video
+            // Injecting Hyper-Realism keywords
+            const hyperRealismWrapper = ", Shot on ARRI Alexa Mini LF, Cooke S7/i lenses, 8k resolution, photorealistic, cinematic lighting, volumetric fog, high contrast, hyper-realistic, subsurface scattering, micro-details";
+
             output = await replicate.run(
                 "anotherjesse/zeroscope-v2-xl:9f747673945c62801b13b84701c783929c0ee784e4748ec062204894dda1a351",
                 {
                     input: {
-                        prompt: prompt,
+                        prompt: prompt + hyperRealismWrapper,
                         num_frames: 24,
                         width: 1024,
                         height: 576

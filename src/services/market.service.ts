@@ -128,5 +128,52 @@ export const MarketService = {
         if (updateError) throw updateError;
 
         return { success: true };
+    },
+
+    // GUARDAR BORRADOR (DRAFT)
+    async saveDraft(assetData: Partial<Asset>, userId: string) {
+        const { data, error } = await supabase
+            .from('talents')
+            .insert([{
+                ...assetData,
+                creator_id: userId,
+                owner_id: userId,
+                for_sale: false,
+                is_draft: true,
+                supply_total: 1, // Locked Supply
+                supply_sold: 0
+            }])
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    },
+
+    // FINALIZAR MINTEO (Convertir Draft a Asset Real)
+    async finalizeMint(assetId: string, price: number, userId: string) {
+        // 1. Cobrar Fee de Minteo
+        await this.recordTransaction({
+            user_id: userId,
+            type: 'MINT',
+            amount: -50,
+            asset_id: assetId,
+            metadata: { action: 'Asset Minting' }
+        });
+
+        // 2. Activar Asset
+        const { data, error } = await supabase
+            .from('talents')
+            .update({
+                is_draft: false,
+                for_sale: true, // Auto-list implies meant for market, or false if just collection
+                price: price
+            })
+            .eq('id', assetId)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
     }
 };
