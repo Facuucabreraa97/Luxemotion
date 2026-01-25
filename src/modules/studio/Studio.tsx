@@ -118,7 +118,7 @@ export const Studio = ({ credits, setCredits }: any) => {
                 </p>
             </header>
 
-            <div className="grid lg:grid-cols-12 gap-8 h-full min-h-[600px]">
+            <div className="grid lg:grid-cols-12 gap-8 h-full min-h-[400px] md:min-h-[600px]">
                 {/* CONTROLS */}
                 <div className="lg:col-span-5 flex flex-col gap-6">
 
@@ -193,7 +193,13 @@ export const Studio = ({ credits, setCredits }: any) => {
 
                     {!videoUrl ? (
                         <button
-                            onClick={handleCreate}
+                            onClick={() => {
+                                handleCreate();
+                                // Scroll to preview on mobile
+                                if (window.innerWidth < 1024) {
+                                    setTimeout(() => document.getElementById('preview-area')?.scrollIntoView({ behavior: 'smooth' }), 100);
+                                }
+                            }}
                             disabled={status !== 'IDLE' || (!prompt && mode === 'text') || (!startImage && mode === 'image')}
                             className={`w-full py-4 rounded-xl font-bold text-lg tracking-wide shadow-2xl transition-all ${status === 'IDLE'
                                 ? 'bg-white text-black hover:scale-[1.01] hover:shadow-white/20'
@@ -226,8 +232,8 @@ export const Studio = ({ credits, setCredits }: any) => {
                 </div>
 
                 {/* VISUALIZER */}
-                <div className="lg:col-span-7">
-                    <div className="w-full h-full glass-panel rounded-3xl flex items-center justify-center relative overflow-hidden bg-black/40">
+                <div className="lg:col-span-7" id="preview-area">
+                    <div className="w-full h-full min-h-[300px] glass-panel rounded-3xl flex items-center justify-center relative overflow-hidden bg-black/40">
                         {status === 'IDLE' && !startPreview && !videoUrl && (
                             <div className="text-center opacity-30">
                                 <div className="text-6xl mb-4 grayscale flex justify-center">💠</div>
