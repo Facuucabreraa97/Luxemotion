@@ -38,7 +38,5 @@ export default {
             }
         },
     },
-    plugins: [
-        require('tailwindcss-animate')
-    ], // Checking if tailwindcss-animate is needed, but for now standard plugins
+    plugins: [], // Removed tailwindcss-animate to fix build error
 }
