@@ -645,6 +645,8 @@ const ProtectedRoute = ({ children, requireAdmin, profile }: { children: any, re
     return children;
 };
 
+}
+
 function AppContent() {
     const [session, setSession] = useState<Session | null>(null);
     const [loading, setLoading] = useState(true);
