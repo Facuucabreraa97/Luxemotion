@@ -1,4 +1,3 @@
-```javascript
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { MarketService } from '@/services/market.service';
@@ -97,9 +96,8 @@ const Profile = () => {
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab as any)}
-                            className={`pb - 4 text - sm font - bold uppercase tracking - widest border - b - 2 transition - colors whitespace - nowrap ${
-    activeTab === tab ? 'border-indigo-500 text-white' : 'border-transparent text-gray-500 hover:text-gray-300'
-} `}
+                            className={`pb - 4 text - sm font - bold uppercase tracking - widest border - b - 2 transition - colors whitespace - nowrap ${activeTab === tab ? 'border-indigo-500 text-white' : 'border-transparent text-gray-500 hover:text-gray-300'
+                                } `}
                         >
                             {tab} {tab === 'drafts' && assets.filter(a => a.is_draft).length > 0 && <span className="ml-1 bg-white text-black px-1.5 rounded text-[10px]">{assets.filter(a => a.is_draft).length}</span>}
                         </button>
@@ -117,7 +115,7 @@ const Profile = () => {
                                 {transactions.length > 0 ? transactions.map((tx: any) => (
                                     <div key={tx.id} className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/5">
                                         <div className="flex items-center gap-4">
-                                            <div className={`p - 3 rounded - full ${ tx.amount > 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400' } `}>
+                                            <div className={`p - 3 rounded - full ${tx.amount > 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'} `}>
                                                 {tx.amount > 0 ? '↓' : '↑'}
                                             </div>
                                             <div>
@@ -125,7 +123,7 @@ const Profile = () => {
                                                 <p className="text-xs text-gray-500">{new Date(tx.created_at).toLocaleDateString()}</p>
                                             </div>
                                         </div>
-                                        <div className={`font - mono font - bold ${ tx.amount > 0 ? 'text-emerald-400' : 'text-white' } `}>
+                                        <div className={`font - mono font - bold ${tx.amount > 0 ? 'text-emerald-400' : 'text-white'} `}>
                                             {tx.amount > 0 ? '+' : ''}{tx.amount} CR
                                         </div>
                                     </div>
@@ -163,7 +161,7 @@ const Profile = () => {
                                             <div className="flex justify-between items-end mt-4">
                                                 <div>
                                                     <p className="text-[10px] text-gray-500 uppercase font-bold">Price</p>
-                                                    <p className="text-sm font-bold text-white">{asset.price > 0 ? `${ asset.price } CR` : 'Not Listed'}</p>
+                                                    <p className="text-sm font-bold text-white">{asset.price > 0 ? `${asset.price} CR` : 'Not Listed'}</p>
                                                 </div>
                                                 {asset.is_draft && (
                                                     <button
