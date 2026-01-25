@@ -7,8 +7,10 @@ import { Login } from '@/modules/auth/Login';
 import { Studio } from '@/modules/studio/Studio';
 import Profile from '@/pages/Profile';
 
+import { Marketplace } from '@/pages/Marketplace';
+
 // Placeholders for other routes
-const Marketplace = () => <div className="p-8 text-center text-gray-400">Marketplace Coming Soon</div>;
+// const Marketplace = () => <div className="p-8 text-center text-gray-400">Marketplace Coming Soon</div>;
 
 function App() {
     const [session, setSession] = useState<any>(null);

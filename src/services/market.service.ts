@@ -50,5 +50,83 @@ export const MarketService = {
     async getMyAssets(userId: string) {
         const { data } = await supabase.from('talents').select('*').eq('owner_id', userId);
         return data || [];
+    },
+
+    // OBTENER LISTADOS (MARKETPLACE)
+    async getAllListings() {
+        const { data } = await supabase
+            .from('talents')
+            .select('*')
+            .eq('for_sale', true)
+            .order('created_at', { ascending: false });
+        return data || [];
+    },
+
+    // COMPRAR ACTIVO
+    async buyAsset(assetId: string, buyerId: string) {
+        // 1. Obtener Activo
+        const { data: asset, error: assetError } = await supabase
+            .from('talents')
+            .select('*')
+            .eq('id', assetId)
+            .single();
+
+        if (assetError) throw new Error("Asset not found");
+        if (!asset.for_sale) throw new Error("Asset not for sale");
+        if (asset.owner_id === buyerId) throw new Error("Cannot buy your own asset");
+
+        const price = asset.price;
+        const royaltyFee = price * 0.10; // 10% Royalty
+        const platformFee = price * 0.05; // 5% Platform
+        const sellerRevenue = price - royaltyFee - platformFee;
+
+        // 2. Verificar Fondos Comprador (Simulado o Call RPC)
+        // Por simplicidad, asumimos chequeo en UI o RPC, aquí registramos las transacciones
+
+        // 3. Ejecutar Transferencias (Logica de DB idealmente en RPC 'execute_purchase')
+
+        // Cobrar al Comprador
+        await this.recordTransaction({
+            user_id: buyerId,
+            type: 'BUY',
+            amount: -price,
+            asset_id: asset.id,
+            metadata: { to: asset.owner_id }
+        });
+
+        // Pagar al Vendedor
+        await this.recordTransaction({
+            user_id: asset.owner_id,
+            type: 'DEPOSIT',
+            amount: sellerRevenue,
+            asset_id: asset.id,
+            metadata: { from: buyerId, type: 'SALE' }
+        });
+
+        // Pagar Royalty al Creador
+        if (asset.creator_id) {
+            await this.recordTransaction({
+                user_id: asset.creator_id,
+                type: 'DEPOSIT',
+                amount: royaltyFee,
+                asset_id: asset.id,
+                metadata: { from: buyerId, type: 'ROYALTY' }
+            });
+        }
+
+        // 4. Transferir Propiedad
+        const { error: updateError } = await supabase
+            .from('talents')
+            .update({
+                owner_id: buyerId,
+                for_sale: false,
+                price: 0,
+                supply_sold: (asset.supply_sold || 0) + 1
+            })
+            .eq('id', assetId);
+
+        if (updateError) throw updateError;
+
+        return { success: true };
     }
 };
