@@ -823,7 +823,6 @@ function AppContent() {
         </Router >
     );
 }
-}
 
 function App() {
     return (
