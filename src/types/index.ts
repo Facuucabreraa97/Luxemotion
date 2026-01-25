@@ -1,29 +1,34 @@
+
 export interface UserProfile {
     id: string;
     email: string;
     full_name?: string;
     avatar_url?: string;
     credits: number;
+    is_admin?: boolean;
 }
 
-export interface NFTAsset {
+export interface Asset {
     id: string;
-    owner_id: string;
-    title: string;
-    description?: string;
-    preview_url: string;
-    supply_total: number;
-    price: number;
-    is_for_sale: boolean;
     created_at: string;
-    history?: any[];
+    name: string;
+    description?: string;
+    image_url: string;
+    video_url?: string;
+    price: number;
+    currency: string;
+    royalty_percent: number;
+    creator_id: string;
+    owner_id: string;
+    for_sale: boolean;
+    supply_total: number;
+    supply_sold: number;
 }
 
-export interface TransactionHistory {
-    id: string;
-    asset_id: string;
-    buyer_id: string;
-    seller_id: string;
-    price: number;
-    date: string;
+export interface Transaction {
+    id: number;
+    created_at: string;
+    type: 'MINT' | 'BUY' | 'GENERATE' | 'DEPOSIT';
+    amount: number;
+    metadata?: any;
 }
