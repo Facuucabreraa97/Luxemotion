@@ -1,20 +1,18 @@
 
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, Outlet } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { ToastProvider, useToast } from './components/ui/Toast';
-import { SidebarProvider, useSidebar } from './components/ui/sidebar';
 
-// Pages & Components
+// Components
 import LoginScreen from './components/LoginScreen';
 import Sidebar from './components/Sidebar';
 import MobileHeader from './components/MobileHeader';
 import MobileNav from './components/MobileNav';
 
-// Placeholder Imports (To prevent build errors if files are missing, we use standard imports)
+// Pages (Usamos carga directa o stubs para evitar errores de importación rotos)
 import StudioConsole from './pages/admin/StudioConsole';
 import ExplorePage from './pages/ExplorePage';
-// import GalleryPage from './pages/GalleryPage'; // Se comenta por si causa conflicto, usaremos un inline si falla
 import BillingPage from './pages/BillingPage';
 import SettingsPage from './pages/SettingsPage';
 
@@ -26,6 +24,7 @@ const useMode = () => {
 };
 
 // --- PROTECTED LAYOUT (LA PIEZA QUE FALTABA) ---
+// Definido explícitamente fuera de cualquier otra función
 const ProtectedLayout = ({ session, credits, profile, mode, notify }: any) => {
   if (!session) {
       return <Navigate to="/login" replace />;
@@ -69,10 +68,10 @@ function AppContent() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Simple Gallery Page inline para evitar errores de importación
-  const GalleryComponent = ({ videos }: any) => (
+  // Componente inline simple para Galería (para evitar conflictos de archivos fantasmas)
+  const GalleryStub = () => (
     <div className="p-8 text-white">
-      <h1 className="text-2xl font-bold mb-4">My Gallery</h1>
+      <h1 className="text-2xl font-bold mb-4">Gallery</h1>
       <p className="text-gray-400">Your generated videos will appear here.</p>
     </div>
   );
@@ -89,7 +88,7 @@ function AppContent() {
           <Route index element={<StudioConsole credits={credits} setCredits={setCredits} notify={notify} />} />
           <Route path="studio" element={<StudioConsole credits={credits} setCredits={setCredits} notify={notify} />} />
           <Route path="explore" element={<ExplorePage />} />
-          <Route path="gallery" element={<GalleryComponent />} /> 
+          <Route path="gallery" element={<GalleryStub />} /> 
           <Route path="billing" element={<BillingPage onSelect={() => {}} />} />
           <Route path="settings" element={<SettingsPage profile={profile} notify={notify} />} />
         </Route>
