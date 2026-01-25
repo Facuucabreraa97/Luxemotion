@@ -1,55 +1,54 @@
-import { supabase } from '@/lib/supabase';
-import { NFTAsset, TransactionHistory } from '@/types';
+
+import { supabase } from '../lib/supabase'; // Ruta relativa segura
+import { Asset, Transaction } from '../types';
 
 export const MarketService = {
-    // ACUÑAR (MINT) UN NUEVO ASSET
-    // Esta es la función crítica del Studio.
-    async mintAsset(asset: Omit<NFTAsset, 'id' | 'history'>) {
-        // 1. Insertar el activo
+    // ACUÑAR (MINT)
+    async mintAsset(assetData: Partial<Asset>, userId: string) {
         const { data, error } = await supabase
-            .from('assets')
-            .insert([asset])
+            .from('talents')
+            .insert([{
+                ...assetData,
+                creator_id: userId,
+                owner_id: userId,
+                for_sale: false,
+                supply_sold: 0
+            }])
             .select()
             .single();
 
         if (error) throw error;
+
+        // Registrar Gasto en Ledger
+        await this.recordTransaction({
+            user_id: userId,
+            type: 'MINT',
+            amount: -50, // Costo fijo por ahora
+            asset_id: data.id,
+            metadata: { action: 'Asset Creation' }
+        });
+
         return data;
     },
 
-    // OBTENER ASSETS DE UN USUARIO (Para el Perfil/Galería)
-    async getUserAssets(userId: string): Promise<NFTAsset[]> {
-        const { data, error } = await supabase
-            .from('assets')
-            .select('*')
-            .eq('owner_id', userId)
-            .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        return data || [];
-    },
-
-    // OBTENER EL FEED DEL MARKETPLACE (Explore)
-    async getMarketplaceFeed(): Promise<NFTAsset[]> {
-        const { data, error } = await supabase
-            .from('assets')
-            .select('*')
-            .eq('is_for_sale', true)
-            .order('created_at', { ascending: false })
-            .limit(50); // Paginación simple inicial
-
-        if (error) throw error;
-        return data || [];
-    },
-
-    // REGISTRAR TRANSACCIÓN (Ledger Inmutable)
-    async recordTransaction(tx: Omit<TransactionHistory, 'date'>) {
+    // LISTAR
+    async listAsset(assetId: string, price: number) {
         const { error } = await supabase
-            .from('transactions')
-            .insert([{
-                ...tx,
-                date: new Date().toISOString()
-            }]);
-
+            .from('talents')
+            .update({ for_sale: true, price: price })
+            .eq('id', assetId);
         if (error) throw error;
+    },
+
+    // REGISTRAR TRANSACCIÓN
+    async recordTransaction(tx: any) {
+        const { error } = await supabase.from('transactions').insert([tx]);
+        if (error) console.error("Error logging tx:", error);
+    },
+
+    // OBTENER MIS ACTIVOS
+    async getMyAssets(userId: string) {
+        const { data } = await supabase.from('talents').select('*').eq('owner_id', userId);
+        return data || [];
     }
 };
