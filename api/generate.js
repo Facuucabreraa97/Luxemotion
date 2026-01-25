@@ -12,13 +12,25 @@ export default async function handler(request) {
     });
 
     try {
-        const { prompt, start_image_url } = await request.json();
+        const { prompt, start_image_url, end_image_url, aspect_ratio } = await request.json();
 
         let output;
 
-        if (start_image_url) {
-            // Screen-to-Video / Image-to-Video
-            // Using a high quality model for consistency
+        // 1. DUAL IMAGE MODE (Morph/Interpolation)
+        if (start_image_url && end_image_url) {
+            output = await replicate.run(
+                "google/frame-interpolation:4f88a16a13673a8b589c18866e540556170a5afe2f1173dbb969f63f5ac40174",
+                {
+                    input: {
+                        frame1: start_image_url,
+                        frame2: end_image_url,
+                        times_to_interpolate: 4 // Creates smooth transition
+                    }
+                }
+            );
+        }
+        // 2. SINGLE IMAGE MODE (Motion)
+        else if (start_image_url) {
             output = await replicate.run(
                 "stability-ai/stable-video-diffusion:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
                 {
@@ -33,7 +45,9 @@ export default async function handler(request) {
                     }
                 }
             );
-        } else {
+        }
+        // 3. TEXT TO VIDEO MODE
+        else {
             // Text to Video
             // Injecting Hyper-Realism keywords
             const hyperRealismWrapper = ", Shot on ARRI Alexa Mini LF, Cooke S7/i lenses, 8k resolution, photorealistic, cinematic lighting, volumetric fog, high contrast, hyper-realistic, subsurface scattering, micro-details";
