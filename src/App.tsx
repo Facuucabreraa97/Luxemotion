@@ -1,3 +1,6 @@
+import Sidebar from './components/Sidebar';
+import MobileHeader from './components/MobileHeader';
+import MobileNav from './components/MobileNav';
 import MobileLayout from './components/MobileLayout';
 import React, { useState, useEffect, useRef, createContext, useContext } from 'react';
 import { createPortal } from 'react-dom';
@@ -646,6 +649,29 @@ const ProtectedRoute = ({ children, requireAdmin, profile }: { children: any, re
 };
 
 }
+
+
+// --- PROTECTED LAYOUT (Inserted by Fix) ---
+const ProtectedLayout = ({ session, credits, profile, mode, notify }: any) => {
+  if (!session) {
+      return <Navigate to="/login" replace />;
+  }
+
+  return (
+    <div className="flex h-screen bg-gray-50 dark:bg-black overflow-hidden">
+      <Sidebar credits={credits} mode={mode} />
+      <div className="flex-1 flex flex-col w-full h-full relative overflow-hidden">
+        <MobileHeader credits={credits} />
+        <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-black w-full relative scrollbar-hide">
+          <Outlet context={{ credits, profile, notify }} />
+        </main>
+        <MobileNav />
+      </div>
+    </div>
+  );
+};
+// ------------------------------------------
+
 
 function AppContent() {
     const [session, setSession] = useState<Session | null>(null);
