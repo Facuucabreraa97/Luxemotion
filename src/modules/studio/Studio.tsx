@@ -160,40 +160,41 @@ export const Studio = ({ credits, setCredits }: any) => {
                         <div className="flex-1">
                             <label className="text-[10px] font-bold text-gray-500 uppercase block mb-3">Input</label>
 
-                            <div className="grid grid-cols-2 gap-4 mb-4">
-                                {/* START IMAGE */}
-                                <div className="aspect-square rounded-2xl border-2 border-dashed border-white/10 hover:border-white/30 transition-colors relative flex flex-col items-center justify-center overflow-hidden group bg-black/20">
-                                    {startPreview ? (
-                                        <>
-                                            <img src={startPreview} className="w-full h-full object-cover opacity-80" />
-                                            <button onClick={() => { setStartImage(null); setStartPreview(''); }} className="absolute top-2 right-2 p-1 bg-black/50 rounded-full hover:bg-red-500 text-white"><X size={12} /></button>
-                                        </>
-                                    ) : (
-                                        <div className="text-center p-4">
-                                            <Upload className="mx-auto text-gray-500 mb-2" size={20} />
-                                            <span className="text-[10px] uppercase font-bold text-gray-500">Subject</span>
-                                        </div>
-                                    )}
-                                    <input type="file" onChange={e => handleImageUpload(e, 'start')} className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" />
-                                </div>
+                            {mode === 'image' && (
+                                <div className="grid grid-cols-2 gap-4 mb-4">
+                                    {/* START IMAGE */}
+                                    <div className="aspect-square rounded-2xl border-2 border-dashed border-white/10 hover:border-white/30 transition-colors relative flex flex-col items-center justify-center overflow-hidden group bg-black/20">
+                                        {startPreview ? (
+                                            <>
+                                                <img src={startPreview} className="w-full h-full object-cover opacity-80" />
+                                                <button onClick={() => { setStartImage(null); setStartPreview(''); }} className="absolute top-2 right-2 p-1 bg-black/50 rounded-full hover:bg-red-500 text-white"><X size={12} /></button>
+                                            </>
+                                        ) : (
+                                            <div className="text-center p-4">
+                                                <Upload className="mx-auto text-gray-500 mb-2" size={20} />
+                                                <span className="text-[10px] uppercase font-bold text-gray-500">Subject</span>
+                                            </div>
+                                        )}
+                                        <input type="file" onChange={e => handleImageUpload(e, 'start')} className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" />
+                                    </div>
 
-                                {/* END IMAGE (OPTIONAL) */}
-                                <div className="aspect-square rounded-2xl border-2 border-dashed border-white/10 hover:border-white/30 transition-colors relative flex flex-col items-center justify-center overflow-hidden group bg-black/20">
-                                    {endPreview ? (
-                                        <>
-                                            <img src={endPreview} className="w-full h-full object-cover opacity-80" />
-                                            <button onClick={() => { setEndImage(null); setEndPreview(''); }} className="absolute top-2 right-2 p-1 bg-black/50 rounded-full hover:bg-red-500 text-white"><X size={12} /></button>
-                                        </>
-                                    ) : (
-                                        <div className="text-center p-4">
-                                            <Film className="mx-auto text-gray-500 mb-2" size={20} />
-                                            <span className="text-[10px] uppercase font-bold text-gray-500">Context (End)</span>
-                                        </div>
-                                    )}
-                                    <input type="file" onChange={e => handleImageUpload(e, 'end')} className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" />
+                                    {/* END IMAGE (OPTIONAL) */}
+                                    <div className="aspect-square rounded-2xl border-2 border-dashed border-white/10 hover:border-white/30 transition-colors relative flex flex-col items-center justify-center overflow-hidden group bg-black/20">
+                                        {endPreview ? (
+                                            <>
+                                                <img src={endPreview} className="w-full h-full object-cover opacity-80" />
+                                                <button onClick={() => { setEndImage(null); setEndPreview(''); }} className="absolute top-2 right-2 p-1 bg-black/50 rounded-full hover:bg-red-500 text-white"><X size={12} /></button>
+                                            </>
+                                        ) : (
+                                            <div className="text-center p-4">
+                                                <Film className="mx-auto text-gray-500 mb-2" size={20} />
+                                                <span className="text-[10px] uppercase font-bold text-gray-500">Context (End)</span>
+                                            </div>
+                                        )}
+                                        <input type="file" onChange={e => handleImageUpload(e, 'end')} className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" />
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            )}
 
                             <textarea
                                 value={prompt}
