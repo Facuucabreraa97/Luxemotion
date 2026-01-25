@@ -86,8 +86,8 @@ const Profile = () => {
                             <div key={asset.id} className="group bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:-translate-y-1 transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-500/10 cursor-pointer">
                                 <div className="aspect-square bg-gray-900 relative overflow-hidden">
                                     {/* Placeholder o Imagen Real */}
-                                    {asset.preview_url ? (
-                                        <img src={asset.preview_url} alt={asset.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                    {asset.image_url ? (
+                                        <img src={asset.image_url} alt={asset.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center text-4xl">🎬</div>
                                     )}
@@ -96,7 +96,7 @@ const Profile = () => {
                                     </div>
                                 </div>
                                 <div className="p-4">
-                                    <h3 className="font-bold text-white truncate">{asset.title}</h3>
+                                    <h3 className="font-bold text-white truncate">{asset.name}</h3>
                                     <div className="flex justify-between items-end mt-4">
                                         <div>
                                             <p className="text-[10px] text-gray-500 uppercase font-bold">Precio</p>
