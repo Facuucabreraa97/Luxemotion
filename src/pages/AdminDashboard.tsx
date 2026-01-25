@@ -66,8 +66,8 @@ export const AdminDashboard = () => {
                                 </div>
                                 <div className="flex items-center gap-4">
                                     <span className={`px-2 py-1 rounded text-[10px] uppercase font-bold ${req.status === 'approved' ? 'bg-emerald-500/20 text-emerald-500' :
-                                            req.status === 'rejected' ? 'bg-red-500/20 text-red-500' :
-                                                'bg-yellow-500/20 text-yellow-500'
+                                        req.status === 'rejected' ? 'bg-red-500/20 text-red-500' :
+                                            'bg-yellow-500/20 text-yellow-500'
                                         }`}>
                                         {req.status}
                                     </span>
@@ -75,10 +75,15 @@ export const AdminDashboard = () => {
                                     {req.status === 'pending' && (
                                         <div className="flex gap-2">
                                             <button
-                                                onClick={() => updateStatus(req.email, 'approved')}
-                                                className="p-2 bg-emerald-500 hover:bg-emerald-400 text-black rounded-lg text-xs font-bold"
+                                                onClick={() => {
+                                                    updateStatus(req.email, 'approved');
+                                                    // Here we would trigger the 'invite-user' Edge Function if implemented.
+                                                    // For now, we approve access.
+                                                    alert(`User ${req.email} Approved! System should send invite email now.`);
+                                                }}
+                                                className="p-2 bg-emerald-500 hover:bg-emerald-400 text-black rounded-lg text-xs font-bold flex items-center gap-1"
                                             >
-                                                Approve
+                                                <Check size={12} /> Confirm & Invite
                                             </button>
                                             <button
                                                 onClick={() => updateStatus(req.email, 'rejected')}

@@ -70,9 +70,15 @@ function App() {
                         session && isApprov ? <Layout session={session} /> : <Navigate to="/" />
                     }>
                         <Route index element={<Navigate to="/app/studio" />} />
+                        import {Plans} from '@/pages/Plans';
+
+                        // ... imports
+
+                        // ... inside Layout Route
                         <Route path="studio" element={<Studio />} />
                         <Route path="marketplace" element={<Marketplace />} />
                         <Route path="gallery" element={<Profile />} />
+                        <Route path="billing" element={<Plans />} />
                     </Route>
 
                     <Route path="*" element={<Navigate to="/" />} />

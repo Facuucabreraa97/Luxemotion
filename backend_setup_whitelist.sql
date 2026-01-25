@@ -22,6 +22,15 @@ update using (auth.role() = 'authenticated');
 -- 4. Insert your Admin Email immediately so you are approved
 insert into public.whitelist (email, status)
 values ('tu@email.com', 'approved'),
-    -- Example
-    ('facu.cabreraa97@gmail.com', 'approved');
--- Assuming this is your email based on repo name
+    ('facu.cabreraa97@gmail.com', 'approved'),
+    ('Dmsfak@proton.me', 'approved');
+-- 5. Trigger for Free Credits on Signup
+create or replace function public.handle_new_user() returns trigger as $$ begin
+insert into public.profiles (id, email, credits)
+values (new.id, new.email, 100);
+return new;
+end;
+$$ language plpgsql security definer;
+create trigger on_auth_user_created
+after
+insert on auth.users for each row execute procedure public.handle_new_user();
