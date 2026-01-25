@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Users, DollarSign, Zap } from 'lucide-react';
-// VERIFY PATHS: Ensure these exist. If SentinelConsole is in parent, adjust import.
+// [REMOVED]
 import UsersDatabase from './components/UsersDatabase';
 import TreasuryLogs from './components/TreasuryLogs';
-import SentinelConsole from './SentinelConsole';
+// [REMOVED]
 
 export default function AdminConsole() {
     const [activeTab, setActiveTab] = useState('sentinel'); // DEFAULT TO SENTINEL
@@ -15,7 +15,7 @@ export default function AdminConsole() {
             id: 'sentinel',
             label: 'SENTINEL AI',
             icon: Zap,
-            component: <SentinelConsole />,
+// [REMOVED]
             highlight: true
         }
     ];
