@@ -59,8 +59,9 @@ const Profile = () => {
       await MarketService.finalizeMint(asset.id, price, user.id);
       alert('Asset Minted & Listed!');
       loadProfileData();
-    } catch (e: any) {
-      alert('Minting Failed: ' + e.message);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Unknown error';
+      alert('Minting Failed: ' + message);
     }
   };
 
@@ -119,7 +120,7 @@ const Profile = () => {
           {['created', 'drafts', 'collected', 'wallet'].map((tab) => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab as any)}
+              onClick={() => setActiveTab(tab as 'created' | 'drafts' | 'collected' | 'wallet')}
               className={`pb - 4 text - sm font - bold uppercase tracking - widest border - b - 2 transition - colors whitespace - nowrap ${
                 activeTab === tab
                   ? 'border-indigo-500 text-white'
@@ -149,7 +150,7 @@ const Profile = () => {
               </h3>
               <div className="space-y-4">
                 {transactions.length > 0 ? (
-                  transactions.map((tx: any) => (
+                  transactions.map((tx) => (
                     <div
                       key={tx.id}
                       className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/5"
