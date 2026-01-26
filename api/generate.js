@@ -46,7 +46,7 @@ export default async function handler(request) {
             };
             
             output = await replicate.run(
-                "google/frame-interpolation:4f88a16a13673a8b589c18866e540556170a5afe2f1173dbb969f63f5ac40174",
+                "google/frame-interpolation:4f88a16a13673a8b589c18866e540556170a5bcb2ccdc12de556e800e9456d3d", // Correct hash
                 {
                     input: {
                         frame1: start_image_url,
