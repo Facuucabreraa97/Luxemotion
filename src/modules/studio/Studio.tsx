@@ -78,8 +78,16 @@ export const Studio = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Generation failed');
+        const text = await response.text();
+        let errorMsg = 'Generation failed';
+        try {
+          const json = JSON.parse(text);
+          errorMsg = json.error || errorMsg;
+        } catch {
+          // If JSON parse fails, it's likely an HTML 500/504
+          errorMsg = text.includes('DOCTYPE') ? `Server Error (${response.status})` : text;
+        }
+        throw new Error(errorMsg);
       }
 
       const { output } = await response.json();
