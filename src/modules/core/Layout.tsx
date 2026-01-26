@@ -62,9 +62,8 @@ export const Layout: React.FC<LayoutProps> = ({ session }) => {
                 <NavItems />
             </aside>
 
-            {/* Mobile Top Bar */}
             <div className="md:hidden fixed top-0 w-full z-40 bg-black/80 backdrop-blur-md border-b border-white/5 flex items-center justify-center p-4">
-                <h1 className="text-sm font-bold tracking-[0.2em] text-white">MIVIDEO<span className="text-blue-500">AI</span></h1>
+                <img src="/branding/logo-white.png" alt="MivideoAI" className="h-6" />
             </div>
 
             {/* Main Content */}
