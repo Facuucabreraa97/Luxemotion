@@ -50,7 +50,7 @@ export const Landing = () => {
         <div className="min-h-screen bg-black text-white flex flex-col font-sans selection:bg-yellow-500/30">
             {/* Header */}
             <header className="p-6 md:px-12 flex justify-between items-center">
-                <div className="text-xl font-bold tracking-tighter">MIVIDEO<span className="text-yellow-500">AI</span></div>
+                <img src="/branding/logo-white.png" alt="MivideoAI" className="h-8" />
                 <button onClick={() => navigate('/login')} className="text-sm font-medium text-gray-400 hover:text-white transition-colors">
                     Login
                 </button>
@@ -59,9 +59,9 @@ export const Landing = () => {
             {/* Main Content */}
             <main className="flex-1 flex flex-col items-center justify-center text-center px-4 -mt-20">
 
-                <h1 className="text-5xl md:text-7xl font-serif font-medium tracking-tight mb-8">
-                    Mivideo<span className="text-yellow-500">AI</span>
-                </h1>
+                <div className="mb-8">
+                    <img src="/branding/logo-white.png" alt="MivideoAI" className="h-20 md:h-28" />
+                </div>
 
                 <h2 className="text-4xl md:text-6xl font-display font-bold leading-[1.1] mb-6 max-w-4xl mx-auto text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-500">
                     Marketplace de influencers <br />

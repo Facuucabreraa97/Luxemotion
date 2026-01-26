@@ -71,10 +71,10 @@ export const AdminDashboard = () => {
             {/* Sidebar */}
             <aside className="w-64 border-r border-white/10 bg-[#0a0a0a] flex flex-col fixed h-full z-20">
                 <div className="p-6 border-b border-white/10">
+                    <img src="/branding/logo-white.png" alt="MivideoAI" className="h-6 mb-3" />
                     <h1 className="text-xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-500 bg-clip-text text-transparent">
                         GOD MODE
                     </h1>
-                    <p className="text-xs text-gray-500 mt-1">MivideoAI Admin</p>
                 </div>
 
                 <nav className="flex-1 p-4 space-y-2">
@@ -179,8 +179,15 @@ export const AdminDashboard = () => {
                                                     <td className="p-4 text-right flex justify-end gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
                                                         <ActionBtn
                                                             icon={<CreditCard size={14} />}
-                                                            tooltip="Add 100 Credits"
-                                                            onClick={() => handleAction(() => AdminService.updateCredits(user.email, 100), 'Credits added')}
+                                                            tooltip="Manage Credits"
+                                                            onClick={() => {
+                                                                const amountStr = window.prompt(`Enter credits to add/remove for ${user.email} (Use negative for removal):`, "100");
+                                                                if (!amountStr) return;
+                                                                const amount = parseInt(amountStr);
+                                                                if (isNaN(amount)) return alert("Invalid number");
+
+                                                                handleAction(() => AdminService.updateCredits(user.email, amount), `Successfully updated credits by ${amount}`);
+                                                            }}
                                                             color="text-emerald-400 hover:bg-emerald-400/10"
                                                         />
                                                         <ActionBtn
