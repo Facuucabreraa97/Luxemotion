@@ -111,18 +111,19 @@ export const Landing = () => {
                 {/* Grid Showcase (Sora Style) */}
                 <div className="mt-32 w-full max-w-[1600px] grid grid-cols-2 md:grid-cols-4 gap-4 px-4 opacity-40 hover:opacity-100 transition-opacity duration-700">
                     {[
-                        { color: "from-pink-500 to-rose-500", label: "Fashion" },
-                        { color: "from-blue-500 to-cyan-500", label: "Tech" },
-                        { color: "from-emerald-500 to-teal-500", label: "Lifestyle" },
-                        { color: "from-orange-500 to-amber-500", label: "Travel" }
+                        { img: "/showcase/fashion.png", label: "Fashion", prompt: "A hyper-realistic close-up portrait of a fashion AI influencer, high fashion street style, cinematic lighting, 8k resolution, photorealistic, shot on 35mm lens." },
+                        { img: "/showcase/tech.png", label: "Tech", prompt: "A hyper-realistic portrait of a tech influencer holding a futuristic gadget, modern minimalist background, neon accents, cinematic lighting, 8k resolution." },
+                        { img: "/showcase/lifestyle.png", label: "Lifestyle", prompt: "A hyper-realistic environmental portrait of a lifestyle influencer in a modern luxury apartment, soft morning light, aesthetic composition, 8k resolution." },
+                        { img: "/showcase/travel.png", label: "Travel", prompt: "A hyper-realistic portrait of a travel influencer with a stunning sunset in the background, golden hour, cinematic lighting, 8k resolution." }
                     ].map((item, i) => (
                         <div key={i} className={`aspect-[9/16] rounded-xl overflow-hidden relative group cursor-crosshair transform hover:scale-[1.02] transition-transform duration-500 ${i % 2 === 0 ? 'mt-0' : 'mt-12'}`}>
-                            <div className={`absolute inset-0 bg-gradient-to-br ${item.color} opacity-20 group-hover:opacity-30 transition-opacity`} />
+                            <img src={item.img} alt={item.label} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                            <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
                             {/* Fake UI Overlay */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-6">
-                                <span className="text-xs font-mono text-white/70 mb-1">PROMPT</span>
-                                <p className="text-sm font-medium leading-snug">
-                                    A photorealistic AI influencer specializing in {item.label.toLowerCase()}, 8k resolution, cinematic lighting.
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col justify-end p-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                <span className="text-[10px] font-mono text-white/50 mb-2 uppercase tracking-widest">PROMPT</span>
+                                <p className="text-xs font-medium leading-relaxed font-mono text-gray-300">
+                                    {item.prompt}
                                 </p>
                             </div>
                         </div>
