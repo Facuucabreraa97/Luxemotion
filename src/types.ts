@@ -23,6 +23,16 @@ export interface Asset {
   supply_total: number;
   supply_sold: number;
   is_draft?: boolean;
+
+  // Remix / GenAI Fields
+  seed?: number; // Int8 in DB, number in JS (safe up to 2^53)
+  generation_config?: Record<string, any>;
+  prompt_structure?: {
+    user_prompt: string;
+    system_prompt?: string;
+    full_prompt: string;
+  };
+  is_public?: boolean;
 }
 
 export interface Transaction {

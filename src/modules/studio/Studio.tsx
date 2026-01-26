@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { MarketService } from '@/services/market.service';
 import { StorageService } from '@/services/storage.service';
 import { supabase } from '@/lib/supabase';
-import { Upload, X, Film, Sparkles } from 'lucide-react';
+import { Upload, X, Film, Sparkles, Settings, ChevronDown, ChevronUp } from 'lucide-react';
 
 export const Studio = () => {
   const [mode, setMode] = useState<'text' | 'image'>('text');
@@ -10,6 +10,11 @@ export const Studio = () => {
   const [prompt, setPrompt] = useState('');
   const [startImage, setStartImage] = useState<File | null>(null);
   const [endImage, setEndImage] = useState<File | null>(null);
+
+  // REMIX STATE
+  const [motionBucketId, setMotionBucketId] = useState<number>(127);
+  const [seed, setSeed] = useState<string>('');
+  const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
 
   // Preview URLs for UI
   const [startPreview, setStartPreview] = useState<string>('');
@@ -61,7 +66,14 @@ export const Studio = () => {
           prompt,
           start_image_url: startUrl || undefined,
           end_image_url: endUrl || undefined,
-          aspect_ratio: aspectRatio, // PASSING RATIO
+          aspect_ratio: aspectRatio,
+          // REMIX FIELDS
+          motion_bucket_id: mode === 'image' ? motionBucketId : undefined,
+          seed: seed ? seed : undefined, // Send as string to preserve BigInt precision
+          prompt_structure: {
+            user_prompt: prompt,
+            style_preset: 'cinematic, 4k, high quality, photorealistic',
+          },
         }),
       });
 
@@ -75,8 +87,9 @@ export const Studio = () => {
 
       setVideoUrl(resultUrl);
       setStatus('IDLE');
-    } catch (e: any) {
-      alert('Error: ' + e.message);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Unknown error';
+      alert('Error: ' + message);
       setStatus('IDLE');
     }
   };
@@ -108,8 +121,9 @@ export const Studio = () => {
       setStartPreview('');
       setStartImage(null);
       setStatus('IDLE');
-    } catch (e: any) {
-      alert('Save Failed: ' + e.message);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Unknown error';
+      alert('Save Failed: ' + message);
       setStatus('IDLE');
     }
   };
@@ -228,6 +242,32 @@ export const Studio = () => {
                 </div>
               )}
 
+              {/* MOTION CONTROL (Image Mode Only) */}
+              {mode === 'image' && (
+                <div className="mb-6 animate-fade-in bg-white/5 p-4 rounded-xl border border-white/5">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-[10px] uppercase font-bold text-gray-400">
+                      Motion Strength
+                    </span>
+                    <span className="text-xs font-mono text-white bg-black/50 px-2 py-1 rounded">
+                      {motionBucketId}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="1"
+                    max="255"
+                    value={motionBucketId}
+                    onChange={(e) => setMotionBucketId(Number(e.target.value))}
+                    className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-white"
+                  />
+                  <div className="flex justify-between mt-2 text-[10px] text-gray-500 font-medium">
+                    <span>Static (Low)</span>
+                    <span>Dynamic (High)</span>
+                  </div>
+                </div>
+              )}
+
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
@@ -238,6 +278,38 @@ export const Studio = () => {
                     : 'Describe the motion for this image...'
                 }
               />
+            </div>
+
+            {/* ADVANCED SETTINGS */}
+            <div className="border-t border-white/10 pt-4 mb-4">
+              <button
+                onClick={() => setShowAdvanced(!showAdvanced)}
+                className="flex items-center gap-2 text-[10px] uppercase font-bold text-gray-500 hover:text-white transition-colors w-full"
+              >
+                <Settings size={12} />
+                Advanced Settings
+                {showAdvanced ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+              </button>
+
+              {showAdvanced && (
+                <div className="mt-4 animate-fade-in space-y-4">
+                  <div>
+                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-2">
+                      Seed (Optional)
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="Random (-1)"
+                      value={seed}
+                      onChange={(e) => setSeed(e.target.value)}
+                      className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs text-white focus:border-white/30 outline-none transition-all placeholder:text-gray-700 font-mono"
+                    />
+                    <p className="text-[10px] text-gray-600 mt-1">
+                      Use a specific seed to reproduce results.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* ACTION BUTTON */}
