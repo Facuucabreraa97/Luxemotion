@@ -56,7 +56,7 @@ const Profile = () => {
     if (isNaN(price) || price < 0) return alert('Invalid price');
 
     try {
-      await MarketService.finalizeMint(asset.id, price, user.id);
+      await MarketService.finalizeMint(asset.id, price);
       alert('Asset Minted & Listed!');
       loadProfileData();
     } catch (e) {

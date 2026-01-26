@@ -40,11 +40,7 @@ export const UserService = {
 
   // Obtener Créditos (Vital para la monetización)
   async getCredits(userId: string): Promise<number> {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('credits')
-      .eq('id', userId)
-      .single();
+    const { data } = await supabase.from('profiles').select('credits').eq('id', userId).single();
 
     return data?.credits || 0;
   },
