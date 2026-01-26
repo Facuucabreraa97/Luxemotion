@@ -24,11 +24,11 @@ export const Login = () => {
     return (
         <div className="h-screen w-full bg-black flex items-center justify-center relative overflow-hidden">
             {/* Ambient Glow */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[100px] pointer-events-none" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-yellow-600/10 rounded-full blur-[100px] pointer-events-none animate-pulse-slow" />
 
             <div className="relative z-10 w-full max-w-sm p-8 bg-[#0A0A0A] border border-white/10 rounded-2xl backdrop-blur-xl shadow-2xl flex flex-col items-center text-center">
                 <div className="mb-8">
-                    <img src="/branding/logo-white.png" alt="MivideoAI" className="h-16" />
+                    <img src="/branding/logo-white.png" alt="MivideoAI" className="h-12 opacity-90" />
                 </div>
 
                 <h2 className="text-2xl font-bold text-white mb-2">Welcome Back</h2>
@@ -37,7 +37,7 @@ export const Login = () => {
                 <button
                     onClick={signIn}
                     disabled={loading}
-                    className="w-full py-3.5 px-4 bg-white hover:bg-gray-100 text-black font-bold rounded-xl transition-all transform active:scale-95 flex items-center justify-center gap-3"
+                    className="w-full py-3.5 px-4 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-black font-bold rounded-xl transition-all transform active:scale-95 flex items-center justify-center gap-3 shadow-lg shadow-yellow-500/20"
                 >
                     {loading ? (
                         <span className="animate-pulse">Connecting...</span>
@@ -50,7 +50,17 @@ export const Login = () => {
                 </button>
             </div>
 
-            <div className="absolute bottom-8 text-xs text-gray-500 uppercase tracking-widest">Powered by Luxemotion</div>
+            <div className="absolute bottom-8 text-xs text-gray-500 uppercase tracking-widest">
+                MivideoAI Inc. © 2026
+            </div>
+
+            <style>{`
+                @keyframes pulse-slow {
+                    0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; }
+                    50% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.7; }
+                }
+                .animate-pulse-slow { animation: pulse-slow 8s infinite ease-in-out; }
+            `}</style>
         </div>
     );
 };

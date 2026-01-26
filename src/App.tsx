@@ -59,6 +59,7 @@ function App() {
             <BrowserRouter>
                 <Routes>
                     <Route path="/" element={<Landing />} />
+                    <Route path="/waitlist" element={<Landing />} />
 
                     <Route path="/login" element={
                         !session ? <Login /> : (isApprov ? <Navigate to="/app/studio" /> : <Navigate to="/" />)

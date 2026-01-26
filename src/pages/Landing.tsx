@@ -56,13 +56,8 @@ export const Landing = () => {
             </div>
 
             {/* Header */}
-            <header className="relative z-10 p-6 md:p-10 flex justify-between items-center max-w-[1800px] mx-auto w-full">
-                <div className="flex items-center gap-2">
-                    <img src="/branding/logo-white.png" alt="MivideoAI" className="h-6 object-contain opacity-90 hover:opacity-100 transition-opacity" />
-                </div>
-                <button onClick={() => navigate('/login')} className="bg-white/10 hover:bg-white/20 px-5 py-2 rounded-full text-xs font-medium transition-all backdrop-blur-md border border-white/5">
-                    Log in
-                </button>
+            <header className="relative z-10 p-6 md:p-10 flex justify-center md:justify-start items-center max-w-[1800px] mx-auto w-full">
+                <img src="/branding/logo-white.png" alt="MivideoAI" className="h-10 md:h-12 object-contain opacity-100 transition-opacity" />
             </header>
 
             {/* Hero Section */}

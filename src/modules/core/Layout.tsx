@@ -14,7 +14,7 @@ export const Layout: React.FC<LayoutProps> = ({ session }) => {
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
-        navigate('/login');
+        navigate('/waitlist');
     };
 
     if (!session) return <Navigate to="/login" replace />;
