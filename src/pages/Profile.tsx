@@ -2,14 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { MarketService } from '@/services/market.service';
 import { Asset } from '@/types';
+import { User } from '@supabase/supabase-js';
+
+interface Transaction {
+  id: string;
+  created_at: string;
+  amount: number;
+  type: string;
+  user_id: string;
+}
 
 const Profile = () => {
   const [activeTab, setActiveTab] = useState<'created' | 'drafts' | 'collected' | 'wallet'>(
     'created'
   );
-  const [user, setUser] = useState<any>(null); // Supabase user type is complex, keeping any for now or User
+  const [user, setUser] = useState<User | null>(null);
   const [assets, setAssets] = useState<Asset[]>([]);
-  const [transactions, setTransactions] = useState<any[]>([]); // TODO: Define Transaction interface
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -40,6 +49,7 @@ const Profile = () => {
   };
 
   const handleMint = async (asset: Asset) => {
+    if (!user) return alert('Please log in to mint assets');
     const priceStr = prompt(`Set listing price(CR) for "${asset.name}": `, '100');
     if (!priceStr) return;
     const price = Number(priceStr);
