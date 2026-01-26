@@ -3,13 +3,12 @@ import { UserProfile } from '@/types';
 
 export const UserService = {
     async checkWhitelist(email: string) {
-        const { data, error } = await supabase
-            .from('whitelist')
-            .select('status')
-            .eq('email', email.toLowerCase())
-            .single();
+        // [SECURE] Validate via Edge Function
+        const { data, error } = await supabase.functions.invoke('check-whitelist', {
+            body: { email }
+        });
 
-        if (error || !data) return 'pending'; // Default to pending if not found (or rejected/error)
+        if (error || !data) return 'pending';
         return data.status;
     },
 
@@ -47,5 +46,19 @@ export const UserService = {
             .single();
 
         return data?.credits || 0;
+    },
+
+    // [SECURE] Gestionar Créditos (Agregar/Quitar) via Edge Function
+    async manageCredits(amount: number, reason: string) {
+        const { data, error } = await supabase.functions.invoke('manage-credits', {
+            body: {
+                targetUserId: (await supabase.auth.getUser()).data.user?.id,
+                amount,
+                type: reason
+            }
+        });
+
+        if (error) throw error;
+        return data;
     }
 };
