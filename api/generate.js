@@ -16,143 +16,130 @@ export default async function handler(request) {
     }
 
     const replicate = new Replicate({ auth: token });
+    const url = new URL(request.url);
 
     try {
+        // --- GET Method: Check Status (Polling) ---
+        if (request.method === 'GET') {
+            const id = url.searchParams.get('id');
+            if (!id) throw new Error("Missing 'id' query parameter");
+
+            const prediction = await replicate.predictions.get(id);
+            return new Response(JSON.stringify(prediction), {
+                status: 200,
+                headers: { 'content-type': 'application/json' },
+            });
+        }
+
+        // --- POST Method: Create Prediction ---
         const body = await request.json();
         const { 
             start_image_url, 
             end_image_url, 
-            aspect_ratio = '9:16', // Default to Mobile-First (TikTok/Reels)
-            motion_bucket_id = 127, // Default normal motion
+            aspect_ratio = '9:16', 
+            motion_bucket_id = 127,
             prompt_structure,
-            prompt // Fallback for legacy calls
+            prompt,
+            seed: userSeed
         } = body;
 
-        // 1. SEED CONTROL: Generate locally if not provided
-        // This ensures every generation has a traceable seed for Remixing
-        const seed = body.seed ? Number(body.seed) : Math.floor(Math.random() * 1000000000);
-
-        let output;
+        const seed = userSeed ? Number(userSeed) : Math.floor(Math.random() * 1000000000);
+        let prediction;
         let generationConfig = {};
         let systemPrompt = "";
         
-        // --- LOGIC BRANCHING ---
-
-        // A. DUAL IMAGE MODE (Morph/Interpolation)
+        // A. DUAL IMAGE MODE (Frame Interpolation)
         if (start_image_url && end_image_url) {
             generationConfig = {
                 model: "google/frame-interpolation",
                 times_to_interpolate: 4,
             };
             
-            output = await replicate.run(
-                "google/frame-interpolation:4f88a16a13673a8b589c18866e540556170a5bcb2ccdc12de556e800e9456d3d", // Correct hash
-                {
-                    input: {
-                        frame1: start_image_url,
-                        frame2: end_image_url,
-                        times_to_interpolate: generationConfig.times_to_interpolate
-                    }
+            // Using predictions.create instead of run
+            prediction = await replicate.predictions.create({
+                version: "4f88a16a13673a8b589c18866e540556170a5bcb2ccdc12de556e800e9456d3d",
+                input: {
+                    frame1: start_image_url,
+                    frame2: end_image_url,
+                    times_to_interpolate: generationConfig.times_to_interpolate
                 }
-            );
+            });
         }
         
-        // B. SINGLE IMAGE MODE (Motion / Image-to-Video)
+        // B. SINGLE IMAGE MODE (SVD)
         else if (start_image_url) {
             generationConfig = {
                 model: "stability-ai/stable-video-diffusion",
                 motion_bucket_id: Number(motion_bucket_id),
                 seed: seed,
-                fps: 24, // Smoother playback
+                fps: 24,
                 cond_aug: 0.02
             };
 
-            output = await replicate.run(
-                "stability-ai/stable-video-diffusion:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
-                {
-                    input: {
-                        input_image: start_image_url,
-                        video_length: "25_frames_with_svd_xt",
-                        sizing_strategy: "maintain_aspect_ratio",
-                        motion_bucket_id: generationConfig.motion_bucket_id,
-                        frames_per_second: generationConfig.fps,
-                        cond_aug: generationConfig.cond_aug,
-                        seed: seed
-                    }
+            prediction = await replicate.predictions.create({
+                version: "39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
+                input: {
+                    input_image: start_image_url,
+                    video_length: "25_frames_with_svd_xt",
+                    sizing_strategy: "maintain_aspect_ratio",
+                    motion_bucket_id: generationConfig.motion_bucket_id,
+                    frames_per_second: generationConfig.fps,
+                    cond_aug: generationConfig.cond_aug,
+                    seed: seed
                 }
-            );
+            });
         }
         
-        // C. TEXT TO VIDEO MODE (The Remix Engine)
+        // C. TEXT TO VIDEO MODE (AnimateDiff)
         else {
-            // Handle Prompts
             let finalPrompt = "";
+            // systemPrompt is now handled in outer scope
             
             if (prompt_structure) {
-                // New Structured format
                 const userP = prompt_structure.user_prompt || "";
                 const styleP = prompt_structure.style_preset || "cinematic, 4k, high quality, photorealistic"; 
                 finalPrompt = `${userP}, ${styleP}`;
                 systemPrompt = styleP;
             } else {
-                // Legacy Fallback
                 finalPrompt = prompt + ", cinematic, 4k, photorealistic";
             }
 
-            // Determine dimensions based on Mobile-First defaults
             let width = 576;
-            let height = 1024;
-
-            if (aspect_ratio === '16:9') {
-                width = 1024;
-                height = 576;
-            } else if (aspect_ratio === '1:1') {
-                width = 768;
-                height = 768;
-            }
+            let height = 1024; // Default 9:16
+            if (aspect_ratio === '16:9') { width = 1024; height = 576; }
+            else if (aspect_ratio === '1:1') { width = 768; height = 768; }
 
             generationConfig = {
                 model: "lucataco/animate-diff",
-                width,
-                height,
-                seed,
-                steps: 25,
-                guidance_scale: 7.5
+                width, height, seed, steps: 25, guidance_scale: 7.5
             };
 
-            // Using AnimateDiff (Lightning/Fast version hash) 
-            // Note: Hash for lucataco/animate-diff implementation
-            output = await replicate.run(
-                "lucataco/animate-diff:beecf59c4aee8d81bf04f0381033dfa10dc16e845b4ae00d281e2fa377e48a9f",
-                {
-                    input: {
-                        prompt: finalPrompt,
-                        n_prompt: "bad quality, worse quality, low resolution, blurry, distorted, deformed",
-                        width: width,
-                        height: height,
-                        num_frames: 24, // Standard 2-3s clip
-                        seed: seed,
-                        steps: generationConfig.steps,
-                        guidance_scale: generationConfig.guidance_scale
-                    }
+            prediction = await replicate.predictions.create({
+                version: "beecf59c4aee8d81bf04f0381033dfa10dc16e845b4ae00d281e2fa377e48a9f",
+                input: {
+                    prompt: finalPrompt,
+                    n_prompt: "bad quality, worse quality, low resolution, blurry, distorted, deformed",
+                    width, height, num_frames: 24, seed,
+                    steps: generationConfig.steps,
+                    guidance_scale: generationConfig.guidance_scale
                 }
-            );
+            });
         }
 
-        // --- SUCCESS RESPONSE ---
+        // Return the prediction status immediately
+        // Metadata is attached here, but frontend must merge it with final output later
         return new Response(JSON.stringify({ 
-            output,
-            metadata: {
-                seed: seed,
+            ...prediction,
+            lux_metadata: { // Custom metadata wrapper
+                seed,
                 generation_config: generationConfig,
-                // Return structured prompt for DB storage
                 prompt_structure: prompt_structure || { 
-                    full_prompt: prompt,
-                    system_prompt: systemPrompt 
-                } 
+                    user_prompt: prompt,
+                    system_prompt: systemPrompt
+                }
             }
         }), {
-            status: 200,
+            status: 201,
             headers: { 'content-type': 'application/json' },
         });
 

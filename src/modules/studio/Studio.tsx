@@ -79,18 +79,38 @@ export const Studio = () => {
 
       if (!response.ok) {
         const text = await response.text();
-        let errorMsg = 'Generation failed';
-        try {
-          const json = JSON.parse(text);
-          errorMsg = json.error || errorMsg;
-        } catch {
-          // If JSON parse fails, it's likely an HTML 500/504
-          errorMsg = text.includes('DOCTYPE') ? `Server Error (${response.status})` : text;
-        }
-        throw new Error(errorMsg);
+        throw new Error(`Server Error (${response.status}): ${text}`);
       }
 
-      const { output } = await response.json();
+      // --- POLLING LOGIC START ---
+      const initialData = await response.json();
+      const predictionId = initialData.id;
+      let status = initialData.status;
+      let output = initialData.output;
+      let pollCount = 0;
+
+      // Loop while processing (max 5 minutes = ~75 attempts)
+      while (status !== 'succeeded' && status !== 'failed' && status !== 'canceled') {
+        if (pollCount > 75) throw new Error('Timeout: Generation took too long.');
+
+        await new Promise((r) => setTimeout(r, 4000)); // Wait 4s
+
+        const pollResponse = await fetch(`/api/generate?id=${predictionId}`);
+        const pollData = await pollResponse.json();
+
+        status = pollData.status;
+        output = pollData.output;
+        pollCount++;
+
+        // Optional: Update UI with status (Processing... starting... predicting...)
+        // console.log('Polling status:', status);
+      }
+
+      if (status !== 'succeeded') {
+        throw new Error('Generation failed via Replicate (Status: ' + status + ')');
+      }
+      // --- POLLING LOGIC END ---
+
       const resultUrl = Array.isArray(output) ? output[0] : output;
 
       setVideoUrl(resultUrl);
