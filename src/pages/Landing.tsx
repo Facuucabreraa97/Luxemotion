@@ -111,10 +111,10 @@ export const Landing = () => {
                 {/* Grid Showcase (Sora Style) */}
                 <div className="mt-32 w-full max-w-[1600px] grid grid-cols-2 md:grid-cols-4 gap-4 px-4 opacity-40 hover:opacity-100 transition-opacity duration-700">
                     {[
-                        { img: "/showcase/fashion.png", label: "Fashion", prompt: "A hyper-realistic close-up portrait of a fashion AI influencer, high fashion street style, cinematic lighting, 8k resolution, photorealistic, shot on 35mm lens." },
-                        { img: "/showcase/tech.png", label: "Tech", prompt: "A hyper-realistic portrait of a tech influencer holding a futuristic gadget, modern minimalist background, neon accents, cinematic lighting, 8k resolution." },
-                        { img: "/showcase/lifestyle.png", label: "Lifestyle", prompt: "A hyper-realistic environmental portrait of a lifestyle influencer in a modern luxury apartment, soft morning light, aesthetic composition, 8k resolution." },
-                        { img: "/showcase/travel.png", label: "Travel", prompt: "A hyper-realistic portrait of a travel influencer with a stunning sunset in the background, golden hour, cinematic lighting, 8k resolution." }
+                        { img: "/showcase/fashion.png", label: "Fashion", prompt: "IG Story: A fashion influencer selfie, ring light reflection, trendy streetwear, natural skin texture, vertical 9:16." },
+                        { img: "/showcase/tech.png", label: "Tech", prompt: "YouTube Review: 4K frame of a tech reviewer holding a new smartphone, RGB studio background, depth of field." },
+                        { img: "/showcase/lifestyle.png", label: "Lifestyle", prompt: "Reel: Morning routine aesthetic, drinking matcha latte in a sunlit cafe, casual chic, shot on iPhone 15." },
+                        { img: "/showcase/travel.png", label: "Travel", prompt: "Vlog: Golden hour selfie at Santorini, wind in hair, GoPro wide angle style, authentic travel content." }
                     ].map((item, i) => (
                         <div key={i} className={`aspect-[9/16] rounded-xl overflow-hidden relative group cursor-crosshair transform hover:scale-[1.02] transition-transform duration-500 ${i % 2 === 0 ? 'mt-0' : 'mt-12'}`}>
                             <img src={item.img} alt={item.label} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
