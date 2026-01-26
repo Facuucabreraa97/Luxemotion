@@ -22,13 +22,21 @@ function App() {
     const [session, setSession] = useState<any>(null);
     const [whitelistStatus, setWhitelistStatus] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
+    const [checkingWhitelist, setCheckingWhitelist] = useState(false);
 
     useEffect(() => {
         checkSession();
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             setSession(session);
-            if (session?.user?.email) checkWhitelist(session.user.email);
+            if (session?.user?.email) {
+                // If we detect a user, trigger whitelist check but keep UI in loading/checking state
+                setCheckingWhitelist(true);
+                checkWhitelist(session.user.email);
+            } else {
+                setWhitelistStatus(null);
+                setCheckingWhitelist(false);
+            }
         });
 
         return () => subscription.unsubscribe();
@@ -41,6 +49,7 @@ function App() {
             await checkWhitelist(session.user.email);
         } else {
             setLoading(false);
+            setCheckingWhitelist(false);
         }
     };
 
@@ -48,9 +57,13 @@ function App() {
         const status = await UserService.checkWhitelist(email);
         setWhitelistStatus(status);
         setLoading(false);
+        setCheckingWhitelist(false);
     };
 
-    if (loading) return <div className="h-screen w-full bg-black flex items-center justify-center text-white">Loading MivideoAI...</div>;
+    // Global loading (initial boot) or Whitelist check (post-login race condition)
+    if (loading || checkingWhitelist) {
+        return <div className="h-screen w-full bg-black flex items-center justify-center text-white">Loading MivideoAI...</div>;
+    }
 
     const isApprov = whitelistStatus === 'approved';
 
@@ -62,27 +75,24 @@ function App() {
                     <Route path="/waitlist" element={<Landing />} />
 
                     <Route path="/login" element={
-                        !session ? <Login /> : (isApprov ? <Navigate to="/app/studio" /> : <Navigate to="/" />)
+                        !session ? <Login /> : (isApprov ? <Navigate to="/app/studio" replace /> : <Navigate to="/" replace />)
                     } />
 
                     <Route path="/admin" element={
-                        session && isApprov ? <AdminDashboard /> : <Navigate to="/login" />
+                        session && isApprov ? <AdminDashboard /> : <Navigate to="/login" replace />
                     } />
 
                     <Route path="/app" element={
-                        session && isApprov ? <Layout session={session} /> : <Navigate to="/" />
+                        session && isApprov ? <Layout session={session} /> : <Navigate to="/" replace />
                     }>
-                        <Route index element={<Navigate to="/app/studio" />} />
-
-
-
+                        <Route index element={<Navigate to="/app/studio" replace />} />
                         <Route path="studio" element={<Studio />} />
                         <Route path="marketplace" element={<Marketplace />} />
                         <Route path="gallery" element={<Profile />} />
                         <Route path="billing" element={<Plans />} />
                     </Route>
 
-                    <Route path="*" element={<Navigate to="/" />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
             </BrowserRouter>
         </ToastProvider>
