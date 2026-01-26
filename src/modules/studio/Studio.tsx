@@ -22,6 +22,7 @@ export const Studio = () => {
   const [videoUrl, setVideoUrl] = useState<string>('');
 
   const [status, setStatus] = useState<'IDLE' | 'UPLOADING' | 'PROCESSING' | 'SAVING'>('IDLE');
+  const [lastMetadata, setLastMetadata] = useState<any>(null); // Store metadata for saving
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'start' | 'end') => {
     const file = e.target.files?.[0];
@@ -85,6 +86,12 @@ export const Studio = () => {
       // --- POLLING LOGIC START ---
       const initialData = await response.json();
       const predictionId = initialData.id;
+
+      // CAPTURE METADATA FOR SAVING (Crucial for Remix)
+      if (initialData.lux_metadata) {
+        setLastMetadata(initialData.lux_metadata);
+      }
+
       let status = initialData.status;
       let output = initialData.output;
       let pollCount = 0;
@@ -139,6 +146,10 @@ export const Studio = () => {
           price: 0,
           supply_total: 1,
           royalty_percent: 5,
+          // PASS METADATA TO SERVICE
+          seed: lastMetadata?.seed,
+          generation_config: lastMetadata?.generation_config,
+          prompt_structure: lastMetadata?.prompt_structure,
         },
         user.id
       );

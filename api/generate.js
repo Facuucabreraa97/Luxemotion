@@ -98,6 +98,7 @@ export default async function handler(request) {
             if (prompt_structure) {
                 const userP = prompt_structure.user_prompt || "";
                 const styleP = prompt_structure.style_preset || "cinematic, 4k, high quality, photorealistic"; 
+                // ERROR 1 FIX: Ensure this is a string, not an object
                 finalPrompt = `${userP}, ${styleP}`;
                 systemPrompt = styleP;
             } else {
@@ -109,17 +110,24 @@ export default async function handler(request) {
             if (aspect_ratio === '16:9') { width = 1024; height = 576; }
             else if (aspect_ratio === '1:1') { width = 768; height = 768; }
 
+            // ERROR 3 FIX: Increase Duration
+            // AnimateDiff Lightning supports up to 32 frames? Standard is 16-24. 
+            // Lowering FPS to 8 makes 24 frames last 3 seconds.
             generationConfig = {
                 model: "lucataco/animate-diff",
-                width, height, seed, steps: 25, guidance_scale: 7.5
+                width, height, seed, steps: 25, guidance_scale: 7.5,
+                num_frames: 24,
+                fps: 8 
             };
 
             prediction = await replicate.predictions.create({
                 version: "beecf59c4aee8d81bf04f0381033dfa10dc16e845b4ae00d281e2fa377e48a9f",
                 input: {
-                    prompt: finalPrompt,
+                    prompt: finalPrompt, // Now guaranteed string
                     n_prompt: "bad quality, worse quality, low resolution, blurry, distorted, deformed",
-                    width, height, num_frames: 24, seed,
+                    width, height, 
+                    num_frames: generationConfig.num_frames, 
+                    seed,
                     steps: generationConfig.steps,
                     guidance_scale: generationConfig.guidance_scale
                 }

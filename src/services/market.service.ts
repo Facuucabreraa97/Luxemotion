@@ -66,7 +66,10 @@ export const MarketService = {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('SAVE DRAFT ERROR:', error);
+      throw error;
+    }
     return data;
   },
 
