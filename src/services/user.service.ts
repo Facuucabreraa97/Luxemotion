@@ -6,7 +6,7 @@ export const UserService = {
         const { data, error } = await supabase
             .from('whitelist')
             .select('status')
-            .eq('email', email)
+            .eq('email', email.toLowerCase())
             .single();
 
         if (error || !data) return 'pending'; // Default to pending if not found (or rejected/error)

@@ -12,6 +12,8 @@ import { Marketplace } from '@/pages/Marketplace';
 // Placeholders for other routes
 // const Marketplace = () => <div className="p-8 text-center text-gray-400">Marketplace Coming Soon</div>;
 
+import { Plans } from '@/pages/Plans';
+
 import { Landing } from '@/pages/Landing';
 import { AdminDashboard } from '@/pages/AdminDashboard';
 import { UserService } from '@/services/user.service';
@@ -70,11 +72,9 @@ function App() {
                         session && isApprov ? <Layout session={session} /> : <Navigate to="/" />
                     }>
                         <Route index element={<Navigate to="/app/studio" />} />
-                        import {Plans} from '@/pages/Plans';
 
-                        // ... imports
 
-                        // ... inside Layout Route
+
                         <Route path="studio" element={<Studio />} />
                         <Route path="marketplace" element={<Marketplace />} />
                         <Route path="gallery" element={<Profile />} />

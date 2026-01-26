@@ -1,5 +1,10 @@
 -- RUN THIS IN SUPABASE SQL EDITOR
--- 1. Create Whitelist Table
+-- 1. Reset (Optional: Use if you need a fresh start)
+drop trigger if exists on_auth_user_created on auth.users;
+drop function if exists public.handle_new_user();
+drop table if exists public.whitelist;
+drop type if exists whitelist_status cascade;
+-- 2. Create Whitelist Table
 create type whitelist_status as enum ('pending', 'approved', 'rejected');
 create table public.whitelist (
     email text primary key,
@@ -21,9 +26,7 @@ create policy "Allow update for authenticated" on public.whitelist for
 update using (auth.role() = 'authenticated');
 -- 4. Insert your Admin Email immediately so you are approved
 insert into public.whitelist (email, status)
-values ('tu@email.com', 'approved'),
-    ('facu.cabreraa97@gmail.com', 'approved'),
-    ('Dmsfak@proton.me', 'approved');
+values ('dmsfak@proton.me', 'approved');
 -- 5. Trigger for Free Credits on Signup
 create or replace function public.handle_new_user() returns trigger as $$ begin
 insert into public.profiles (id, email, credits)
