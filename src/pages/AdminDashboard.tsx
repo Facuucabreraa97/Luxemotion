@@ -65,8 +65,9 @@ export const AdminDashboard = () => {
       await action();
       toast(successMessage, 'success');
       setRefreshTrigger((prev) => prev + 1); // Reload data
-    } catch (e: any) {
-      toast(e.message || 'Action Failed', 'error');
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Action Failed';
+      toast(message, 'error');
     }
   };
 

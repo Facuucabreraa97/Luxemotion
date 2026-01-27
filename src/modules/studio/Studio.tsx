@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Asset } from '@/types';
 import { MarketService } from '@/services/market.service';
 import { StorageService } from '@/services/storage.service';
 import { supabase } from '@/lib/supabase';
@@ -12,7 +13,7 @@ export const Studio = () => {
   const [endImage, setEndImage] = useState<File | null>(null);
 
   // REMIX STATE
-  const [motionBucketId, setMotionBucketId] = useState<number>(127);
+  const [duration, setDuration] = useState<'5' | '10'>('5'); // NEW DURATION STATE
   const [seed, setSeed] = useState<string>('');
   const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
 
@@ -22,7 +23,10 @@ export const Studio = () => {
   const [videoUrl, setVideoUrl] = useState<string>('');
 
   const [status, setStatus] = useState<'IDLE' | 'UPLOADING' | 'PROCESSING' | 'SAVING'>('IDLE');
-  const [lastMetadata, setLastMetadata] = useState<any>(null); // Store metadata for saving
+  const [lastMetadata, setLastMetadata] = useState<Pick<
+    Asset,
+    'seed' | 'generation_config' | 'prompt_structure'
+  > | null>(null); // Store metadata for saving
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'start' | 'end') => {
     const file = e.target.files?.[0];
@@ -68,8 +72,7 @@ export const Studio = () => {
           start_image_url: startUrl || undefined,
           end_image_url: endUrl || undefined,
           aspect_ratio: aspectRatio,
-          // REMIX FIELDS
-          motion_bucket_id: mode === 'image' ? motionBucketId : undefined,
+          duration: duration,
           seed: seed ? seed : undefined, // Send as string to preserve BigInt precision
           prompt_structure: {
             user_prompt: prompt,
@@ -281,31 +284,25 @@ export const Studio = () => {
                 </div>
               )}
 
-              {/* MOTION CONTROL (Image Mode Only) */}
-              {mode === 'image' && (
-                <div className="mb-6 animate-fade-in bg-white/5 p-4 rounded-xl border border-white/5">
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="text-[10px] uppercase font-bold text-gray-400">
-                      Motion Strength
-                    </span>
-                    <span className="text-xs font-mono text-white bg-black/50 px-2 py-1 rounded">
-                      {motionBucketId}
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min="1"
-                    max="255"
-                    value={motionBucketId}
-                    onChange={(e) => setMotionBucketId(Number(e.target.value))}
-                    className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-white"
-                  />
-                  <div className="flex justify-between mt-2 text-[10px] text-gray-500 font-medium">
-                    <span>Static (Low)</span>
-                    <span>Dynamic (High)</span>
-                  </div>
+              <div className="mb-6 animate-fade-in bg-white/5 p-4 rounded-xl border border-white/5">
+                <div className="flex justify-between items-center mb-3">
+                  <span className="text-[10px] uppercase font-bold text-gray-400">Duration</span>
+                  <span className="text-xs font-mono text-white bg-black/50 px-2 py-1 rounded">
+                    {duration}s
+                  </span>
                 </div>
-              )}
+                <div className="flex gap-2">
+                  {['5', '10'].map((d) => (
+                    <button
+                      key={d}
+                      onClick={() => setDuration(d as '5' | '10')}
+                      className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${duration === d ? 'bg-white text-black border-white' : 'border-white/10 text-gray-500 hover:border-white/30'}`}
+                    >
+                      {d} Segundos
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               <textarea
                 value={prompt}

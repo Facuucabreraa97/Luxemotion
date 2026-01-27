@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Navigate, Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { UserProfile } from '@/types';
+import { Session } from '@supabase/supabase-js';
+// UserProfile import removed
 import { LogOut, Video, LayoutGrid, ShoppingBag } from 'lucide-react';
 
 interface LayoutProps {
-  session: any;
+  session: Session | null;
 }
 
 export const Layout: React.FC<LayoutProps> = ({ session }) => {
