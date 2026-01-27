@@ -80,8 +80,9 @@ function App() {
 
   return (
     <ToastProvider>
-      <VideoGenerationProvider>
-        <BrowserRouter>
+    <ToastProvider>
+      <BrowserRouter>
+        <VideoGenerationProvider>
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/waitlist" element={<Landing />} />
@@ -119,14 +120,15 @@ function App() {
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </BrowserRouter>
-        <Toaster position="bottom-right" toastOptions={{
-          style: {
-            background: '#333',
-            color: '#fff',
-          },
-        }} />
-      </VideoGenerationProvider>
+          <Toaster position="bottom-right" toastOptions={{
+            style: {
+              background: '#333',
+              color: '#fff',
+            },
+          }} />
+        </VideoGenerationProvider>
+      </BrowserRouter>
+    </ToastProvider>
     </ToastProvider>
   );
 }
