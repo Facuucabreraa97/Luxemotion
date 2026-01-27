@@ -13,15 +13,19 @@ import {
   ShieldCheck,
   RefreshCw,
   LogOut,
+  Trophy,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { AdminService, AdminStats, AdminUserView } from '@/services/admin.service';
 import { useToast } from '@/modules/core/ui/Toast';
+import { LevelProgress } from '@/modules/gamification/LevelProgress';
+import { DailyQuests } from '@/modules/gamification/DailyQuests';
+import { AchievementsGrid } from '@/modules/gamification/AchievementsGrid';
 
 export const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'whitelist'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'whitelist' | 'missions'>('overview');
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [users, setUsers] = useState<AdminUserView[]>([]);
   const [loading, setLoading] = useState(true);
@@ -85,9 +89,10 @@ export const AdminDashboard = () => {
       <aside className="w-64 border-r border-white/10 bg-[#0a0a0a] flex flex-col fixed h-full z-20">
         <div className="p-6 border-b border-white/10">
           <img src="/branding/logo-white.png" alt="MivideoAI" className="h-6 mb-3" />
-          <h1 className="text-xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-500 bg-clip-text text-transparent">
+          <h1 className="text-xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-500 bg-clip-text text-transparent mb-2">
             GOD MODE
           </h1>
+          <LevelProgress />
         </div>
 
         <nav className="flex-1 p-4 space-y-2">
@@ -96,6 +101,12 @@ export const AdminDashboard = () => {
             label="Overview"
             active={activeTab === 'overview'}
             onClick={() => setActiveTab('overview')}
+          />
+          <SidebarItem
+            icon={<Trophy size={18} />}
+            label="Missions & XP"
+            active={activeTab === 'missions'}
+            onClick={() => setActiveTab('missions')}
           />
           <SidebarItem
             icon={<Users size={18} />}
@@ -133,7 +144,7 @@ export const AdminDashboard = () => {
             {/* Header */}
             <header className="flex justify-between items-center mb-10">
               <div>
-                <h2 className="text-2xl font-bold capitalize">{activeTab}</h2>
+                <h2 className="text-2xl font-bold capitalize">{activeTab === 'missions' ? 'Gamification Center' : activeTab}</h2>
                 <p className="text-gray-500">Real-time system metrics and controls</p>
               </div>
               <button
@@ -167,6 +178,21 @@ export const AdminDashboard = () => {
                   value={stats.active_users_24h}
                   icon={<ShieldCheck className="text-purple-500" />}
                 />
+              </div>
+            )}
+
+            {/* MISSIONS TAB */}
+            {activeTab === 'missions' && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Left Col: Quests */}
+                <div>
+                   <DailyQuests />
+                </div>
+                {/* Right Col: Achievements */}
+                <div className="lg:col-span-2">
+                   <h3 className="text-sm font-bold uppercase text-gray-500 tracking-wider mb-2">Achievements</h3>
+                   <AchievementsGrid />
+                </div>
               </div>
             )}
 

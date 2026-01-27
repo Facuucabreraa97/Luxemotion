@@ -4,8 +4,12 @@ import { MarketService } from '@/services/market.service';
 import { StorageService } from '@/services/storage.service';
 import { supabase } from '@/lib/supabase';
 import { Upload, X, Film, Sparkles, Settings, ChevronDown, ChevronUp } from 'lucide-react';
+import { useVideoGeneration } from '@/context/VideoGenerationContext';
 
 export const Studio = () => {
+  const { isGenerating, startGeneration } = useVideoGeneration();
+  const [localStatus, setLocalStatus] = useState<'IDLE' | 'UPLOADING' | 'SAVING'>('IDLE');
+
   const [mode, setMode] = useState<'text' | 'image'>('text');
   const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16' | '1:1'>('16:9'); // NEW STATE
   const [prompt, setPrompt] = useState('');
@@ -22,7 +26,6 @@ export const Studio = () => {
   const [endPreview, setEndPreview] = useState<string>('');
   const [videoUrl, setVideoUrl] = useState<string>('');
 
-  const [status, setStatus] = useState<'IDLE' | 'UPLOADING' | 'PROCESSING' | 'SAVING'>('IDLE');
   const [lastMetadata, setLastMetadata] = useState<Pick<
     Asset,
     'seed' | 'generation_config' | 'prompt_structure'
@@ -46,7 +49,8 @@ export const Studio = () => {
     if (!prompt && mode === 'text') return;
     if (!startImage && mode === 'image') return;
 
-    setStatus('PROCESSING');
+    // Use localStatus for immediate feedback before API call
+    setLocalStatus('UPLOADING'); 
 
     try {
       let startUrl = '';
@@ -54,16 +58,15 @@ export const Studio = () => {
 
       if (mode === 'image') {
         if (startImage) {
-          setStatus('UPLOADING');
           startUrl = await StorageService.uploadFile(startImage, 'studio_uploads');
         }
         if (endImage) {
-          setStatus('UPLOADING');
           endUrl = await StorageService.uploadFile(endImage, 'studio_uploads');
         }
       }
 
-      setStatus('PROCESSING');
+      setLocalStatus('IDLE'); // Ready to call API
+
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -73,7 +76,7 @@ export const Studio = () => {
           end_image_url: endUrl || undefined,
           aspect_ratio: aspectRatio,
           duration: duration,
-          seed: seed ? seed : undefined, // Send as string to preserve BigInt precision
+          seed: seed ? seed : undefined,
           prompt_structure: {
             user_prompt: prompt,
             style_preset: 'cinematic, 4k, high quality, photorealistic',
@@ -86,54 +89,25 @@ export const Studio = () => {
         throw new Error(`Server Error (${response.status}): ${text}`);
       }
 
-      // --- POLLING LOGIC START ---
       const initialData = await response.json();
       const predictionId = initialData.id;
 
-      // CAPTURE METADATA FOR SAVING (Crucial for Remix)
       if (initialData.lux_metadata) {
         setLastMetadata(initialData.lux_metadata);
       }
 
-      let status = initialData.status;
-      let output = initialData.output;
-      let pollCount = 0;
-
-      // Loop while processing (max 5 minutes = ~75 attempts)
-      while (status !== 'succeeded' && status !== 'failed' && status !== 'canceled') {
-        if (pollCount > 75) throw new Error('Timeout: Generation took too long.');
-
-        await new Promise((r) => setTimeout(r, 4000)); // Wait 4s
-
-        const pollResponse = await fetch(`/api/generate?id=${predictionId}`);
-        const pollData = await pollResponse.json();
-
-        status = pollData.status;
-        output = pollData.output;
-        pollCount++;
-
-        // Optional: Update UI with status (Processing... starting... predicting...)
-        // console.log('Polling status:', status);
-      }
-
-      if (status !== 'succeeded') {
-        throw new Error('Generation failed via Replicate (Status: ' + status + ')');
-      }
-      // --- POLLING LOGIC END ---
-
-      const resultUrl = Array.isArray(output) ? output[0] : output;
-
-      setVideoUrl(resultUrl);
-      setStatus('IDLE');
+      // Start Global Polling
+      startGeneration(predictionId);
+      
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Unknown error';
       alert('Error: ' + message);
-      setStatus('IDLE');
+      setLocalStatus('IDLE');
     }
   };
 
   const handleSaveDraft = async () => {
-    setStatus('SAVING');
+    setLocalStatus('SAVING');
     try {
       const {
         data: { user },
@@ -162,11 +136,11 @@ export const Studio = () => {
       setPrompt('');
       setStartPreview('');
       setStartImage(null);
-      setStatus('IDLE');
+      setLocalStatus('IDLE');
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Unknown error';
       alert('Save Failed: ' + message);
-      setStatus('IDLE');
+      setLocalStatus('IDLE');
     }
   };
 
@@ -363,30 +337,32 @@ export const Studio = () => {
                     );
                   }
                 }}
-                disabled={status !== 'IDLE' || (!prompt && mode === 'text')}
+                disabled={isGenerating || localStatus !== 'IDLE' || (!prompt && mode === 'text')}
                 className="w-full py-4 bg-white text-black rounded-xl font-bold text-sm tracking-wide hover:scale-[1.02] transition-transform disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                {status === 'IDLE' ? (
+                {localStatus === 'IDLE' && !isGenerating ? (
                   <>
                     <Sparkles size={16} /> Generate Preview
                   </>
                 ) : (
-                  <span className="animate-pulse">Processing...</span>
+                  <span className="animate-pulse">
+                    {localStatus === 'UPLOADING' ? 'Uploading...' : 'Processing...'}
+                  </span>
                 )}
               </button>
             ) : (
               <div className="flex gap-2">
                 <button
-                  onClick={handleSaveDraft}
-                  disabled={status === 'SAVING'}
-                  className="flex-1 py-3 bg-white text-black rounded-lg font-bold text-sm hover:bg-gray-200 transition-colors"
+                onClick={handleSaveDraft}
+                disabled={localStatus === 'SAVING'}
+                className="flex-1 py-3 bg-white text-black rounded-lg font-bold text-sm hover:bg-gray-200 transition-colors"
                 >
-                  {status === 'SAVING' ? 'Saving...' : 'Save Draft'}
+                  {localStatus === 'SAVING' ? 'Saving...' : 'Save Draft'}
                 </button>
                 <button
                   onClick={() => {
                     setVideoUrl('');
-                    setStatus('IDLE');
+                    setLocalStatus('IDLE');
                   }}
                   className="px-4 py-3 border border-white/20 rounded-lg text-white font-bold text-sm hover:bg-white/10 transition-colors"
                 >
@@ -401,7 +377,7 @@ export const Studio = () => {
         <div className="lg:col-span-8 h-full" id="preview-area">
           <div className="w-full h-full min-h-[400px] bg-[#0A0A0A] border border-white/5 rounded-3xl flex items-center justify-center relative overflow-hidden group">
             {/* Empty State */}
-            {!videoUrl && !startPreview && status === 'IDLE' && (
+            {!videoUrl && !startPreview && !isGenerating && localStatus === 'IDLE' && (
               <div className="text-center opacity-20 group-hover:opacity-30 transition-opacity">
                 <div className="text-8xl mb-4 font-thin">❖</div>
                 <p className="text-xs uppercase tracking-[0.2em]">Waiting for Input</p>
@@ -428,7 +404,7 @@ export const Studio = () => {
             )}
 
             {/* Loading Overlay */}
-            {status !== 'IDLE' && status !== 'SAVING' && (
+            {(isGenerating || localStatus !== 'IDLE' && localStatus !== 'SAVING') && (
               <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-20">
                 <div className="w-12 h-12 border-2 border-white/20 border-t-white rounded-full animate-spin mb-4"></div>
                 <p className="text-xs font-mono text-white/70 animate-pulse">

@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { ToastProvider } from '@/modules/core/ui/Toast';
+import { VideoGenerationProvider } from '@/context/VideoGenerationContext';
+import { Toaster } from 'react-hot-toast';
 import { Layout } from '@/modules/core/Layout';
 import { Login } from '@/modules/auth/Login';
 import { Studio } from '@/modules/studio/Studio';
@@ -78,45 +80,53 @@ function App() {
 
   return (
     <ToastProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/waitlist" element={<Landing />} />
+      <VideoGenerationProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/waitlist" element={<Landing />} />
 
-          <Route
-            path="/login"
-            element={
-              !session ? (
-                <Login />
-              ) : isApprov ? (
-                <Navigate to="/app/studio" replace />
-              ) : (
-                <Navigate to="/" replace />
-              )
-            }
-          />
+            <Route
+              path="/login"
+              element={
+                !session ? (
+                  <Login />
+                ) : isApprov ? (
+                  <Navigate to="/app/studio" replace />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              }
+            />
 
-          <Route
-            path="/admin"
-            element={session && isApprov ? <AdminDashboard /> : <Navigate to="/login" replace />}
-          />
+            <Route
+              path="/admin"
+              element={session && isApprov ? <AdminDashboard /> : <Navigate to="/login" replace />}
+            />
 
-          <Route
-            path="/app"
-            element={
-              session && isApprov ? <Layout session={session} /> : <Navigate to="/" replace />
-            }
-          >
-            <Route index element={<Navigate to="/app/studio" replace />} />
-            <Route path="studio" element={<Studio />} />
-            <Route path="marketplace" element={<Marketplace />} />
-            <Route path="gallery" element={<Profile />} />
-            <Route path="billing" element={<Plans />} />
-          </Route>
+            <Route
+              path="/app"
+              element={
+                session && isApprov ? <Layout session={session} /> : <Navigate to="/" replace />
+              }
+            >
+              <Route index element={<Navigate to="/app/studio" replace />} />
+              <Route path="studio" element={<Studio />} />
+              <Route path="marketplace" element={<Marketplace />} />
+              <Route path="gallery" element={<Profile />} />
+              <Route path="billing" element={<Plans />} />
+            </Route>
 
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </BrowserRouter>
+        <Toaster position="bottom-right" toastOptions={{
+          style: {
+            background: '#333',
+            color: '#fff',
+          },
+        }} />
+      </VideoGenerationProvider>
     </ToastProvider>
   );
 }

@@ -42,3 +42,38 @@ export interface Transaction {
   amount: number;
   metadata?: Record<string, unknown>;
 }
+
+export interface Achievement {
+  id: string;
+  code: string;
+  title: string;
+  description: string;
+  icon_url: string;
+  xp_reward: number;
+}
+
+export interface Quest {
+  id: string;
+  code: string;
+  frequency: 'DAILY' | 'WEEKLY' | 'EPIC';
+  title: string;
+  target_count: number;
+  xp_reward: number;
+  credits_reward: number;
+}
+
+export interface UserQuestProgress {
+  user_id: string;
+  quest_id: string;
+  current_count: number;
+  is_completed: boolean;
+  is_claimed: boolean;
+  cycle_start: string;
+}
+
+export interface UserGamificationStats {
+  xp: number;
+  level: number;
+  current_streak: number;
+  achievements: string[]; // List of Achievement IDs
+}
