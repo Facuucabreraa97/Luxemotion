@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 interface VideoGenerationContextType {
   isGenerating: boolean;
   activeId: string | null;
-  startGeneration: (id: string, metadata?: any) => void;
+  startGeneration: (id: string) => void;
 }
 
 const VideoGenerationContext = createContext<VideoGenerationContextType | undefined>(undefined);
@@ -118,6 +118,7 @@ export const VideoGenerationProvider = ({ children }: { children: ReactNode }) =
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useVideoGeneration = () => {
   const context = useContext(VideoGenerationContext);
   if (!context) throw new Error('useVideoGeneration must be used within a VideoGenerationProvider');
