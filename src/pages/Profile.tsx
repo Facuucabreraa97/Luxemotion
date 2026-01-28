@@ -122,7 +122,9 @@ const Profile = () => {
           {['created', 'drafts', 'collected', 'wallet', 'missions'].map((tab) => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab as any)}
+              onClick={() =>
+                setActiveTab(tab as 'created' | 'drafts' | 'collected' | 'wallet' | 'missions')
+              }
               className={`pb-4 text-sm font-bold uppercase tracking-widest border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === tab
                   ? 'border-indigo-500 text-white'

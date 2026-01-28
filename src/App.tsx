@@ -29,59 +29,93 @@ function App() {
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
 
   useEffect(() => {
-    const checkSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      setSession(session);
+    let mounted = true;
 
-      if (session?.user?.email) {
-        // Check Whitelist
-        checkWhitelist(session.user.email);
+    const init = async () => {
+      try {
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
+        if (error) throw error;
 
-        // Check Admin Status
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('is_admin')
-          .eq('id', session.user.id)
-          .single();
-        setIsAdmin(!!profile?.is_admin);
-      } else {
-        setLoading(false);
-        setCheckingWhitelist(false);
+        if (mounted) setSession(session);
+
+        if (session?.user?.email) {
+          // Parallelize checks for speed, but handle failures
+          await Promise.allSettled([
+            checkWhitelist(session.user.email),
+            (async () => {
+              try {
+                const { data: profile, error: profileError } = await supabase
+                  .from('profiles')
+                  .select('is_admin')
+                  .eq('id', session.user.id)
+                  .single();
+                if (profileError && profileError.code !== 'PGRST116')
+                  console.error('Admin Check Error', profileError);
+                if (mounted) setIsAdmin(!!profile?.is_admin);
+              } catch (err) {
+                console.error('Admin Check Failed', err);
+              }
+            })(),
+          ]);
+        }
+      } catch (e) {
+        console.error('Initialization Error', e);
+      } finally {
+        if (mounted) {
+          setLoading(false);
+          setCheckingWhitelist(false);
+        }
       }
     };
 
-    checkSession();
+    init();
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session);
+      if (mounted) setSession(session);
+
       if (session?.user?.email) {
-        setCheckingWhitelist(true);
-        checkWhitelist(session.user.email);
-        // Check Admin Status
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('is_admin')
-          .eq('id', session.user.id)
-          .single();
-        setIsAdmin(!!profile?.is_admin);
+        if (mounted) setCheckingWhitelist(true);
+        // We re-run checks on auth change
+        Promise.allSettled([
+          checkWhitelist(session.user.email),
+          (async () => {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('is_admin')
+              .eq('id', session.user.id)
+              .single();
+            if (mounted) setIsAdmin(!!profile?.is_admin);
+          })(),
+        ]).finally(() => {
+          if (mounted) {
+            setLoading(false); // ensure global loading is off
+            setCheckingWhitelist(false);
+          }
+        });
       } else {
-        setWhitelistStatus(null);
-        setIsAdmin(false);
-        setCheckingWhitelist(false);
+        if (mounted) {
+          setWhitelistStatus(null);
+          setIsAdmin(false);
+          setLoading(false);
+          setCheckingWhitelist(false);
+        }
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const checkWhitelist = async (email: string) => {
     const status = await UserService.checkWhitelist(email);
     setWhitelistStatus(status);
-    setLoading(false);
     setCheckingWhitelist(false);
   };
 
