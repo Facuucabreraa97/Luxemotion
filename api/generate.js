@@ -24,9 +24,11 @@ export default async function handler(request) {
 
     const replicate = new Replicate({ auth: token });
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const url = new URL(request.url);
 
     try {
+        // Safe URL parsing for Node.js environment (Vercel)
+        const url = new URL(request.url, 'http://localhost');
+
         // --- AUTHENTICATION CHECK ---
         const authHeader = request.headers.get('Authorization');
         if (!authHeader) {
