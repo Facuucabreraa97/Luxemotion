@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Asset } from '@/types';
 import { MarketService } from '@/services/market.service';
 import { StorageService } from '@/services/storage.service';
 import { supabase } from '@/lib/supabase';
 import { Upload, X, Film, Sparkles, Settings, ChevronDown, ChevronUp } from 'lucide-react';
 import { useVideoGeneration } from '@/context/VideoGenerationContext';
+import { WalletDisplay } from './WalletDisplay';
 
 export const Studio = () => {
   const { isGenerating, startGeneration } = useVideoGeneration();
@@ -31,6 +32,36 @@ export const Studio = () => {
     'seed' | 'generation_config' | 'prompt_structure'
   > | null>(null); // Store metadata for saving
 
+  // WALLET STATE
+  const [credits, setCredits] = useState<number | null>(null);
+  const [loadingCredits, setLoadingCredits] = useState<boolean>(true);
+
+  // Cost Calculation
+  const cost = duration === '10' ? 100 : 50;
+
+  const fetchCredits = useCallback(async () => {
+    try {
+      setLoadingCredits(true);
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const { data, error } = await supabase.functions.invoke('get-user-credits');
+      if (error) throw error;
+
+      setCredits(data.credits);
+    } catch (e) {
+      console.error('Failed to fetch credits:', e);
+    } finally {
+      setLoadingCredits(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCredits();
+  }, [fetchCredits]);
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'start' | 'end') => {
     const file = e.target.files?.[0];
     if (file) {
@@ -48,6 +79,12 @@ export const Studio = () => {
   const handleCreate = async () => {
     if (!prompt && mode === 'text') return;
     if (!startImage && mode === 'image') return;
+
+    // Client-side pre-check
+    if (credits !== null && credits < cost) {
+      alert('Insufficient Credits. Please top up your wallet.');
+      return;
+    }
 
     // Use localStatus for immediate feedback before API call
     setLocalStatus('UPLOADING');
@@ -67,9 +104,17 @@ export const Studio = () => {
 
       setLocalStatus('IDLE'); // Ready to call API
 
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) throw new Error('Authentication required');
+
       const response = await fetch('/api/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({
           prompt,
           start_image_url: startUrl || undefined,
@@ -86,11 +131,26 @@ export const Studio = () => {
 
       if (!response.ok) {
         const text = await response.text();
-        throw new Error(`Server Error (${response.status}): ${text}`);
+        const errorData = (() => {
+          try {
+            return JSON.parse(text);
+          } catch {
+            return { error: text };
+          }
+        })(); // Safe parse
+
+        if (response.status === 402) {
+          throw new Error(`Insufficient Credits! ${errorData.error}`);
+        }
+        throw new Error(`Server Error (${response.status}): ${errorData.error || text}`);
       }
 
       const initialData = await response.json();
       const predictionId = initialData.id;
+
+      // Update local wallet (Optimistic or refetch)
+      // Refetch is safer to sync with server
+      fetchCredits();
 
       if (initialData.lux_metadata) {
         setLastMetadata(initialData.lux_metadata);
@@ -152,6 +212,9 @@ export const Studio = () => {
       <div className="grid lg:grid-cols-12 gap-8 h-full min-h-[400px] md:min-h-[600px]">
         {/* SETTINGS COLUMN */}
         <div className="lg:col-span-4 flex flex-col gap-6">
+          {/* WALLET DISPLAY */}
+          <WalletDisplay balance={credits} isLoading={loadingCredits} requiredCost={cost} />
+
           {/* INPUT CARD */}
           <div className="bg-[#111] border border-white/5 rounded-3xl p-6 flex flex-col gap-6 shadow-2xl">
             {/* MODE TABS */}
@@ -325,6 +388,7 @@ export const Studio = () => {
             {!videoUrl ? (
               <button
                 onClick={() => {
+                  if (credits !== null && credits < cost) return;
                   handleCreate();
                   if (window.innerWidth < 1024) {
                     setTimeout(
@@ -336,12 +400,29 @@ export const Studio = () => {
                     );
                   }
                 }}
-                disabled={isGenerating || localStatus !== 'IDLE' || (!prompt && mode === 'text')}
-                className="w-full py-4 bg-white text-black rounded-xl font-bold text-sm tracking-wide hover:scale-[1.02] transition-transform disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                disabled={
+                  isGenerating ||
+                  localStatus !== 'IDLE' ||
+                  (!prompt && mode === 'text') ||
+                  (credits !== null && credits < cost)
+                }
+                className={`w-full py-4 rounded-xl font-bold text-sm tracking-wide transition-all flex items-center justify-center gap-2
+                    ${
+                      isGenerating ||
+                      localStatus !== 'IDLE' ||
+                      (!prompt && mode === 'text') ||
+                      (credits !== null && credits < cost)
+                        ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                        : 'bg-white text-black hover:scale-[1.02]'
+                    }
+                `}
               >
                 {localStatus === 'IDLE' && !isGenerating ? (
                   <>
-                    <Sparkles size={16} /> Generate Preview
+                    <Sparkles size={16} />
+                    {credits !== null && credits < cost
+                      ? 'Insufficient Credits'
+                      : `Generate (${cost} CR)`}
                   </>
                 ) : (
                   <span className="animate-pulse">
@@ -404,11 +485,17 @@ export const Studio = () => {
 
             {/* Loading Overlay */}
             {(isGenerating || (localStatus !== 'IDLE' && localStatus !== 'SAVING')) && (
-              <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-20">
-                <div className="w-12 h-12 border-2 border-white/20 border-t-white rounded-full animate-spin mb-4"></div>
-                <p className="text-xs font-mono text-white/70 animate-pulse">
-                  GENERATING PIXELS...
-                </p>
+              <div className="absolute inset-0 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center z-20 animate-fade-in">
+                <div className="w-16 h-16 border-t-2 border-r-2 border-white/80 rounded-full animate-spin duration-700 mb-8"></div>
+
+                <div className="flex flex-col items-center space-y-2">
+                  <p className="text-sm font-medium tracking-[0.2em] text-white animate-pulse">
+                    CREATING REALITY
+                  </p>
+                  <p className="text-[10px] uppercase text-gray-500 font-mono tracking-widest">
+                    AI Model v2.5 Turbo Pro
+                  </p>
+                </div>
               </div>
             )}
           </div>

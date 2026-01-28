@@ -31,60 +31,76 @@ export const VideoGenerationProvider = ({ children }: { children: ReactNode }) =
         await new Promise((r) => setTimeout(r, 3000));
 
         try {
+          // Get session for auth
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
+          const headers: HeadersInit = session
+            ? { Authorization: `Bearer ${session.access_token}` }
+            : {};
+
           // Using existing endpoint /api/generate?id=...
-          const res = await fetch(`/api/generate?id=${id}`);
+          const res = await fetch(`/api/generate?id=${id}`, { headers });
           if (!res.ok) throw new Error('Network error');
-          
+
           const data = await res.json();
           status = data.status;
-          
+
           if (status === 'succeeded') {
             const resultUrl = Array.isArray(data.output) ? data.output[0] : data.output;
             const metadata = data.lux_metadata || {};
 
             // AUTO-SAVE to DB
-            const { data: { user } } = await supabase.auth.getUser();
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
             if (user) {
-              await MarketService.saveDraft({
-                name: metadata.prompt_structure?.user_prompt?.substring(0, 30) || 'Untitled Video',
-                description: metadata.prompt_structure?.user_prompt || 'AI Generated Video',
-                image_url: 'https://via.placeholder.com/1080x1920?text=Video+Asset', // Fallback cover
-                video_url: resultUrl,
-                price: 0,
-                supply_total: 1,
-                royalty_percent: 5,
-                seed: metadata.seed,
-                generation_config: metadata.generation_config,
-                prompt_structure: metadata.prompt_structure,
-              }, user.id);
+              await MarketService.saveDraft(
+                {
+                  name:
+                    metadata.prompt_structure?.user_prompt?.substring(0, 30) || 'Untitled Video',
+                  description: metadata.prompt_structure?.user_prompt || 'AI Generated Video',
+                  image_url: 'https://via.placeholder.com/1080x1920?text=Video+Asset', // Fallback cover
+                  video_url: resultUrl,
+                  price: 0,
+                  supply_total: 1,
+                  royalty_percent: 5,
+                  seed: metadata.seed,
+                  generation_config: metadata.generation_config,
+                  prompt_structure: metadata.prompt_structure,
+                },
+                user.id
+              );
             }
 
             localStorage.removeItem('active_prediction_id');
             setIsGenerating(false);
             setActiveId(null);
-            
-            toast.success((t) => (
-              <span className="flex flex-col gap-2">
-                Video ready!
-                <button 
-                  onClick={() => { 
-                    toast.dismiss(t.id); 
-                    navigate('/app/gallery'); 
-                  }}
-                  className="bg-white text-black px-2 py-1 rounded text-xs font-bold"
-                >
-                  View in Gallery
-                </button>
-              </span>
-            ), { duration: 6000 });
+
+            toast.success(
+              (t) => (
+                <span className="flex flex-col gap-2">
+                  Video ready!
+                  <button
+                    onClick={() => {
+                      toast.dismiss(t.id);
+                      navigate('/app/gallery');
+                    }}
+                    className="bg-white text-black px-2 py-1 rounded text-xs font-bold"
+                  >
+                    View in Gallery
+                  </button>
+                </span>
+              ),
+              { duration: 6000 }
+            );
             return;
           } else if (status === 'failed' || status === 'canceled') {
             throw new Error(`Generation ${status}`);
           }
-
         } catch (networkError) {
-           console.warn('Polling glitch:', networkError);
-           // Ignore network errors, keep polling
+          console.warn('Polling glitch:', networkError);
+          // Ignore network errors, keep polling
         }
         pollCount++;
       }
@@ -93,7 +109,7 @@ export const VideoGenerationProvider = ({ children }: { children: ReactNode }) =
       localStorage.removeItem('active_prediction_id');
       setIsGenerating(false);
       setActiveId(null);
-      toast.error("There was a problem with the generation. Please try again.");
+      toast.error('There was a problem with the generation. Please try again.');
     }
   };
 
