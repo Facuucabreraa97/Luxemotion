@@ -57,6 +57,8 @@ export const AdminService = {
         const newBalance = Math.floor(currentCredits + amount); // Force Integer
         
         // 2. Update using Primary Key (ID) - The source of truth
+        console.log('[AdminService] Updating credits:', { id: user.id, old: currentCredits, new: newBalance });
+        
         const { error: updateError } = await supabase
             .from('profiles')
             .update({ credits: newBalance })
