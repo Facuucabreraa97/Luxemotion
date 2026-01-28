@@ -156,10 +156,11 @@ export default async function handler(request) {
 
         const inputPayload = {
             prompt: finalPrompt,
-            input_image: finalStartImage || undefined, // Mapped Correctly
-            tail_image: finalEndImage || undefined,   // Mapped Correctly
+            input_image: finalStartImage || undefined,
+            tail_image: finalEndImage || undefined,
             duration: Number(generationConfig.duration), 
             aspect_ratio: generationConfig.aspect_ratio,
+            cfg_scale: 0.6, // Higher fidelity to input/prompt (Default is usually 0.5)
             seed: seed
         };
 
