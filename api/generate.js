@@ -128,9 +128,19 @@ export default async function handler(request) {
         }
 
         let finalPrompt = "";
+        
+        // STYLE PRESETS
+        const STYLES = {
+            cinematic: "cinematic, 4k, high quality, photorealistic, movie scene, dramatic lighting",
+            organic: "iphone footage, social media story, amateur, natural lighting, candid, 1080p vertical, realistic texture, no filter, raw footage, tiktok style, vlog"
+        };
+
         if (prompt_structure) {
             const userP = prompt_structure.user_prompt || "";
-            const styleP = prompt_structure.style_preset || "cinematic, 4k, high quality, photorealistic"; 
+            // Check if style_preset is a key in STYLES, otherwise treat as custom string or default to cinematic
+            const requestedStyle = prompt_structure.style_preset;
+            const styleP = STYLES[requestedStyle] || requestedStyle || STYLES.cinematic;
+             
             finalPrompt = `${userP}, ${styleP}`;
             systemPrompt = styleP;
         } else {

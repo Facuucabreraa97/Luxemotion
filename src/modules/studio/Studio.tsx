@@ -14,6 +14,7 @@ export const Studio = () => {
 
   const [mode, setMode] = useState<'text' | 'image'>('text');
   const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16' | '1:1'>('16:9'); // NEW STATE
+  const [styleMode, setStyleMode] = useState<'cinematic' | 'organic'>('organic'); // NEW STYLE STATE
   const [prompt, setPrompt] = useState('');
   const [startImage, setStartImage] = useState<File | null>(null);
   const [endImage, setEndImage] = useState<File | null>(null);
@@ -112,10 +113,10 @@ export const Studio = () => {
 
       if (mode === 'image') {
         if (startImage) {
-          startUrl = await StorageService.uploadFile(startImage, 'studio_uploads');
+          startUrl = await StorageService.uploadGenerationAsset(startImage);
         }
         if (endImage) {
-          endUrl = await StorageService.uploadFile(endImage, 'studio_uploads');
+          endUrl = await StorageService.uploadGenerationAsset(endImage);
         }
       }
 
@@ -143,7 +144,7 @@ export const Studio = () => {
           seed: seed ? seed : undefined,
           prompt_structure: {
             user_prompt: prompt,
-            style_preset: 'cinematic, 4k, high quality, photorealistic',
+            style_preset: styleMode,
           },
         }),
       });
@@ -264,6 +265,48 @@ export const Studio = () => {
                     {ratio}
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* STYLE SELECTOR */}
+            <div>
+              <label className="text-[10px] font-bold text-gray-500 uppercase block mb-3">
+                Style Vibe
+              </label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setStyleMode('cinematic')}
+                  className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${styleMode === 'cinematic' ? 'bg-white text-black border-white' : 'border-white/10 text-gray-500 hover:border-white/30'}`}
+                >
+                  Cinematic
+                </button>
+                <button
+                  onClick={() => setStyleMode('organic')}
+                  className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${styleMode === 'organic' ? 'bg-gradient-to-r from-pink-500/20 to-purple-500/20 text-white border-purple-500/50' : 'border-white/10 text-gray-500 hover:border-white/30'}`}
+                >
+                  Influencer (Organic)
+                </button>
+              </div>
+            </div>
+
+            {/* STYLE SELECTOR */}
+            <div>
+              <label className="text-[10px] font-bold text-gray-500 uppercase block mb-3">
+                Style Vibe
+              </label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setStyleMode('cinematic')}
+                  className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${styleMode === 'cinematic' ? 'bg-white text-black border-white' : 'border-white/10 text-gray-500 hover:border-white/30'}`}
+                >
+                  Cinematic
+                </button>
+                <button
+                  onClick={() => setStyleMode('organic')}
+                  className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${styleMode === 'organic' ? 'bg-gradient-to-r from-pink-500/20 to-purple-500/20 text-white border-purple-500/50' : 'border-white/10 text-gray-500 hover:border-white/30'}`}
+                >
+                  Influencer (Organic)
+                </button>
               </div>
             </div>
 
