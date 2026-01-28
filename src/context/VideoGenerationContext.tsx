@@ -100,7 +100,10 @@ export const VideoGenerationProvider = ({ children }: { children: ReactNode }) =
           }
         } catch (networkError) {
           console.warn('Polling glitch:', networkError);
-          // Ignore network errors, keep polling
+          // If we hit too many network errors (e.g., 500s from server), abort to prevent infinite loop
+          if (pollCount > 10) {
+            throw new Error('Too many network errors. Aborting.');
+          }
         }
         pollCount++;
       }

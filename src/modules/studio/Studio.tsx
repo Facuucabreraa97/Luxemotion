@@ -47,8 +47,15 @@ export const Studio = () => {
       } = await supabase.auth.getSession();
       if (!session) return;
 
-      const { data, error } = await supabase.functions.invoke('get-user-credits');
-      if (error) throw error;
+      // Switched to Vercel API Route to avoid CLI deployment issues
+      const response = await fetch('/api/get-credits', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (!response.ok) throw new Error('Failed to fetch credits');
+      const data = await response.json();
 
       setCredits(data.credits);
     } catch (e) {
