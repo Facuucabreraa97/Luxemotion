@@ -144,7 +144,7 @@ export default async function handler(request) {
                 prompt: finalPrompt,
                 input_image: start_image_url || undefined, // Start Frame
                 tail_image: end_image_url || undefined,   // End Frame (Context)
-                duration: generationConfig.duration,
+                duration: Number(generationConfig.duration), // Ensure Integer
                 aspect_ratio: generationConfig.aspect_ratio,
                 seed: seed
             }
