@@ -514,7 +514,7 @@ export const Studio = () => {
                       AI Model v2.5 Turbo Pro
                     </p>
                   </div>
-                  <GenerationProgress status={status as any} />
+                  <GenerationProgress status={status} />
                 </div>
               </div>
             )}

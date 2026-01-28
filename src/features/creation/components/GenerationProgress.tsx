@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Loader2, CheckCircle2 } from 'lucide-react';
 
 interface GenerationProgressProps {
-  status: 'starting' | 'processing' | 'succeeded' | 'failed' | 'canceled';
+  status: 'idle' | 'starting' | 'processing' | 'succeeded' | 'failed' | 'canceled';
   elapsedTime?: number;
 }
 
@@ -19,7 +19,7 @@ export const GenerationProgress: React.FC<GenerationProgressProps> = ({
       return;
     }
 
-    if (status === 'failed' || status === 'canceled') {
+    if (status === 'failed' || status === 'canceled' || status === 'idle') {
       return;
     }
 
