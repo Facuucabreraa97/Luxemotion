@@ -41,9 +41,10 @@ export const AdminService = {
     },
 
     async updateCredits(email: string, amount: number) {
-        const { error } = await supabase.rpc('admin_update_credits', {
+        // Calling V2 function to bypass cache issues
+        const { error } = await supabase.rpc('admin_update_credits_v2', {
             target_email: email,
-            amount: amount
+            credit_amount: amount
         });
         if (error) throw error;
     },

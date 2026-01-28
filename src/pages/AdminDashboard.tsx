@@ -13,7 +13,6 @@ import {
   ShieldCheck,
   RefreshCw,
   LogOut,
-  Trophy,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { AdminService, AdminStats, AdminUserView } from '@/services/admin.service';
