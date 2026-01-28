@@ -44,7 +44,7 @@ serve(async (req: Request) => {
         if (callerError || !callerProfile) throw new Error("Caller profile not found")
         
         if (!callerProfile.is_admin) {
-            throw new Error("Access Denied: Admin rights required") // returns 400 caught below, ideally 403
+            return new Response(JSON.stringify({ error: 'Forbidden: Admin access required' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 });
         }
 
         // 5. Get Current Profile

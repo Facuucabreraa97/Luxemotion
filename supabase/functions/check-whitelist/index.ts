@@ -47,7 +47,8 @@ serve(async (req: Request) => {
                      } else {
                         // Not Admin, Not Own Email -> Partial Block? 
                         // Actually, looking up *other* people's whitelist status is an admin feature.
-                        throw new Error("Unauthorized to check other users' status")
+                        return new Response(JSON.stringify({ error: "Forbidden: Unauthorized to check other users' status" }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 });
+                     }
                      }
                 }
             }
