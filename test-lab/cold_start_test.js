@@ -12,10 +12,10 @@ async function runColdStartTest() {
   
   const start = Date.now();
   
-  // 1. Mock Images (Using random widely available URLs)
-  // We use placeholder images to ensure availability
-  const baseImage = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1000&auto=format&fit=crop"; // Girl
-  const objectImage = "https://images.unsplash.com/photo-1598160408542-a841263d9168?q=80&w=1000&auto=format&fit=crop"; // Bottle-ish?
+  // 1. Mock Images (Using reliable static sources with extensions)
+  // Wikipedia/Commons static headers are usually reliable for Node-fetch
+  const baseImage = "https://upload.wikimedia.org/wikipedia/commons/4/47/PNG_transparency_demonstration_1.png"; 
+  const objectImage = "https://upload.wikimedia.org/wikipedia/commons/b/b6/Image_created_with_a_mobile_phone.png";
   
   console.log("1. Downloading assets...");
   try {

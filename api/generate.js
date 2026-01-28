@@ -145,7 +145,14 @@ export default async function handler(request) {
 
         return new Response(JSON.stringify({ 
             ...prediction,
-            lux_metadata: { seed, generation_config: generationConfig, prompt_structure }
+            lux_metadata: { 
+                seed,
+                generation_config: generationConfig,
+                prompt_structure: {
+                    ...(prompt_structure || { user_prompt: prompt }),
+                    system_prompt: systemPrompt // Ensure systemPrompt is always recorded
+                }
+            }
         }), { status: 201, headers: { 'content-type': 'application/json' } });
 
     } catch (error) {
