@@ -6,9 +6,10 @@ import { supabase } from '@/lib/supabase';
 import { Upload, X, Film, Sparkles, Settings, ChevronDown, ChevronUp } from 'lucide-react';
 import { useVideoGeneration } from '@/context/VideoGenerationContext';
 import { WalletDisplay } from './WalletDisplay';
+import { GenerationProgress } from '@/features/creation/components/GenerationProgress';
 
 export const Studio = () => {
-  const { isGenerating, startGeneration } = useVideoGeneration();
+  const { isGenerating, startGeneration, status, lastGeneratedUrl } = useVideoGeneration();
   const [localStatus, setLocalStatus] = useState<'IDLE' | 'UPLOADING' | 'SAVING'>('IDLE');
 
   const [mode, setMode] = useState<'text' | 'image'>('text');
@@ -38,6 +39,15 @@ export const Studio = () => {
 
   // Cost Calculation
   const cost = duration === '10' ? 100 : 50;
+
+  // Auto-Update Video URL when generation finishes
+  useEffect(() => {
+    if (lastGeneratedUrl) {
+      setVideoUrl(lastGeneratedUrl);
+      // Clean up inputs to show fresh state
+      setLocalStatus('IDLE');
+    }
+  }, [lastGeneratedUrl]);
 
   const fetchCredits = useCallback(async () => {
     try {
@@ -125,7 +135,9 @@ export const Studio = () => {
         body: JSON.stringify({
           prompt,
           start_image_url: startUrl || undefined,
+          subject_image_url: startUrl || undefined, // Send both to be safe
           end_image_url: endUrl || undefined,
+          context_image_url: endUrl || undefined, // Send both to be safe
           aspect_ratio: aspectRatio,
           duration: duration,
           seed: seed ? seed : undefined,
@@ -490,18 +502,19 @@ export const Studio = () => {
               />
             )}
 
-            {/* Loading Overlay */}
-            {(isGenerating || (localStatus !== 'IDLE' && localStatus !== 'SAVING')) && (
-              <div className="absolute inset-0 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center z-20 animate-fade-in">
-                <div className="w-16 h-16 border-t-2 border-r-2 border-white/80 rounded-full animate-spin duration-700 mb-8"></div>
-
-                <div className="flex flex-col items-center space-y-2">
-                  <p className="text-sm font-medium tracking-[0.2em] text-white animate-pulse">
-                    CREATING REALITY
-                  </p>
-                  <p className="text-[10px] uppercase text-gray-500 font-mono tracking-widest">
-                    AI Model v2.5 Turbo Pro
-                  </p>
+            {/* Generation Progress Overlay */}
+            {isGenerating && (
+              <div className="absolute inset-0 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center z-50 p-8">
+                <div className="w-full max-w-md">
+                  <div className="mb-8 text-center">
+                    <h3 className="text-2xl font-display font-medium text-white mb-2">
+                      Creating Reality
+                    </h3>
+                    <p className="text-xs text-gray-500 uppercase tracking-widest font-mono">
+                      AI Model v2.5 Turbo Pro
+                    </p>
+                  </div>
+                  <GenerationProgress status={status as any} />
                 </div>
               </div>
             )}

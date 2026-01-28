@@ -55,14 +55,20 @@ export default async function handler(request) {
         // --- POST Method: Create Prediction ---
         const body = await request.json();
         const { 
-            start_image_url, 
+            start_image_url,
+            subject_image_url, // Alias for start
             end_image_url, 
+            context_image_url, // Alias for end
             aspect_ratio = '16:9', 
             prompt_structure,
             prompt,
             duration = "5", // Default to 5s
             seed: userSeed
         } = body;
+
+        // --- MAPPING LOGIC (Fixing the ignored payload issue) ---
+        const finalStartImage = start_image_url || subject_image_url;
+        const finalEndImage = end_image_url || context_image_url;
 
         // --- BILLING LOGIC ---
         const durationStr = String(duration);
@@ -138,16 +144,29 @@ export default async function handler(request) {
             seed
         };
 
+        const inputPayload = {
+            prompt: finalPrompt,
+            input_image: finalStartImage || undefined, // Mapped Correctly
+            tail_image: finalEndImage || undefined,   // Mapped Correctly
+            duration: Number(generationConfig.duration), 
+            aspect_ratio: generationConfig.aspect_ratio,
+            seed: seed
+        };
+
         prediction = await replicate.predictions.create({
             version: versionId,
-            input: {
-                prompt: finalPrompt,
-                input_image: start_image_url || undefined, // Start Frame
-                tail_image: end_image_url || undefined,   // End Frame (Context)
-                duration: Number(generationConfig.duration), // Ensure Integer
-                aspect_ratio: generationConfig.aspect_ratio,
-                seed: seed
-            }
+            input: inputPayload
+        });
+
+        // --- PERSISTENCE: Save Job to DB ---
+        // This allows status tracking even if user closes tab
+        await supabase.from('generations').insert({
+            user_id: user.id,
+            replicate_id: prediction.id,
+            status: 'starting',
+            prompt: finalPrompt,
+            input_params: inputPayload,
+            progress: 0
         });
 
         // Return the prediction status immediately

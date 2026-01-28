@@ -4,9 +4,19 @@ import toast from 'react-hot-toast';
 import { MarketService } from '@/services/market.service';
 import { supabase } from '@/lib/supabase';
 
+export type GenerationStatus =
+  | 'idle'
+  | 'starting'
+  | 'processing'
+  | 'succeeded'
+  | 'failed'
+  | 'canceled';
+
 interface VideoGenerationContextType {
   isGenerating: boolean;
   activeId: string | null;
+  status: GenerationStatus;
+  lastGeneratedUrl: string | null;
   startGeneration: (id: string) => void;
 }
 
@@ -15,17 +25,26 @@ const VideoGenerationContext = createContext<VideoGenerationContextType | undefi
 export const VideoGenerationProvider = ({ children }: { children: ReactNode }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [status, setStatus] = useState<GenerationStatus>('idle');
+  const [lastGeneratedUrl, setLastGeneratedUrl] = useState<string | null>(null);
   const navigate = useNavigate();
 
   // Polling Logic
   const pollStatus = async (id: string) => {
     setIsGenerating(true);
     setActiveId(id);
-    let status = 'starting';
+    setStatus('starting');
+    setLastGeneratedUrl(null); // Reset previous result
+
+    let currentStatus: GenerationStatus = 'starting';
     let pollCount = 0;
 
     try {
-      while (status !== 'succeeded' && status !== 'failed' && status !== 'canceled') {
+      while (
+        currentStatus !== 'succeeded' &&
+        currentStatus !== 'failed' &&
+        currentStatus !== 'canceled'
+      ) {
         if (pollCount > 200) throw new Error('Timeout'); // ~10 mins
 
         await new Promise((r) => setTimeout(r, 3000));
@@ -44,11 +63,13 @@ export const VideoGenerationProvider = ({ children }: { children: ReactNode }) =
           if (!res.ok) throw new Error('Network error');
 
           const data = await res.json();
-          status = data.status;
+          currentStatus = data.status || 'processing';
+          setStatus(currentStatus);
 
-          if (status === 'succeeded') {
+          if (currentStatus === 'succeeded') {
             const resultUrl = Array.isArray(data.output) ? data.output[0] : data.output;
             const metadata = data.lux_metadata || {};
+            setLastGeneratedUrl(resultUrl);
 
             // AUTO-SAVE to DB
             const {
@@ -71,11 +92,22 @@ export const VideoGenerationProvider = ({ children }: { children: ReactNode }) =
                 },
                 user.id
               );
+
+              // Update 'generations' table status (Optional but good for history)
+              await supabase
+                .from('generations')
+                .update({
+                  status: 'succeeded',
+                  image_url: resultUrl,
+                  progress: 100,
+                })
+                .eq('replicate_id', id);
             }
 
             localStorage.removeItem('active_prediction_id');
             setIsGenerating(false);
             setActiveId(null);
+            // Keep status as succeeded for a moment so UI can show success state logic
 
             toast.success(
               (t) => (
@@ -95,8 +127,13 @@ export const VideoGenerationProvider = ({ children }: { children: ReactNode }) =
               { duration: 6000 }
             );
             return;
-          } else if (status === 'failed' || status === 'canceled') {
-            throw new Error(`Generation ${status}`);
+          } else if (currentStatus === 'failed' || currentStatus === 'canceled') {
+            // Update 'generations' table status
+            await supabase
+              .from('generations')
+              .update({ status: currentStatus })
+              .eq('replicate_id', id);
+            throw new Error(`Generation ${currentStatus}`);
           }
         } catch (networkError) {
           console.warn('Polling glitch:', networkError);
@@ -112,6 +149,7 @@ export const VideoGenerationProvider = ({ children }: { children: ReactNode }) =
       localStorage.removeItem('active_prediction_id');
       setIsGenerating(false);
       setActiveId(null);
+      setStatus('failed');
       toast.error('There was a problem with the generation. Please try again.');
     }
   };
@@ -131,7 +169,9 @@ export const VideoGenerationProvider = ({ children }: { children: ReactNode }) =
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <VideoGenerationContext.Provider value={{ isGenerating, activeId, startGeneration }}>
+    <VideoGenerationContext.Provider
+      value={{ isGenerating, activeId, status, lastGeneratedUrl, startGeneration }}
+    >
       {children}
     </VideoGenerationContext.Provider>
   );
