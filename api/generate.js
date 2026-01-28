@@ -174,18 +174,14 @@ export default async function handler(request) {
                     isComposited = true;
                     console.log("Interceptor: Successfully composed image. New Input:", composedImageUrl);
                 } else {
-                    console.log("Interceptor: Composition returned base image (Fallback active).");
-                    // Even if fallback, we set isComposited to true to trigger the "Simpler Payload" logic
-                    // which removes the tail_image to prevent morphing artifacts.
-                    isComposited = true; 
+                     throw new Error("Composition API returned invalid result (Same as input).");
                 }
 
              } catch (e) {
-                 console.error("Composition failed, falling back to standard generation", e);
-                 // Fallback: Proceed but maybe disable morphing to be safe?
-                 // Let's assume standard behavior on error, OR enforce single image.
-                 // Enforcing single image is safer for UX.
-                 isComposited = true; 
+                 console.error("Composition step failed:", e);
+                 // CRITICAL BUSINESS LOGIC: Do not burn credits on a failed merge.
+                 // User expects "Product in Hand", if that fails, the video is useless.
+                 throw new Error("ASSET_MERGE_FAILED: No se pudo integrar el objeto en la escena. Operación abortada para proteger créditos del usuario.");
              }
         }
 
@@ -231,7 +227,7 @@ export default async function handler(request) {
         return new Response(JSON.stringify({ 
             error: error.message || "Unknown Generation Error" 
         }), {
-            status: 500,
+            status: 500, // Or 400 depending on error, but 500 is safe for generic catch
             headers: { 'content-type': 'application/json' },
         });
     }
@@ -261,9 +257,9 @@ async function composeScene(baseImage, objectImage, prompt, replicate) {
              console.log("Composition Successful:", output[0]);
              return output[0];
         }
-        return baseImage;
+        throw new Error("Replicate API returned no output for Composition.");
     } catch (e) {
         console.error("Composition Error (Replicate):", e);
-        return baseImage; 
+        throw e; // Propagate error to trigger the safety catch block
     }
 }
