@@ -26,6 +26,7 @@ function App() {
   const [whitelistStatus, setWhitelistStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [checkingWhitelist, setCheckingWhitelist] = useState(false);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
 
   useEffect(() => {
     const checkSession = async () => {
@@ -33,8 +34,18 @@ function App() {
         data: { session },
       } = await supabase.auth.getSession();
       setSession(session);
+
       if (session?.user?.email) {
-        await checkWhitelist(session.user.email);
+        // Check Whitelist
+        checkWhitelist(session.user.email);
+
+        // Check Admin Status
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', session.user.id)
+          .single();
+        setIsAdmin(!!profile?.is_admin);
       } else {
         setLoading(false);
         setCheckingWhitelist(false);
@@ -45,14 +56,21 @@ function App() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       if (session?.user?.email) {
-        // If we detect a user, trigger whitelist check but keep UI in loading/checking state
         setCheckingWhitelist(true);
         checkWhitelist(session.user.email);
+        // Check Admin Status
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', session.user.id)
+          .single();
+        setIsAdmin(!!profile?.is_admin);
       } else {
         setWhitelistStatus(null);
+        setIsAdmin(false);
         setCheckingWhitelist(false);
       }
     });
@@ -78,57 +96,71 @@ function App() {
 
   const isApprov = whitelistStatus === 'approved';
 
+  // Gatekeeper Component
+  const AdminRoute = ({ children }: { children: JSX.Element }) => {
+    if (!session) return <Navigate to="/login" replace />;
+    if (!isAdmin) return <Navigate to="/app/studio" replace />;
+    return children;
+  };
+
   return (
     <ToastProvider>
-    <ToastProvider>
-      <BrowserRouter>
-        <VideoGenerationProvider>
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/waitlist" element={<Landing />} />
+      <ToastProvider>
+        <BrowserRouter>
+          <VideoGenerationProvider>
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route path="/waitlist" element={<Landing />} />
 
-            <Route
-              path="/login"
-              element={
-                !session ? (
-                  <Login />
-                ) : isApprov ? (
-                  <Navigate to="/app/studio" replace />
-                ) : (
-                  <Navigate to="/" replace />
-                )
-              }
+              <Route
+                path="/login"
+                element={
+                  !session ? (
+                    <Login />
+                  ) : isApprov ? (
+                    <Navigate to="/app/studio" replace />
+                  ) : (
+                    <Navigate to="/" replace />
+                  )
+                }
+              />
+
+              <Route
+                path="/admin"
+                element={
+                  <AdminRoute>
+                    <AdminDashboard />
+                  </AdminRoute>
+                }
+              />
+
+              <Route
+                path="/app"
+                element={
+                  session && isApprov ? <Layout session={session} /> : <Navigate to="/" replace />
+                }
+              >
+                <Route index element={<Navigate to="/app/studio" replace />} />
+                <Route path="studio" element={<Studio />} />
+                <Route path="marketplace" element={<Marketplace />} />
+                <Route path="gallery" element={<Profile />} />
+                <Route path="billing" element={<Plans />} />
+              </Route>
+
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+            <Toaster
+              position="bottom-right"
+              toastOptions={{
+                style: {
+                  background: '#333',
+                  color: '#fff',
+                },
+              }}
             />
-
-            <Route
-              path="/admin"
-              element={session && isApprov ? <AdminDashboard /> : <Navigate to="/login" replace />}
-            />
-
-            <Route
-              path="/app"
-              element={
-                session && isApprov ? <Layout session={session} /> : <Navigate to="/" replace />
-              }
-            >
-              <Route index element={<Navigate to="/app/studio" replace />} />
-              <Route path="studio" element={<Studio />} />
-              <Route path="marketplace" element={<Marketplace />} />
-              <Route path="gallery" element={<Profile />} />
-              <Route path="billing" element={<Plans />} />
-            </Route>
-
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-          <Toaster position="bottom-right" toastOptions={{
-            style: {
-              background: '#333',
-              color: '#fff',
-            },
-          }} />
-        </VideoGenerationProvider>
-      </BrowserRouter>
-    </ToastProvider>
+          </VideoGenerationProvider>
+        </BrowserRouter>
+      </ToastProvider>
     </ToastProvider>
   );
 }

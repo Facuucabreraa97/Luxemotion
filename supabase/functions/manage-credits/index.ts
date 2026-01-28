@@ -28,9 +28,24 @@ serve(async (req: Request) => {
             throw new Error("Missing required fields: targetUserId, amount")
         }
 
-        // 4. Verification Check (Optional but recommended)
-        // Check if the JWT invoking this function is permitted (if not strictly internal)
-        // For now, we assume this function is behind a secured route or checked via RLS if invoked as postgres function
+        // 4. Verification Check (STRICT ADMIN CHECK)
+        const authHeader = req.headers.get('Authorization')
+        if (!authHeader) throw new Error("Missing Authorization header")
+
+        const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(authHeader.replace('Bearer ', ''))
+        if (userError || !user) throw new Error("Invalid Token")
+
+        const { data: callerProfile, error: callerError } = await supabaseAdmin
+            .from('profiles')
+            .select('is_admin')
+            .eq('id', user.id)
+            .single()
+
+        if (callerError || !callerProfile) throw new Error("Caller profile not found")
+        
+        if (!callerProfile.is_admin) {
+            throw new Error("Access Denied: Admin rights required") // returns 400 caught below, ideally 403
+        }
 
         // 5. Get Current Profile
         const { data: profile, error: profileError } = await supabaseAdmin

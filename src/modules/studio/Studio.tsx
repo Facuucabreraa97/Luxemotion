@@ -50,7 +50,7 @@ export const Studio = () => {
     if (!startImage && mode === 'image') return;
 
     // Use localStatus for immediate feedback before API call
-    setLocalStatus('UPLOADING'); 
+    setLocalStatus('UPLOADING');
 
     try {
       let startUrl = '';
@@ -98,7 +98,6 @@ export const Studio = () => {
 
       // Start Global Polling
       startGeneration(predictionId);
-      
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Unknown error';
       alert('Error: ' + message);
@@ -117,7 +116,7 @@ export const Studio = () => {
       await MarketService.saveDraft(
         {
           name: prompt.substring(0, 30) || 'Untitled Creation',
-          description: prompt,
+
           image_url: startPreview || 'https://via.placeholder.com/1080x1920?text=Video+Asset',
           video_url: videoUrl,
           price: 0,
@@ -353,9 +352,9 @@ export const Studio = () => {
             ) : (
               <div className="flex gap-2">
                 <button
-                onClick={handleSaveDraft}
-                disabled={localStatus === 'SAVING'}
-                className="flex-1 py-3 bg-white text-black rounded-lg font-bold text-sm hover:bg-gray-200 transition-colors"
+                  onClick={handleSaveDraft}
+                  disabled={localStatus === 'SAVING'}
+                  className="flex-1 py-3 bg-white text-black rounded-lg font-bold text-sm hover:bg-gray-200 transition-colors"
                 >
                   {localStatus === 'SAVING' ? 'Saving...' : 'Save Draft'}
                 </button>
@@ -404,7 +403,7 @@ export const Studio = () => {
             )}
 
             {/* Loading Overlay */}
-            {(isGenerating || localStatus !== 'IDLE' && localStatus !== 'SAVING') && (
+            {(isGenerating || (localStatus !== 'IDLE' && localStatus !== 'SAVING')) && (
               <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-20">
                 <div className="w-12 h-12 border-2 border-white/20 border-t-white rounded-full animate-spin mb-4"></div>
                 <p className="text-xs font-mono text-white/70 animate-pulse">

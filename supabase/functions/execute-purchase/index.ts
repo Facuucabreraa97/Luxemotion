@@ -24,6 +24,15 @@ serve(async (req: Request) => {
             throw new Error("Missing assetId or buyerId")
         }
 
+        // 0. Identity Verification
+        const authHeader = req.headers.get('Authorization')
+        if (!authHeader) throw new Error("Missing Authorization header")
+
+        const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(authHeader.replace('Bearer ', ''))
+        if (userError || !user) throw new Error("Invalid Token")
+
+        if (user.id !== buyerId) throw new Error("Unauthorized: Cannot buy for another user")
+
         // 1. Get Asset & Owner
         const { data: asset, error: assetError } = await supabaseAdmin
             .from('talents')

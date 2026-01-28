@@ -26,6 +26,15 @@ serve(async (req: Request) => {
             throw new Error("Missing assetData or userId")
         }
 
+        // 1. Identity Verification
+        const authHeader = req.headers.get('Authorization')
+        if (!authHeader) throw new Error("Missing Authorization header")
+
+        const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(authHeader.replace('Bearer ', ''))
+        if (userError || !user) throw new Error("Invalid Token")
+
+        if (user.id !== userId) throw new Error("Unauthorized: Cannot mint for another user")
+
         // 1. Check Balance
         const { data: user, error: userError } = await supabaseAdmin
             .from('profiles')

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { MarketService } from '@/services/market.service';
 import { Asset } from '@/types';
+import { DailyQuests } from '@/modules/gamification/DailyQuests';
+import { AchievementsGrid } from '@/modules/gamification/AchievementsGrid';
 import { User } from '@supabase/supabase-js';
 
 interface Transaction {
@@ -13,9 +15,9 @@ interface Transaction {
 }
 
 const Profile = () => {
-  const [activeTab, setActiveTab] = useState<'created' | 'drafts' | 'collected' | 'wallet'>(
-    'created'
-  );
+  const [activeTab, setActiveTab] = useState<
+    'created' | 'drafts' | 'collected' | 'wallet' | 'missions'
+  >('created');
   const [user, setUser] = useState<User | null>(null);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -114,14 +116,14 @@ const Profile = () => {
             </div>
           </div>
         </div>
-
+        // ... (inside return)
         {/* TABS */}
         <div className="mt-16 border-b border-white/10 flex gap-8 overflow-x-auto">
-          {['created', 'drafts', 'collected', 'wallet'].map((tab) => (
+          {['created', 'drafts', 'collected', 'wallet', 'missions'].map((tab) => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab as 'created' | 'drafts' | 'collected' | 'wallet')}
-              className={`pb - 4 text - sm font - bold uppercase tracking - widest border - b - 2 transition - colors whitespace - nowrap ${
+              onClick={() => setActiveTab(tab as any)}
+              className={`pb-4 text-sm font-bold uppercase tracking-widest border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === tab
                   ? 'border-indigo-500 text-white'
                   : 'border-transparent text-gray-500 hover:text-gray-300'
@@ -136,12 +138,23 @@ const Profile = () => {
             </button>
           ))}
         </div>
-
         {/* GRID OR WALLET LIST */}
         <div className="mt-8">
           {loading ? (
             <div className="text-gray-500 col-span-full py-20 text-center animate-pulse">
               Checking Vault...
+            </div>
+          ) : activeTab === 'missions' ? (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div>
+                <DailyQuests />
+              </div>
+              <div className="lg:col-span-2">
+                <h3 className="text-sm font-bold uppercase text-gray-500 tracking-wider mb-2">
+                  Achievements
+                </h3>
+                <AchievementsGrid />
+              </div>
             </div>
           ) : activeTab === 'wallet' ? (
             <div className="glass-panel rounded-2xl overflow-hidden p-6 border border-white/10">
