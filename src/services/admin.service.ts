@@ -41,12 +41,27 @@ export const AdminService = {
     },
 
     async updateCredits(email: string, amount: number) {
-        // Calling V2 function to bypass cache issues
-        const { error } = await supabase.rpc('admin_update_credits_v2', {
-            target_email: email,
-            credit_amount: amount
-        });
-        if (error) throw error;
+        // DIRECT UPDATE STRATEGY (Bypassing RPC)
+        
+        // 1. Get current user data to ensure we add to fresh balance
+        const { data: user, error: fetchError } = await supabase
+            .from('profiles')
+            .select('credits')
+            .eq('email', email)
+            .single();
+            
+        if (fetchError) throw new Error(`User not found: ${fetchError.message}`);
+        
+        const currentCredits = user.credits || 0;
+        const newBalance = currentCredits + amount;
+        
+        // 2. Update with new calcualted balance
+        const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ credits: newBalance })
+            .eq('email', email);
+            
+        if (updateError) throw updateError;
     },
 
     async toggleBan(email: string, ban: boolean) {
