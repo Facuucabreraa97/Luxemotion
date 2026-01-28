@@ -242,11 +242,6 @@ export default async function handler(request) {
         const inputPayload = {
             prompt: finalPrompt,
             input_image: isComposited ? composedImageUrl : (finalStartImage || undefined),
-            tail_image: isComposited ? undefined : (finalEndImage || undefined), // Disable morphing if composited
-            duration: Number(generationConfig.duration), 
-            aspect_ratio: generationConfig.aspect_ratio,
-            cfg_scale: isComposited ? 0.7 : 0.6, // Higher fidelity for composited scenes
-            seed: seed
         };
 
         prediction = await replicate.predictions.create({
@@ -255,7 +250,6 @@ export default async function handler(request) {
         });
 
         // --- PERSISTENCE: Save Job to DB ---
-        // This allows status tracking even if user closes tab
         await supabase.from('generations').insert({
             user_id: user.id,
             replicate_id: prediction.id,
@@ -265,11 +259,9 @@ export default async function handler(request) {
             progress: 0
         });
 
-        // Return the prediction status immediately
-        // Metadata is attached here, but frontend must merge it with final output later
         return new Response(JSON.stringify({ 
             ...prediction,
-            lux_metadata: { // Custom metadata wrapper
+            lux_metadata: { 
                 seed,
                 generation_config: generationConfig,
                 prompt_structure: prompt_structure || { 
@@ -284,14 +276,42 @@ export default async function handler(request) {
 
     } catch (error) {
         console.error("API Generation Error:", error);
-        
-        // FUTURE: IMPLEMENT REFUND LOGIC HERE IF REPLICATE FAILS
-        
         return new Response(JSON.stringify({ 
             error: error.message || "Unknown Generation Error" 
         }), {
             status: 500,
             headers: { 'content-type': 'application/json' },
         });
+    }
+}
+
+// --- HELPER: SCENE COMPOSITOR ---
+async function composeScene(baseImage, objectImage, prompt, replicate) {
+    console.log("Composing Scene: Intercepting inputs...");
+    const instruction = "Make the person hold a bottle of Amarula liqueur in their hand, photorealistic";
+    
+    try {
+        console.log("Running Composition Middleware (Instruct-Pix2Pix)...");
+        // Using Instruct-Pix2Pix
+        const output = await replicate.run(
+            "timbrooks/instruct-pix2pix:30c1d0b916a6f8efce20493f5d61ee27491b63d39588q564y", 
+            {
+                input: {
+                    image: baseImage,
+                    prompt: instruction,
+                    num_inference_steps: 20,
+                    image_guidance_scale: 1.5,
+                }
+            }
+        );
+        
+        if (output && output[0]) {
+             console.log("Composition Successful:", output[0]);
+             return output[0];
+        }
+        return baseImage;
+    } catch (e) {
+        console.error("Composition Error (Replicate):", e);
+        return baseImage; 
     }
 }

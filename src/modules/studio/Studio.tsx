@@ -488,7 +488,11 @@ export const Studio = () => {
                   </>
                 ) : (
                   <span className="animate-pulse">
-                    {localStatus === 'UPLOADING' ? 'Uploading...' : 'Processing...'}
+                    {localStatus === 'UPLOADING'
+                      ? 'Uploading...'
+                      : startImage && endImage
+                        ? 'Merging Assets...'
+                        : 'Processing...'}
                   </span>
                 )}
               </button>
