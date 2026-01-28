@@ -8,6 +8,7 @@ export const config = {
     // runtime: 'edge', // Disabled to support Sharp
     maxDuration: 60, // Set timeout for Node functions
 };
+export const dynamic = 'force-dynamic'; // Prevent static optimization and timeouts
 
 export default async function handler(request) {
     const token = process.env.REPLICATE_API_TOKEN;
@@ -180,6 +181,7 @@ async function composeScene(baseImage, objectImage, prompt, replicate) {
 
         const compositeBuffer = await sharp(baseBuffer)
             .composite([{ input: resizedObj, top: topOffset, left: leftOffset }])
+            .png({ quality: 90 }) // OPTIMIZATION: Force high-quality PNG
             .toBuffer();
         
         // Convert to Data URI for Replicate
@@ -187,7 +189,8 @@ async function composeScene(baseImage, objectImage, prompt, replicate) {
 
         // 3. Refine with SDXL
         console.log("Collage Created. Refining with SDXL...");
-        const compositionPrompt = `${prompt}, holding the object described, photorealistic, 8k, seamless integration, cinematic lighting`;
+        // Updated Prompt for seamless integration
+        const compositionPrompt = `${prompt}, seamless composite, realistic lighting, shadows casting on hand, photorealistic, 8k, seamless integration, cinematic lighting`;
 
         const output = await replicate.run(
             "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b", 
@@ -195,7 +198,7 @@ async function composeScene(baseImage, objectImage, prompt, replicate) {
                 input: {
                     image: compositeBase64, // Send the collaged image
                     prompt: compositionPrompt,
-                    strength: 0.65, // Lower strength (0.65) to respect the collage placement but blend edges
+                    strength: 0.45, // LOWER STRENGTH: Protect brand identity/text on product
                     refine: "expert_ensemble_refiner",
                     high_noise_frac: 0.8
                 }
