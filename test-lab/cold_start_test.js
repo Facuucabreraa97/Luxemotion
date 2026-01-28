@@ -1,11 +1,7 @@
 // test-lab/cold_start_test.js
 import 'dotenv/config';
 import sharp from 'sharp';
-import fs from 'fs';
 import { fileURLToPath } from 'url';
-import path from 'path';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 async function runColdStartTest() {
   console.log("⏱️ Starting Cold Start Latency Test (Collage Phase)...");
@@ -45,6 +41,7 @@ async function runColdStartTest() {
           
       const sharpTime = Date.now();
       console.log(`   Sharp processing complete in: ${(sharpTime - downloadTime) / 1000}s`);
+      console.log(`   Output Size: ${(compositeBuffer.length / 1024).toFixed(2)} KB`);
       
       // We skip the actual Replicate call here because of missing ENV token in local, 
       // but we estimate latency based on typical SDXL times (approx 5-10s cold start).
