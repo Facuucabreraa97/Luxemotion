@@ -236,19 +236,28 @@ export default async function handler(request) {
 // --- HELPER: SCENE COMPOSITOR ---
 async function composeScene(baseImage, objectImage, prompt, replicate) {
     console.log("Composing Scene: Intercepting inputs...");
-    const instruction = "Make the person hold a bottle of Amarula liqueur in their hand, photorealistic";
+    
+    // UPGRADE: Switched from 'instruct-pix2pix' (SD 1.5, Oil Painting artifacts) 
+    // to 'stability-ai/sdxl' (SDXL 1.0, 1024px Native, Photorealistic).
+    // METHOD: Image-to-Image Refinement with High Strength.
+    // We explicitly instruct the model to "Integrate" the object.
+    
+    const compositionPrompt = `${prompt}, holding the object described, photorealistic, 8k, seamless integration, cinematic lighting`;
     
     try {
-        console.log("Running Composition Middleware (Instruct-Pix2Pix)...");
-        // Using Instruct-Pix2Pix
+        console.log("Running Composition Middleware (SDXL Refiner)...");
+        
+        // Using stability-ai/sdxl (Official)
         const output = await replicate.run(
-            "timbrooks/instruct-pix2pix:30c1d0b916a6f8efce20493f5d61ee27491b63d39588q564y", 
+            "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b", 
             {
                 input: {
                     image: baseImage,
-                    prompt: instruction,
-                    num_inference_steps: 20,
-                    image_guidance_scale: 1.5,
+                    prompt: compositionPrompt,
+                    strength: 0.75, // Allow 75% hallucination/refinement to insert object (Balanced)
+                    refine: "expert_ensemble_refiner", // Polish the result
+                    high_noise_frac: 0.8,
+                    lora_scale: 0.6
                 }
             }
         );
@@ -257,9 +266,9 @@ async function composeScene(baseImage, objectImage, prompt, replicate) {
              console.log("Composition Successful:", output[0]);
              return output[0];
         }
-        throw new Error("Replicate API returned no output for Composition.");
+        throw new Error("Replicate API returned no output for Composition."); // Strict Error Handling
     } catch (e) {
-        console.error("Composition Error (Replicate):", e);
-        throw e; // Propagate error to trigger the safety catch block
+        console.error("Composition Error (Replicate/SDXL):", e);
+        throw e; // Strict Error Propagating
     }
 }

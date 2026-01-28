@@ -37,7 +37,8 @@ async function runBenchmark() {
 }
 
 // Mock running if invoked directly
-if (require.main === module) {
+import { fileURLToPath } from 'url';
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
     // Check for API Token
     if (!process.env.REPLICATE_API_TOKEN) {
         console.error("Skipping test: REPLICATE_API_TOKEN not set in environment.");
