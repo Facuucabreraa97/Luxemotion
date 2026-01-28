@@ -1,6 +1,6 @@
 // test-lab/fidelity_benchmark.js
-require('dotenv').config();
-const Replicate = require('replicate');
+import 'dotenv/config';
+import Replicate from 'replicate';
 
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN,
@@ -11,7 +11,7 @@ async function runBenchmark() {
   
   // MOCK INPUTS
   const womanImage = "https://replicate.delivery/pbxt/JyB.../woman_drinking.jpg"; // Placeholder
-  const bottleImage = "https://replicate.delivery/pbxt/JyC.../amarula_bottle.jpg";
+  // const bottleImage = "https://replicate.delivery/pbxt/JyC.../amarula_bottle.jpg"; // Unused in this version
   
   console.log("Step 1: Calling Interceptor (Instruct-Pix2Pix)...");
   
