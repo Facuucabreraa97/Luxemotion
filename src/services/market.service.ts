@@ -57,6 +57,7 @@ export const MarketService = {
           ...assetData,
           creator_id: userId,
           owner_id: userId,
+          user_id: userId, // Required by DB constraint
           for_sale: false,
           is_draft: true,
           supply_total: 1,
