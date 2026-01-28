@@ -98,9 +98,7 @@ export const Plans = () => {
       <header className="text-center mb-16 relative">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-indigo-900/20 blur-[100px] rounded-full -z-10" />
 
-        <h1 className="text-5xl md:text-7xl font-bold mb-4 font-display tracking-tighter">
-          MEMBERSHIP
-        </h1>
+        <h1 className="text-5xl md:text-7xl font-bold mb-4 tracking-tighter">MEMBERSHIP</h1>
         <p className="text-gray-400 text-lg md:text-xl font-light tracking-wide">
           Invest in your assets. Monetize your imagination.
         </p>
@@ -174,8 +172,8 @@ export const Plans = () => {
                 )}
               </div>
 
-              <h3 className="text-2xl font-bold mb-1 font-display tracking-wide">{plan.name}</h3>
-              <p className="text-gray-500 text-xs font-mono uppercase tracking-wider mb-6">
+              <h3 className="text-2xl font-bold mb-1 tracking-wide">{plan.name}</h3>
+              <p className="text-gray-500 text-xs uppercase tracking-wider mb-6">
                 {plan.descriptor}
               </p>
 
@@ -197,7 +195,7 @@ export const Plans = () => {
               <div className="text-xs text-gray-400 uppercase font-bold tracking-wider mb-1">
                 Monthly Allowance
               </div>
-              <div className="text-2xl font-mono font-bold text-white flex items-center gap-2">
+              <div className="text-2xl font-bold text-white flex items-center gap-2">
                 {plan.credits}
                 <Info
                   size={14}
