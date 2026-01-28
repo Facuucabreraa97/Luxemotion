@@ -12,7 +12,12 @@ export default async function handler(request) {
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!token || !supabaseUrl || !supabaseServiceKey) {
-        return new Response(JSON.stringify({ error: "Missing Environment Variables" }), {
+        const missing = [];
+        if (!token) missing.push("REPLICATE_API_TOKEN");
+        if (!supabaseUrl) missing.push("SUPABASE_URL");
+        if (!supabaseServiceKey) missing.push("SUPABASE_SERVICE_ROLE_KEY");
+
+        return new Response(JSON.stringify({ error: `Missing Environment Variables: ${missing.join(', ')}` }), {
             status: 500,
             headers: { 'content-type': 'application/json' },
         });
