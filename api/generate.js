@@ -209,6 +209,13 @@ export default async function handler(req, res) {
                 }
              } catch (e) {
                  console.error("Composition Failed:", e);
+                 
+                 // If it is a Rate Limit error, propagate it (throw it) 
+                 // so the main catch block handles it with 429 status
+                 if (e.message?.includes('429') || e.response?.status === 429) {
+                     throw e; 
+                 }
+
                  // As per user instruction: If COMPOSITION fails, we abort to save credits/quality
                  return res.status(422).json({ 
                     error: "ASSET_MERGE_FAILED: No se pudo integrar el objeto en la escena. Operación abortada." 
