@@ -23,7 +23,7 @@ async function uploadToSupabase(url, filePath, supabase) {
         const contentType = response.headers.get('content-type') || 'application/octet-stream';
 
         const { error: uploadError } = await supabase.storage
-            .from('generated-assets')
+            .from('videos')
             .upload(filePath, buffer, {
                 contentType,
                 upsert: true
@@ -32,14 +32,18 @@ async function uploadToSupabase(url, filePath, supabase) {
         if (uploadError) throw uploadError;
 
         const { data: { publicUrl } } = supabase.storage
-            .from('generated-assets')
+            .from('videos')
             .getPublicUrl(filePath);
 
         console.log(`Asset persisted at: ${publicUrl}`);
         return publicUrl;
     } catch (error) {
         console.error("Storage Persistence Error:", error);
-        throw error; // Critical failure if persistence fails
+        // Better error message for debugging
+        if (error.message && error.message.includes('Bucket not found')) {
+            throw new Error(`Storage Bucket 'videos' missing or not public.`);
+        }
+        throw error;
     }
 }
 
@@ -97,9 +101,11 @@ export default async function handler(request) {
                         const rawUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
                         
                         if (rawUrl && rawUrl.startsWith('http')) {
-                            // Generate a unique path: video_{replicate_id}.mp4
+                            // Struct: videos/{userId}/{timestamp}_{id}.{ext}
                             const ext = rawUrl.includes('.png') ? 'png' : 'mp4'; 
-                            const filename = `generation_${id}.${ext}`;
+                            const timestamp = Date.now();
+                            const filename = `${user.id}/${timestamp}_${id}.${ext}`;
+                            
                             const publicUrl = await uploadToSupabase(rawUrl, filename, supabase);
 
                             // Update Database
@@ -117,7 +123,7 @@ export default async function handler(request) {
                     }
                 } catch (persistErr) {
                     console.error("Failed to persist completion asset:", persistErr);
-                    // We don't block the response, but we log it. User might get raw URL but it's risky.
+                    // Non-blocking error, user gets original Replicate URL (temporary)
                 }
             }
 
@@ -194,7 +200,7 @@ export default async function handler(request) {
                     
                     // PERSIST COMPOSITION ASSET
                     // The resultUrl from composeScene is from Replicate. We must save it.
-                    const compositeFilename = `composition_${Date.now()}_${user.id}.png`;
+                    const compositeFilename = `${user.id}/composition_${Date.now()}.png`;
                     composedImageUrl = await uploadToSupabase(resultUrl, compositeFilename, supabase);
                     
                     isComposited = true;
