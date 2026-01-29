@@ -162,6 +162,13 @@ export const Studio = () => {
         if (response.status === 402) {
           throw new Error(`Insufficient Credits! ${errorData.error}`);
         }
+
+        if (response.status === 429) {
+          alert('El sistema está ocupado, por favor espera 5 segundos y reintenta');
+          setLocalStatus('IDLE');
+          return;
+        }
+
         throw new Error(`Server Error (${response.status}): ${errorData.error || text}`);
       }
 

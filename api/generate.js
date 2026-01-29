@@ -247,6 +247,12 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error("API Error:", error);
+        
+        // Handle Replicate Rate Limit (429)
+        if (error.message?.includes('429') || error.response?.status === 429) {
+            return res.status(429).json({ error: "System Busy (Rate Limit). Please retry." });
+        }
+
         return res.status(500).json({ error: error.message || "Unknown Error" });
     }
 }
