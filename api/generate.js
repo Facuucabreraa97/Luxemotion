@@ -47,16 +47,13 @@ async function uploadToSupabase(url, filePath, supabase) {
     }
 }
 
-export default async function handler(request) {
+export default async function handler(req, res) {
     const token = process.env.REPLICATE_API_TOKEN;
     const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!token || !supabaseUrl || !supabaseServiceKey) {
-        return new Response(JSON.stringify({ error: "Configuration Error: Missing Envs" }), {
-            status: 500,
-            headers: { 'content-type': 'application/json' },
-        });
+        return res.status(500).json({ error: "Configuration Error: Missing Envs" });
     }
 
     const replicate = new Replicate({ auth: token });
@@ -64,22 +61,24 @@ export default async function handler(request) {
 
     try {
         // Safe URL parsing for Node.js environment (Vercel)
-        const url = new URL(request.url, 'http://localhost');
+        // req.url in Node is just the path (e.g. /api/generate?id=123)
+        // We use a dummy base for parsing; query params will be preserved.
+        const url = new URL(req.url, 'http://localhost');
 
         // --- AUTHENTICATION CHECK ---
-        const authHeader = request.headers.get('Authorization');
+        const authHeader = req.headers['authorization'];
         if (!authHeader) {
-             return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+             return res.status(401).json({ error: "Unauthorized" });
         }
         
         // Verify User Token
         const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
         if (authError || !user) {
-             return new Response(JSON.stringify({ error: "Unauthorized Token" }), { status: 401 });
+             return res.status(401).json({ error: "Unauthorized Token" });
         }
 
         // --- POLLING ENDPOINT (GET) ---
-        if (request.method === 'GET') {
+        if (req.method === 'GET') {
             const id = url.searchParams.get('id');
             const prediction = await replicate.predictions.get(id);
 
@@ -127,10 +126,11 @@ export default async function handler(request) {
                 }
             }
 
-            return new Response(JSON.stringify(prediction), { status: 200, headers: { 'content-type': 'application/json' } });
+            return res.status(200).json(prediction);
         }
 
-        const body = await request.json();
+        // In Vercel Node.js functions, req.body is automatically parsed if content-type is json
+        const body = req.body; 
         const { 
             start_image_url, subject_image_url,
             end_image_url, context_image_url,
@@ -146,7 +146,7 @@ export default async function handler(request) {
         // Balance Check
         const { data: profile } = await supabase.from('profiles').select('credits').eq('id', user.id).single();
         if (!profile || profile.credits < cost) {
-            return new Response(JSON.stringify({ error: "Insufficient Credits" }), { status: 402, headers: { 'content-type': 'application/json' } });
+            return res.status(402).json({ error: "Insufficient Credits" });
         }
 
         // Deduct Credits
@@ -210,9 +210,9 @@ export default async function handler(request) {
              } catch (e) {
                  console.error("Composition Failed:", e);
                  // As per user instruction: If COMPOSITION fails, we abort to save credits/quality
-                 return new Response(JSON.stringify({ 
+                 return res.status(422).json({ 
                     error: "ASSET_MERGE_FAILED: No se pudo integrar el objeto en la escena. Operación abortada." 
-                 }), { status: 422, headers: { 'content-type': 'application/json' } });
+                 });
              }
         }
 
@@ -233,7 +233,7 @@ export default async function handler(request) {
             progress: 0
         });
 
-        return new Response(JSON.stringify({ 
+        return res.status(201).json({ 
             ...prediction,
             lux_metadata: { 
                 seed,
@@ -243,11 +243,11 @@ export default async function handler(request) {
                     system_prompt: systemPrompt // Ensure systemPrompt is always recorded
                 }
             }
-        }), { status: 201, headers: { 'content-type': 'application/json' } });
+        });
 
     } catch (error) {
         console.error("API Error:", error);
-        return new Response(JSON.stringify({ error: error.message || "Unknown Error" }), { status: 500, headers: { 'content-type': 'application/json' } });
+        return res.status(500).json({ error: error.message || "Unknown Error" });
     }
 }
 
