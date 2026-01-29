@@ -59,6 +59,10 @@ export default async function handler(req, res) {
     const replicate = new Replicate({ auth: token });
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    let user = null;
+    let cost = 0;
+    let creditsDeducted = false;
+
     try {
         // Safe URL parsing for Node.js environment (Vercel)
         // req.url in Node is just the path (e.g. /api/generate?id=123)
@@ -72,10 +76,11 @@ export default async function handler(req, res) {
         }
         
         // Verify User Token
-        const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
-        if (authError || !user) {
+        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+        if (authError || !authUser) {
              return res.status(401).json({ error: "Unauthorized Token" });
         }
+        user = authUser;
 
         // --- POLLING ENDPOINT (GET) ---
         if (req.method === 'GET') {
@@ -140,8 +145,11 @@ export default async function handler(req, res) {
 
         const finalStartImage = start_image_url || subject_image_url;
         const finalEndImage = end_image_url || context_image_url;
+
         const durationStr = String(duration);
-        const cost = durationStr === "10" ? 100 : 50;
+        cost = durationStr === "10" ? 100 : 50;
+        
+        // creditsDeducted already declared in outer scope
 
         // Balance Check
         const { data: profile } = await supabase.from('profiles').select('credits').eq('id', user.id).single();
@@ -154,6 +162,7 @@ export default async function handler(req, res) {
         if (deductError) {
              await supabase.from('profiles').update({ credits: profile.credits - cost }).eq('id', user.id);
         }
+        creditsDeducted = true;
 
         // Generation Setup
         const seed = userSeed ? Number(userSeed) : Math.floor(Math.random() * 1000000000);
@@ -254,6 +263,20 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error("API Error:", error);
+
+        // --- ATOMIC REFUND LOGIC ---
+        if (creditsDeducted) {
+            console.warn(`Generation failed after payment. Refunding ${cost} credits to user ${user.id}...`);
+            const { error: refundError } = await supabase.rpc('increase_credits', { user_id: user.id, amount: cost });
+            
+            if (refundError) {
+                console.error("CRITICAL: REFUND FAILED", refundError);
+                // Last Resort Fallback (only if RPC fails, though risky, better than nothing)
+                // await supabase.from('profiles').update({ credits: profile.credits }).eq('id', user.id); 
+            } else {
+                console.log("Refund successful.");
+            }
+        }
         
         // Handle Replicate Rate Limit (429)
         if (error.message?.includes('429') || error.response?.status === 429) {
