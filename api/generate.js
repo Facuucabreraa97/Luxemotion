@@ -10,6 +10,39 @@ export const config = {
 };
 export const dynamic = 'force-dynamic'; // Prevent static optimization and timeouts
 
+/**
+ * Helper: Download and Upload to Supabase Storage
+ */
+async function uploadToSupabase(url, filePath, supabase) {
+    try {
+        console.log(`Persisting asset: ${filePath}...`);
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`Failed to download asset from ${url}`);
+        
+        const buffer = Buffer.from(await response.arrayBuffer());
+        const contentType = response.headers.get('content-type') || 'application/octet-stream';
+
+        const { error: uploadError } = await supabase.storage
+            .from('generated-assets')
+            .upload(filePath, buffer, {
+                contentType,
+                upsert: true
+            });
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+            .from('generated-assets')
+            .getPublicUrl(filePath);
+
+        console.log(`Asset persisted at: ${publicUrl}`);
+        return publicUrl;
+    } catch (error) {
+        console.error("Storage Persistence Error:", error);
+        throw error; // Critical failure if persistence fails
+    }
+}
+
 export default async function handler(request) {
     const token = process.env.REPLICATE_API_TOKEN;
     const supabaseUrl = process.env.SUPABASE_URL;
@@ -41,9 +74,53 @@ export default async function handler(request) {
              return new Response(JSON.stringify({ error: "Unauthorized Token" }), { status: 401 });
         }
 
+        // --- POLLING ENDPOINT (GET) ---
         if (request.method === 'GET') {
             const id = url.searchParams.get('id');
             const prediction = await replicate.predictions.get(id);
+
+            // CRITICAL: Persist Output when Succeeded
+            if (prediction.status === 'succeeded' && prediction.output) {
+                try {
+                    // Check if we already have the persistent URL in our DB to avoid re-uploading
+                    const { data: existingRecord } = await supabase
+                        .from('generations')
+                        .select('output_url')
+                        .eq('replicate_id', id)
+                        .single();
+
+                    if (existingRecord?.output_url && existingRecord.output_url.includes('supabase')) {
+                         // Already persisted, return the DB URL
+                         prediction.output = existingRecord.output_url;
+                    } else {
+                        // Not persisted yet. Handle string or array output.
+                        const rawUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
+                        
+                        if (rawUrl && rawUrl.startsWith('http')) {
+                            // Generate a unique path: video_{replicate_id}.mp4
+                            const ext = rawUrl.includes('.png') ? 'png' : 'mp4'; 
+                            const filename = `generation_${id}.${ext}`;
+                            const publicUrl = await uploadToSupabase(rawUrl, filename, supabase);
+
+                            // Update Database
+                            await supabase.from('generations').update({
+                                status: 'succeeded',
+                                output_url: publicUrl,
+                                progress: 100
+                            }).eq('replicate_id', id);
+
+                            // Return the persistent URL to the frontend
+                            prediction.output = publicUrl;
+                            // Also patch output[0] if it's an array
+                            if (Array.isArray(prediction.output)) prediction.output = [publicUrl]; 
+                        }
+                    }
+                } catch (persistErr) {
+                    console.error("Failed to persist completion asset:", persistErr);
+                    // We don't block the response, but we log it. User might get raw URL but it's risky.
+                }
+            }
+
             return new Response(JSON.stringify(prediction), { status: 200, headers: { 'content-type': 'application/json' } });
         }
 
@@ -114,7 +191,12 @@ export default async function handler(request) {
                 // Defensive: Ensure we don't crash standard flow
                 const resultUrl = await composeScene(finalStartImage, finalEndImage, finalPrompt, replicate);
                 if (resultUrl && resultUrl !== finalStartImage) {
-                    composedImageUrl = resultUrl;
+                    
+                    // PERSIST COMPOSITION ASSET
+                    // The resultUrl from composeScene is from Replicate. We must save it.
+                    const compositeFilename = `composition_${Date.now()}_${user.id}.png`;
+                    composedImageUrl = await uploadToSupabase(resultUrl, compositeFilename, supabase);
+                    
                     isComposited = true;
                 } else {
                     throw new Error("Composition returned invalid result");
