@@ -209,7 +209,7 @@ export default async function handler(req, res) {
                     
                     // PERSIST COMPOSITION ASSET
                     // The resultUrl from composeScene is from Replicate. We must save it.
-                    const compositeFilename = `${user.id}/composition_${Date.now()}.png`;
+                    const compositeFilename = `${user.id}/composition_${Date.now()}_composite.png`;
                     composedImageUrl = await uploadToSupabase(resultUrl, compositeFilename, supabase);
                     
                     isComposited = true;
@@ -254,6 +254,7 @@ export default async function handler(req, res) {
             lux_metadata: { 
                 seed,
                 generation_config: generationConfig,
+                composed_image_url: composedImageUrl, // Return intermediate composite for debugging
                 prompt_structure: {
                     ...(prompt_structure || { user_prompt: prompt }),
                     system_prompt: systemPrompt // Ensure systemPrompt is always recorded
@@ -322,8 +323,9 @@ async function composeScene(baseImage, objectImage, prompt, replicate) {
 
         // 3. Refine with SDXL
         console.log("Collage Created. Refining with SDXL...");
-        // Updated Prompt for seamless integration
-        const compositionPrompt = `${prompt}, seamless composite, realistic lighting, shadows casting on hand, photorealistic, 8k, seamless integration, cinematic lighting`;
+        
+        // FIXED PROMPT: Ignore user prompt to prevent hallucination
+        const compositionPrompt = "High quality photo, seamless composite, realistic lighting, consistent shadows, woman holding the bottle, 8k raw photo";
 
         const output = await replicate.run(
             "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b", 
@@ -331,7 +333,7 @@ async function composeScene(baseImage, objectImage, prompt, replicate) {
                 input: {
                     image: compositeBase64, // Send the collaged image
                     prompt: compositionPrompt,
-                    strength: 0.45, // LOWER STRENGTH: Protect brand identity/text on product
+                    strength: 0.30, // LOWER STRENGTH (0.30): Keep original details, just blend
                     refine: "expert_ensemble_refiner",
                     high_noise_frac: 0.8
                 }
