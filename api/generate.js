@@ -387,12 +387,12 @@ async function composeScene(baseImage, objectImage, prompt, replicate, supabase,
             
         const objMeta = await sharp(resizedObj).metadata();
 
-        // Calculate Position: Center Horizontal, Upper Third Vertical (Chest/Mouth level)
-        // This places the bottle floating near the face to force Kling to use it for "drinking"
-        const leftOffset = Math.floor((baseMeta.width - objMeta.width) / 2);
-        const topOffset = Math.floor(baseMeta.height * 0.35);
+        // Calculate Position: Universal Fit (Lower Center - Chest/Hands level)
+        // Centered horizontally, at ~55% height. Ideal for holding or starting action without blocking face.
+        const leftOffset = Math.round((baseMeta.width - objMeta.width) / 2);
+        const topOffset = Math.round(baseMeta.height * 0.55);
 
-        console.log(`Composition Stats (CENTERED-UPPER): Base ${baseMeta.width}x${baseMeta.height}, Obj ${objMeta.width}x${objMeta.height} @ (${leftOffset},${topOffset})`);
+        console.log(`Composition Stats (UNIVERSAL-FIT): Base ${baseMeta.width}x${baseMeta.height}, Obj ${objMeta.width}x${objMeta.height} @ (${leftOffset},${topOffset})`);
 
         let pipeline = baseInstance
             .composite([{ input: resizedObj, top: topOffset, left: leftOffset }]);
