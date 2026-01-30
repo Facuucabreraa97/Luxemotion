@@ -204,7 +204,7 @@ export default async function handler(req, res) {
              console.log("Intercepting: Composition Mode Active");
              try {
                 // Defensive: Ensure we don't crash standard flow
-                const resultUrl = await composeScene(finalStartImage, finalEndImage, finalPrompt, replicate);
+                const resultUrl = await composeScene(finalStartImage, finalEndImage, finalPrompt, replicate, supabase, user.id);
                 if (resultUrl && resultUrl !== finalStartImage) {
                     
                     // PERSIST COMPOSITION ASSET
@@ -289,7 +289,7 @@ export default async function handler(req, res) {
 }
 
 // --- HELPER: SCENE COMPOSITOR (Uses Sharp + SDXL) ---
-async function composeScene(baseImage, objectImage, prompt, replicate) {
+async function composeScene(baseImage, objectImage, prompt, replicate, supabase, userId) {
     console.log("Composing Scene: Fetching Buffers...");
     
     try {
@@ -300,6 +300,7 @@ async function composeScene(baseImage, objectImage, prompt, replicate) {
         const baseBuffer = Buffer.from(await baseResp.arrayBuffer());
         const objBuffer = Buffer.from(await objResp.arrayBuffer());
 
+// ...
         // 2. Process with Sharp (Collage/Overlay)
         // Resize object to 35% of base width
         const baseMeta = await sharp(baseBuffer).metadata();
@@ -317,6 +318,23 @@ async function composeScene(baseImage, objectImage, prompt, replicate) {
             .composite([{ input: resizedObj, top: topOffset, left: leftOffset }])
             .png({ quality: 90 }) // OPTIMIZATION: Force high-quality PNG
             .toBuffer();
+            
+        // --- DEBUG: UPLOAD RAW COLLAGE (NON-BLOCKING) ---
+        // Verify what Sharp actually produced before SDXL touches it
+        try {
+            const debugFilename = `${userId}/${Date.now()}_DEBUG_COLLAGE.png`;
+            console.log("Uploading DEBUG COLLAGE:", debugFilename);
+            await supabase.storage
+                .from('videos')
+                .upload(debugFilename, compositeBuffer, {
+                    contentType: 'image/png',
+                    upsert: true
+                });
+            console.log("DEBUG COLLAGE UPLOADED.");
+        } catch (debugErr) {
+            console.warn("DEBUG UPLOAD FAILED (Non-fatal):", debugErr);
+        }
+        // -----------------------------------------------
         
         // Convert to Data URI for Replicate
         const compositeBase64 = `data:image/png;base64,${compositeBuffer.toString('base64')}`;
