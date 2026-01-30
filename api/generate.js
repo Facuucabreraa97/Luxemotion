@@ -387,14 +387,12 @@ async function composeScene(baseImage, objectImage, prompt, replicate, supabase,
             
         const objMeta = await sharp(resizedObj).metadata();
 
-        // Calculate Position: Bottom Right with 5% Padding
-        const paddingX = Math.floor(baseMeta.width * 0.05);
-        const paddingY = Math.floor(baseMeta.height * 0.05);
-        
-        const leftOffset = baseMeta.width - objMeta.width - paddingX;
-        const topOffset = baseMeta.height - objMeta.height - paddingY;
+        // Calculate Position: Center Horizontal, Upper Third Vertical (Chest/Mouth level)
+        // This places the bottle floating near the face to force Kling to use it for "drinking"
+        const leftOffset = Math.floor((baseMeta.width - objMeta.width) / 2);
+        const topOffset = Math.floor(baseMeta.height * 0.35);
 
-        console.log(`Composition Stats: Base ${baseMeta.width}x${baseMeta.height}, Obj ${objMeta.width}x${objMeta.height} @ (${leftOffset},${topOffset})`);
+        console.log(`Composition Stats (CENTERED-UPPER): Base ${baseMeta.width}x${baseMeta.height}, Obj ${objMeta.width}x${objMeta.height} @ (${leftOffset},${topOffset})`);
 
         let pipeline = baseInstance
             .composite([{ input: resizedObj, top: topOffset, left: leftOffset }]);
