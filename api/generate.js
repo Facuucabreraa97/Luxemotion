@@ -271,6 +271,7 @@ export default async function handler(req, res) {
         const inputPayload = {
             prompt: finalPrompt,
             input_image: isComposited ? composedImageUrl : (finalStartImage || undefined),
+            aspect_ratio: aspect_ratio // PASS ASPECT RATIO FROM FRONTEND
         };
 
         prediction = await replicate.predictions.create({ version: versionId, input: inputPayload });
@@ -387,12 +388,12 @@ async function composeScene(baseImage, objectImage, prompt, replicate, supabase,
             
         const objMeta = await sharp(resizedObj).metadata();
 
-        // Calculate Position: Universal Fit (Lower Center - Chest/Hands level)
-        // Centered horizontally, at ~55% height. Ideal for holding or starting action without blocking face.
+        // Calculate Position: Aggressive (Neck Level - 30% Height)
+        // Force Kling to use the pixels for drinking/eating actions.
         const leftOffset = Math.round((baseMeta.width - objMeta.width) / 2);
-        const topOffset = Math.round(baseMeta.height * 0.55);
+        const topOffset = Math.round(baseMeta.height * 0.30);
 
-        console.log(`Composition Stats (UNIVERSAL-FIT): Base ${baseMeta.width}x${baseMeta.height}, Obj ${objMeta.width}x${objMeta.height} @ (${leftOffset},${topOffset})`);
+        console.log(`Composition Stats (NECK-LEVEL): Base ${baseMeta.width}x${baseMeta.height}, Obj ${objMeta.width}x${objMeta.height} @ (${leftOffset},${topOffset})`);
 
         let pipeline = baseInstance
             .composite([{ input: resizedObj, top: topOffset, left: leftOffset }]);
