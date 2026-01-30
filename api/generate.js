@@ -47,6 +47,38 @@ async function uploadToSupabase(url, filePath, supabase) {
     }
 }
 
+/**
+ * Helper: Remove Background using Fal.ai (bria-rmbg)
+ */
+async function removeBackground(imageUrl) {
+    const falKey = process.env.FAL_KEY;
+    if (!falKey) throw new Error("Configuration Error: Missing FAL_KEY");
+
+    console.log("Calling Fal.ai (bria-rmbg) for background removal...");
+    const response = await fetch("https://fal.run/fal-ai/bria-rmbg", {
+        method: "POST",
+        headers: {
+            "Authorization": `Key ${falKey}`,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            image_url: imageUrl
+        })
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Fal.ai Error (${response.status}): ${errorText}`);
+    }
+
+    const data = await response.json();
+    if (!data.image || !data.image.url) {
+        throw new Error("Fal.ai returned invalid response format");
+    }
+    
+    return data.image.url;
+}
+
 export default async function handler(req, res) {
     const token = process.env.REPLICATE_API_TOKEN;
     const supabaseUrl = process.env.SUPABASE_URL;
@@ -204,6 +236,7 @@ export default async function handler(req, res) {
              console.log("Intercepting: Composition Mode Active");
              try {
                 // Defensive: Ensure we don't crash standard flow
+                // STRICT IDENTITY: We pass finalStartImage as the base.
                 const resultUrl = await composeScene(finalStartImage, finalEndImage, finalPrompt, replicate, supabase, user.id);
                 if (resultUrl && resultUrl !== finalStartImage) {
                     
@@ -227,7 +260,7 @@ export default async function handler(req, res) {
 
                  // As per user instruction: If COMPOSITION fails, we abort to save credits/quality
                  return res.status(422).json({ 
-                    error: "ASSET_MERGE_FAILED: No se pudo integrar el objeto en la escena. Operación abortada." 
+                    error: `ASSET_MERGE_FAILED: ${e.message || "No se pudo integrar el objeto en la escena."}`
                  });
              }
         }
@@ -290,18 +323,27 @@ export default async function handler(req, res) {
 
 // --- HELPER: SCENE COMPOSITOR (Uses Sharp + SDXL) ---
 async function composeScene(baseImage, objectImage, prompt, replicate, supabase, userId) {
-    console.log("Composing Scene: Fetching Buffers...");
+    console.log("Composing Scene: Starting Pipeline...");
     
     try {
-        // 1. Fetch Images
-        const [baseResp, objResp] = await Promise.all([ fetch(baseImage), fetch(objectImage) ]);
-        if (!baseResp.ok || !objResp.ok) throw new Error("Failed to download input images");
+        // 1. Remove Background (Product Image)
+        // Strictly calling Fal.ai first.
+        let transparentObjectUrl;
+        try {
+            transparentObjectUrl = await removeBackground(objectImage);
+            console.log("Background removed successfully.");
+        } catch (rmbgError) {
+            throw new Error(`Background Removal Failed: ${rmbgError.message}`);
+        }
+
+        // 2. Fetch Images (Strict Identity: Base is user input, Object is transparent PNG)
+        const [baseResp, objResp] = await Promise.all([ fetch(baseImage), fetch(transparentObjectUrl) ]);
+        if (!baseResp.ok || !objResp.ok) throw new Error("Failed to download input images for composition");
         
         const baseBuffer = Buffer.from(await baseResp.arrayBuffer());
         const objBuffer = Buffer.from(await objResp.arrayBuffer());
 
-// ...
-        // 2. Process with Sharp (Collage/Overlay)
+        // 3. Process with Sharp (Collage/Overlay)
         // Resize object to 35% of base width
         const baseMeta = await sharp(baseBuffer).metadata();
         const targetWidth = Math.floor(baseMeta.width * 0.35);
@@ -319,10 +361,11 @@ async function composeScene(baseImage, objectImage, prompt, replicate, supabase,
             .png({ quality: 90 }) // OPTIMIZATION: Force high-quality PNG
             .toBuffer();
             
-        // --- DEBUG: UPLOAD RAW COLLAGE (NON-BLOCKING) ---
-        // Verify what Sharp actually produced before SDXL touches it
+        // --- DEBUG: UPLOAD VERIFIED COLLAGE (NON-BLOCKING) ---
+        // New Filename Request: debug/COLLAGE_VERIFIED_${timestamp}.png
         try {
-            const debugFilename = `${userId}/${Date.now()}_DEBUG_COLLAGE.png`;
+            const timestamp = Date.now();
+            const debugFilename = `${userId}/debug/COLLAGE_VERIFIED_${timestamp}.png`;
             console.log("Uploading DEBUG COLLAGE:", debugFilename);
             await supabase.storage
                 .from('videos')
@@ -339,7 +382,7 @@ async function composeScene(baseImage, objectImage, prompt, replicate, supabase,
         // Convert to Data URI for Replicate
         const compositeBase64 = `data:image/png;base64,${compositeBuffer.toString('base64')}`;
 
-        // 3. Refine with SDXL
+        // 4. Refine with SDXL
         console.log("Collage Created. Refining with SDXL...");
         
         // FIXED PROMPT: Ignore user prompt to prevent hallucination
@@ -363,6 +406,6 @@ async function composeScene(baseImage, objectImage, prompt, replicate, supabase,
 
     } catch (e) {
         console.error("Sharp/Composition Error:", e);
-        throw e; // Bubble up to main handler
+        throw e; // Bubble up to main handler (triggers 422)
     }
 }
