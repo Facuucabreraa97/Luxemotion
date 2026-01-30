@@ -239,7 +239,7 @@ export default async function handler(req, res) {
              try {
                 // Defensive: Ensure we don't crash standard flow
                 // STRICT IDENTITY: We pass finalStartImage as the base.
-                const resultUrl = await composeScene(finalStartImage, finalEndImage, finalPrompt, replicate, supabase, user.id);
+                const resultUrl = await composeScene(finalStartImage, finalEndImage, finalPrompt, replicate, supabase, user.id, aspect_ratio);
                 if (resultUrl && resultUrl !== finalStartImage) {
                     
                     // PERSIST COMPOSITION ASSET
@@ -343,12 +343,13 @@ export default async function handler(req, res) {
 }
 
 // --- HELPER: SCENE COMPOSITOR (Uses Sharp + SDXL) ---
-async function composeScene(baseImage, objectImage, prompt, replicate, supabase, userId) {
-    console.log("Composing Scene: Starting Pipeline...");
+// --- HELPER: SCENE COMPOSITOR (Sharp Only - Strict Identity) ---
+async function composeScene(baseImage, objectImage, prompt, replicate, supabase, userId, targetAspectRatio = "16:9") {
+    console.log("Composing Scene: Starting Strict Identity Pipeline...");
     
     try {
         // 1. Remove Background (Product Image)
-        // Strictly calling Fal.ai first.
+        // Strictly calling Fal.ai First.
         let transparentObjectUrl;
         try {
             transparentObjectUrl = await removeBackground(objectImage);
@@ -364,69 +365,108 @@ async function composeScene(baseImage, objectImage, prompt, replicate, supabase,
         const baseBuffer = Buffer.from(await baseResp.arrayBuffer());
         const objBuffer = Buffer.from(await objResp.arrayBuffer());
 
-        // 3. Process with Sharp (Collage/Overlay)
-        // Resize object to 35% of base width
-        const baseMeta = await sharp(baseBuffer).metadata();
-        const targetWidth = Math.floor(baseMeta.width * 0.35);
+        // 3. Process with Sharp (Strict Coordinate System)
+        // RULES:
+        // - Canvas = Base Image Dimensions (No pre-resize)
+        // - Object = Proportional resize (fit: 'inside')
+        // - Position = Calculated Manually (Bottom Right)
+        
+        const baseInstance = sharp(baseBuffer);
+        const baseMeta = await baseInstance.metadata();
+        
+        // Target Object Size: 35% of Base Width (Safe Zone)
+        const objectTargetWidth = Math.floor(baseMeta.width * 0.35);
         
         const resizedObj = await sharp(objBuffer)
-            .resize({ width: targetWidth })
-            .toBuffer();
-
-        // Overlay: Bottom Right (with padding)
-        const leftOffset = baseMeta.width - targetWidth - Math.floor(baseMeta.width * 0.05);
-        const topOffset = baseMeta.height - Math.floor(baseMeta.height * 0.4); // Vertically centered-ish lower half
-
-        const compositeBuffer = await sharp(baseBuffer)
-            .composite([{ input: resizedObj, top: topOffset, left: leftOffset }])
-            .png({ quality: 90 }) // OPTIMIZATION: Force high-quality PNG
+            .resize({ 
+                width: objectTargetWidth, 
+                // height: null, // Auto-scale to maintain aspect ratio
+                fit: 'inside' // VITAL: Prevents distortion/stretching
+            })
             .toBuffer();
             
-        // --- DEBUG: UPLOAD VERIFIED COLLAGE (NON-BLOCKING) ---
-        // New Filename Request: debug/COLLAGE_VERIFIED_${timestamp}.png
-        try {
-            const timestamp = Date.now();
-            const debugFilename = `${userId}/debug/COLLAGE_VERIFIED_${timestamp}.png`;
-            console.log("Uploading DEBUG COLLAGE:", debugFilename);
-            await supabase.storage
-                .from('videos')
-                .upload(debugFilename, compositeBuffer, {
-                    contentType: 'image/png',
-                    upsert: true
-                });
-            console.log("DEBUG COLLAGE UPLOADED.");
-        } catch (debugErr) {
-            console.warn("DEBUG UPLOAD FAILED (Non-fatal):", debugErr);
-        }
-        // -----------------------------------------------
-        
-        // Convert to Data URI for Replicate
-        const compositeBase64 = `data:image/png;base64,${compositeBuffer.toString('base64')}`;
+        const objMeta = await sharp(resizedObj).metadata();
 
-        // 4. Refine with SDXL
-        console.log("Collage Created. Refining with SDXL...");
+        // Calculate Position: Bottom Right with 5% Padding
+        const paddingX = Math.floor(baseMeta.width * 0.05);
+        const paddingY = Math.floor(baseMeta.height * 0.05);
         
-        // FIXED PROMPT: Ignore user prompt to prevent hallucination
-        const compositionPrompt = "High quality photo, seamless composite, realistic lighting, consistent shadows, woman holding the bottle, 8k raw photo";
+        const leftOffset = baseMeta.width - objMeta.width - paddingX;
+        const topOffset = baseMeta.height - objMeta.height - paddingY;
 
-        const output = await replicate.run(
-            "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b", 
-            {
-                input: {
-                    image: compositeBase64, // Send the collaged image
-                    prompt: compositionPrompt,
-                    strength: 0.30, // LOWER STRENGTH (0.30): Keep original details, just blend
-                    refine: "expert_ensemble_refiner",
-                    high_noise_frac: 0.8
+        console.log(`Composition Stats: Base ${baseMeta.width}x${baseMeta.height}, Obj ${objMeta.width}x${objMeta.height} @ (${leftOffset},${topOffset})`);
+
+        let pipeline = baseInstance
+            .composite([{ input: resizedObj, top: topOffset, left: leftOffset }]);
+
+        // 4. Smart Crop to Target Aspect Ratio (Processing at the END)
+        if (targetAspectRatio) {
+            try {
+                const [w, h] = targetAspectRatio.split(':').map(Number);
+                if (w && h) {
+                    const targetRatio = w / h;
+                    const currentRatio = baseMeta.width / baseMeta.height;
+                    
+                    let targetW, targetH;
+                    
+                    // Logic to maximize cover area while maintaining aspect ratio
+                    if (currentRatio > targetRatio) {
+                        // Image is wider than target
+                        targetH = baseMeta.height;
+                        targetW = Math.floor(targetH * targetRatio);
+                    } else {
+                        // Image is taller than target
+                        targetW = baseMeta.width;
+                        targetH = Math.floor(targetW / targetRatio);
+                    }
+                    
+                    console.log(`Applying Smart Crop to ${targetAspectRatio}: ${targetW}x${targetH} (Strategy: Central/Attention)`);
+                    
+                    pipeline = pipeline.resize({
+                        width: targetW,
+                        height: targetH,
+                        fit: 'cover',
+                        // position: 'attention' // Smart focus
+                        // Fallback to center if attention fails or requires extra deps, but sharp 0.33+ handles entropy/attention usually.
+                        // Using standard gravity center for reliability unless attention is needed.
+                        position: sharp.strategy.attention 
+                    });
                 }
+            } catch (cropErr) {
+                console.warn("Smart Crop Failed (Skipping):", cropErr);
             }
-        );
+        }
+
+        const compositeBuffer = await pipeline
+            .png({ quality: 95 })
+            .toBuffer();
+            
+        // --- UPLOAD VERIFIED COLLAGE ---
+        // This IS the final input for Kling. 
+        // We skip SDXL refinement to strictily preserve the identity of the base image.
+        const timestamp = Date.now();
+        const debugFilename = `${userId}/debug/COLLAGE_VERIFIED_${timestamp}.png`;
         
-        if (output && output[0]) return output[0];
-        throw new Error("No output from SDXL");
+        console.log("Uploading Final Composition:", debugFilename);
+        
+        const { error: uploadError } = await supabase.storage
+            .from('videos')
+            .upload(debugFilename, compositeBuffer, {
+                contentType: 'image/png',
+                upsert: true
+            });
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+            .from('videos')
+            .getPublicUrl(debugFilename);
+
+        console.log(`Final Collage Ready: ${publicUrl}`);
+        return publicUrl;
 
     } catch (e) {
         console.error("Sharp/Composition Error:", e);
-        throw e; // Bubble up to main handler (triggers 422)
+        throw e; // Bubble up
     }
 }
