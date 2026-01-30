@@ -10,7 +10,9 @@ import { GenerationProgress } from '@/features/creation/components/GenerationPro
 
 export const Studio = () => {
   const { isGenerating, startGeneration, status, lastGeneratedUrl } = useVideoGeneration();
-  const [localStatus, setLocalStatus] = useState<'IDLE' | 'UPLOADING' | 'SAVING'>('IDLE');
+  const [localStatus, setLocalStatus] = useState<'IDLE' | 'UPLOADING' | 'SAVING' | 'PROCESSING'>(
+    'IDLE'
+  );
 
   const [mode, setMode] = useState<'text' | 'image'>('text');
   const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16' | '1:1'>('16:9'); // NEW STATE
@@ -120,7 +122,7 @@ export const Studio = () => {
         }
       }
 
-      setLocalStatus('IDLE'); // Ready to call API
+      setLocalStatus('PROCESSING'); // Calling API
 
       const {
         data: { session },
@@ -185,6 +187,7 @@ export const Studio = () => {
 
       // Start Global Polling
       startGeneration(predictionId);
+      setLocalStatus('IDLE');
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Unknown error';
       alert('Error: ' + message);
@@ -497,9 +500,11 @@ export const Studio = () => {
                   <span className="animate-pulse">
                     {localStatus === 'UPLOADING'
                       ? 'Uploading...'
-                      : startImage && endImage
-                        ? 'Merging Assets...'
-                        : 'Processing...'}
+                      : localStatus === 'PROCESSING'
+                        ? 'Procesando...'
+                        : startImage && endImage
+                          ? 'Merging Assets...'
+                          : 'Processing...'}
                   </span>
                 )}
               </button>

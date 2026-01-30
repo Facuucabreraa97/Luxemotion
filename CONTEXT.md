@@ -31,3 +31,23 @@ El sistema se compone de los siguientes módulos críticos. Cualquier refactoriz
 1. **Monetización:** Nunca alterar la lógica que calcula créditos o pagos en el Marketplace.
 2. **Privacidad:** El contenido generado en "Modo Velvet" nunca debe ser accesible públicamente sin autenticación estricta.
 3. **Performance:** La generación de video es costosa; optimizar cualquier código relacionado con llamadas a APIs de generación.
+
+## 6. Development Log & Critical Updates
+
+### [2026-01-30 01:20] Update: Diagnóstico de Errores y Seguridad
+
+1.  **Diagnóstico de Error (Replicate):**
+    - Los errores 500 en generación son **errores 429 (Rate Limit)** disfrazados.
+    - **Causa Raíz:** Saldo en cuenta < $5 USD impone un límite estricto de **'Burst of 1'** (solo 1 petición simultánea permitida).
+
+2.  **Validación Backend:**
+    - El sistema de protección de créditos (Atomic Credits) funciona correctamente.
+    - Si la API falla (incluso por Rate Limit), se ejecuta un **reembolso automático (Refund successful)**, protegiendo el saldo del usuario.
+
+3.  **Incidente de Seguridad [URGENTE]:**
+    - La API Key de Replicate fue expuesta en logs durante el debugging.
+    - **ACCIÓN PENDIENTE:** Rotar la API Key en `.env` local y en las variables de entorno de Vercel inmediatamente.
+
+4.  **Corrección de UX (Implementado):**
+    - El frontend bloquea el botón 'Generar' **inmediatamente** al hacer clic (estado `PROCESSING`).
+    - Esto actúa como un _debounce_ manual para prevenir múltiples peticiones accidentales que chocarían con el límite de tasa estricto.
