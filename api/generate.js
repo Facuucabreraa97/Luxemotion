@@ -55,6 +55,7 @@ async function removeBackground(imageUrl) {
     if (!falKey) throw new Error("Configuration Error: Missing FAL_KEY");
 
     console.log("Calling Fal.ai (bria-rmbg) for background removal...");
+    // FIX: Using correct Fal.ai queue/sync endpoint pattern
     const response = await fetch("https://fal.run/fal-ai/bria-rmbg", {
         method: "POST",
         headers: {
@@ -298,17 +299,36 @@ export default async function handler(req, res) {
     } catch (error) {
         console.error("API Error:", error);
 
-        // --- ATOMIC REFUND LOGIC ---
+        // --- ATOMIC REFUND LOGIC (FIXED) ---
         if (creditsDeducted) {
-            console.warn(`Generation failed after payment. Refunding ${cost} credits to user ${user.id}...`);
+            console.log(`ATTEMPTING REFUND FOR USER: ${user.id} (${cost} credits)...`);
+            
+            // 1. Try RPC (Atomic)
             const { error: refundError } = await supabase.rpc('increase_credits', { user_id: user.id, amount: cost });
             
             if (refundError) {
-                console.error("CRITICAL: REFUND FAILED", refundError);
-                // Last Resort Fallback (only if RPC fails, though risky, better than nothing)
-                // await supabase.from('profiles').update({ credits: profile.credits }).eq('id', user.id); 
+                console.error("REFUND FAILED - CRITICAL (RPC Error):", refundError);
+                
+                // 2. Fallback: Manual Update (Non-atomic but necessary emergency fix)
+                try {
+                    console.log("Attempting MANUAL FALLBACK refund...");
+                    // Re-fetch latest credits to be as safe as possible
+                    const { data: profile } = await supabase.from('profiles').select('credits').eq('id', user.id).single();
+                    if (profile) {
+                         const newAmount = profile.credits + cost;
+                         const { error: manualError } = await supabase
+                            .from('profiles')
+                            .update({ credits: newAmount })
+                            .eq('id', user.id);
+                            
+                         if (manualError) throw manualError;
+                         console.log("MANUAL FALLBACK REFUND SUCCESSFUL.");
+                    }
+                } catch (fallbackErr) {
+                     console.error("CRITICAL: MANUAL FALLBACK ALSO FAILED.", fallbackErr);
+                }
             } else {
-                console.log("Refund successful.");
+                console.log("Refund successful (RPC).");
             }
         }
         
