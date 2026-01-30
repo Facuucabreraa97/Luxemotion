@@ -56,6 +56,7 @@ async function removeBackground(imageUrl) {
 
     console.log("Calling Fal.ai (bria-rmbg) for background removal...");
     // FIX: Using correct Fal.ai queue/sync endpoint pattern
+    console.log('DEBUG: Attempting Background Removal with model: fal-ai/bria-rmbg'); // CACHE BUSTER
     const response = await fetch("https://fal.run/fal-ai/bria-rmbg", {
         method: "POST",
         headers: {
