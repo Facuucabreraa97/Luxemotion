@@ -461,8 +461,34 @@ async function composeScene(baseImage, objectImage, prompt, replicate, supabase,
             .from('videos')
             .getPublicUrl(debugFilename);
 
-        console.log(`Final Collage Ready: ${publicUrl}`);
-        return publicUrl;
+        console.log(`Final Collage Ready at Supabase: ${publicUrl}`);
+        
+        // --- STEP 5: THE GLUE (SDXL Refiner) ---
+        // We do NOT return the raw collage. We refine it to fix the "Sticker Effect".
+        console.log("Applying 'The Glue' - Refining Composition with SDXL (Strength 0.20)...");
+
+        const compositeBase64 = `data:image/png;base64,${compositeBuffer.toString('base64')}`;
+        
+        const refinedOutput = await replicate.run(
+            "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b", 
+            {
+                input: {
+                    image: compositeBase64,
+                    prompt: prompt, // USE USER PROMPT to maintain context
+                    prompt_strength: 0.20, // THE SWEET SPOT: Integrates textures, keeps identity.
+                    guidance_scale: 7.5,
+                    refine: "expert_ensemble_refiner",
+                    high_noise_frac: 0.8
+                }
+            }
+        );
+
+        if (refinedOutput && refinedOutput[0]) {
+            console.log("Refinement Complete. Output:", refinedOutput[0]);
+            return refinedOutput[0]; // Send THIS to Kling
+        }
+        
+        throw new Error("Refinement Failed: No output from SDXL");
 
     } catch (e) {
         console.error("Sharp/Composition Error:", e);
