@@ -2,6 +2,7 @@
 import Replicate from 'replicate';
 import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp'; // Node.js native module
+import * as fal from "@fal-ai/serverless-client";
 
 // SWITCH TO NODEJS RUNTIME FOR SHARP SUPPORT
 export const config = {
@@ -463,32 +464,42 @@ async function composeScene(baseImage, objectImage, prompt, replicate, supabase,
 
         console.log(`Final Collage Ready at Supabase: ${publicUrl}`);
         
-        // --- STEP 5: THE GLUE (SDXL Refiner) ---
-        // We do NOT return the raw collage. We refine it to fix the "Sticker Effect".
-        console.log("Applying 'The Glue' - Refining Composition with SDXL (Strength 0.20)...");
+        // --- STEP 5: FLUX.1 [dev] REFINEMENT ---
+        console.log("Applying Flux.1 [dev] Refinement...");
 
-        const compositeBase64 = `data:image/png;base64,${compositeBuffer.toString('base64')}`;
-        
-        const refinedOutput = await replicate.run(
-            "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b", 
-            {
+        try {
+            const collageUrl = publicUrl;
+            // Ensure we use the user's base prompt context
+            const basePrompt = prompt; 
+
+            // Explicitly set credentials if needed, though sdk usually picks up FAL_KEY
+            // fal.config({ credentials: process.env.FAL_KEY }); 
+
+            const fluxResult = await fal.subscribe('fal-ai/flux/dev/image-to-image', {
                 input: {
-                    image: compositeBase64,
-                    prompt: prompt, // USE USER PROMPT to maintain context
-                    prompt_strength: 0.20, // THE SWEET SPOT: Integrates textures, keeps identity.
-                    guidance_scale: 7.5,
-                    refine: "expert_ensemble_refiner",
-                    high_noise_frac: 0.8
-                }
-            }
-        );
+                    image_url: collageUrl, // URL pública del collage subido a Supabase
+                    prompt: basePrompt + ", holding the object firmly with visible hands, realistic fingers gripping the bottle, cinematic lighting, 8k",
+                    strength: 0.45, // Fuerza suficiente para 'alucinar' manos
+                    guidance_scale: 3.5,
+                    num_inference_steps: 25,
+                    seed: Math.floor(Math.random() * 1000000)
+                },
+                logs: true,
+            });
 
-        if (refinedOutput && refinedOutput[0]) {
-            console.log("Refinement Complete. Output:", refinedOutput[0]);
-            return refinedOutput[0]; // Send THIS to Kling
+            // La URL resultante (fluxResult.data.images[0].url) es la que se enviará a Kling.
+            if (fluxResult && fluxResult.data && fluxResult.data.images && fluxResult.data.images[0]) {
+                 console.log("Flux Refinement Complete. URL:", fluxResult.data.images[0].url);
+                 return fluxResult.data.images[0].url;
+            }
+            
+            throw new Error("Flux returned invalid response format");
+
+        } catch (fluxError) {
+             console.error("Flux Refinement Failed:", fluxError);
+             // Abort and notify, do not send garbage to Kling
+             throw new Error(`Refinement Failed (Flux): ${fluxError.message}`);
         }
-        
-        throw new Error("Refinement Failed: No output from SDXL");
 
     } catch (e) {
         console.error("Sharp/Composition Error:", e);
