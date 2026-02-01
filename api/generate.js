@@ -478,10 +478,10 @@ async function composeScene(baseImage, objectImage, prompt, replicate, supabase,
             const fluxResult = await fal.subscribe('fal-ai/flux/dev/image-to-image', {
                 input: {
                     image_url: collageUrl, // URL pública del collage subido a Supabase
-                    prompt: basePrompt + ", holding the object firmly with visible hands, realistic fingers gripping the bottle, cinematic lighting, 8k",
-                    strength: 0.45, // Fuerza suficiente para 'alucinar' manos
+                    prompt: basePrompt + ", person naturally holding the product, soft integration, cinematic lighting, photorealistic",
+                    strength: 0.22, // REDUCED from 0.45 to preserve product fidelity
                     guidance_scale: 3.5,
-                    num_inference_steps: 25,
+                    num_inference_steps: 28, // Slightly increased to compensate
                     seed: Math.floor(Math.random() * 1000000)
                 },
                 logs: true,
