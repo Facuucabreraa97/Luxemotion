@@ -464,40 +464,109 @@ async function composeScene(baseImage, objectImage, prompt, replicate, supabase,
 
         console.log(`Final Collage Ready at Supabase: ${publicUrl}`);
         
-        // --- STEP 5: FLUX.1 [dev] REFINEMENT ---
-        console.log("Applying Flux.1 [dev] Refinement...");
+        // --- STEP 5: FLUX PRO FILL (PRECISION INPAINTING) ---
+        // Generate hands ONLY around the product, preserving product identity 100%
+        console.log("Applying Flux Pro Fill (Mask-Based Inpainting)...");
 
         try {
             const collageUrl = publicUrl;
-            // Ensure we use the user's base prompt context
-            const basePrompt = prompt; 
-
-            // Explicitly set credentials if needed, though sdk usually picks up FAL_KEY
-            // fal.config({ credentials: process.env.FAL_KEY }); 
-
-            const fluxResult = await fal.subscribe('fal-ai/flux/dev/image-to-image', {
+            
+            // Get dimensions of the final composited image
+            const finalMeta = await sharp(compositeBuffer).metadata();
+            
+            // --- GENERATE HAND MASK ---
+            // The mask defines WHERE Flux will generate (white = generate, black = preserve)
+            // We create an "annular" mask: ring around product = white, product center = black
+            
+            // Calculate mask zones based on product position
+            // Note: After smart crop, positions may shift. We use percentage-based approach.
+            const maskWidth = finalMeta.width;
+            const maskHeight = finalMeta.height;
+            
+            // Product zone (center of image, vertically at ~30-50% area)
+            // Expand the "hand zone" to be larger than the product
+            const handZonePadding = Math.floor(maskWidth * 0.15); // 15% padding for hands
+            
+            // Create SVG for the mask (more flexible than raw pixel manipulation)
+            // White rectangle for hand zone, black ellipse in center for product
+            const productCenterX = Math.floor(maskWidth / 2);
+            const productCenterY = Math.floor(maskHeight * 0.40); // Slightly below neck level
+            const productRadiusX = Math.floor(maskWidth * 0.18); // Product width radius
+            const productRadiusY = Math.floor(maskHeight * 0.20); // Product height radius
+            const handZoneWidth = productRadiusX * 2 + handZonePadding * 2;
+            const handZoneHeight = productRadiusY * 2 + handZonePadding * 2;
+            
+            const maskSvg = `
+                <svg width="${maskWidth}" height="${maskHeight}" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Black background (preserve everything) -->
+                    <rect width="100%" height="100%" fill="black"/>
+                    <!-- White rectangle for hand generation zone -->
+                    <rect 
+                        x="${productCenterX - handZoneWidth/2}" 
+                        y="${productCenterY - handZoneHeight/2}" 
+                        width="${handZoneWidth}" 
+                        height="${handZoneHeight}" 
+                        rx="20" ry="20"
+                        fill="white"/>
+                    <!-- Black ellipse to PRESERVE product center -->
+                    <ellipse 
+                        cx="${productCenterX}" 
+                        cy="${productCenterY}" 
+                        rx="${productRadiusX}" 
+                        ry="${productRadiusY}" 
+                        fill="black"/>
+                </svg>
+            `;
+            
+            const maskBuffer = await sharp(Buffer.from(maskSvg))
+                .png()
+                .toBuffer();
+            
+            // Upload mask to Supabase
+            const maskFilename = `${userId}/debug/MASK_${timestamp}.png`;
+            const { error: maskUploadError } = await supabase.storage
+                .from('videos')
+                .upload(maskFilename, maskBuffer, {
+                    contentType: 'image/png',
+                    upsert: true
+                });
+            
+            if (maskUploadError) {
+                console.warn("Mask upload failed, falling back to raw collage:", maskUploadError);
+                return publicUrl; // Fallback: send raw collage to Kling
+            }
+            
+            const { data: { publicUrl: maskUrl } } = supabase.storage
+                .from('videos')
+                .getPublicUrl(maskFilename);
+            
+            console.log(`Mask generated and uploaded: ${maskUrl}`);
+            console.log(`Mask Stats: Zone ${handZoneWidth}x${handZoneHeight}, Product ellipse ${productRadiusX*2}x${productRadiusY*2} at (${productCenterX},${productCenterY})`);
+            
+            // --- CALL FLUX PRO FILL ---
+            const fluxResult = await fal.subscribe('fal-ai/flux-pro/v1/fill', {
                 input: {
-                    image_url: collageUrl, // URL pública del collage subido a Supabase
-                    prompt: basePrompt + ", person naturally holding the product, soft integration, cinematic lighting, photorealistic",
-                    strength: 0.22, // REDUCED from 0.45 to preserve product fidelity
-                    guidance_scale: 3.5,
-                    num_inference_steps: 28, // Slightly increased to compensate
+                    image_url: collageUrl,
+                    mask_url: maskUrl,
+                    prompt: "human hands naturally gripping and holding the product, realistic fingers, photorealistic skin texture, natural pose",
+                    guidance_scale: 30,
+                    num_inference_steps: 28,
                     seed: Math.floor(Math.random() * 1000000)
                 },
                 logs: true,
             });
 
-            console.log("Flux Raw Response:", JSON.stringify(fluxResult, null, 2));
+            console.log("Flux Pro Fill Raw Response:", JSON.stringify(fluxResult, null, 2));
 
-            // Flexible parsing: Handle both direct result (fal.subscribe default) or structured data
+            // Parse response (handle both direct and nested formats)
             const images = fluxResult.images || (fluxResult.data && fluxResult.data.images);
 
             if (images && images.length > 0 && images[0].url) {
-                 console.log("Flux Refinement Complete. URL:", images[0].url);
+                 console.log("Flux Pro Fill Complete. URL:", images[0].url);
                  return images[0].url;
             }
             
-            throw new Error(`Flux returned invalid response format. Keys: ${Object.keys(fluxResult).join(', ')}`);
+            throw new Error(`Flux Pro Fill returned invalid response. Keys: ${Object.keys(fluxResult).join(', ')}`);
 
         } catch (fluxError) {
              console.error("Flux Refinement Failed:", fluxError);
