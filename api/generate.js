@@ -487,13 +487,17 @@ async function composeScene(baseImage, objectImage, prompt, replicate, supabase,
                 logs: true,
             });
 
-            // La URL resultante (fluxResult.data.images[0].url) es la que se enviará a Kling.
-            if (fluxResult && fluxResult.data && fluxResult.data.images && fluxResult.data.images[0]) {
-                 console.log("Flux Refinement Complete. URL:", fluxResult.data.images[0].url);
-                 return fluxResult.data.images[0].url;
+            console.log("Flux Raw Response:", JSON.stringify(fluxResult, null, 2));
+
+            // Flexible parsing: Handle both direct result (fal.subscribe default) or structured data
+            const images = fluxResult.images || (fluxResult.data && fluxResult.data.images);
+
+            if (images && images.length > 0 && images[0].url) {
+                 console.log("Flux Refinement Complete. URL:", images[0].url);
+                 return images[0].url;
             }
             
-            throw new Error("Flux returned invalid response format");
+            throw new Error(`Flux returned invalid response format. Keys: ${Object.keys(fluxResult).join(', ')}`);
 
         } catch (fluxError) {
              console.error("Flux Refinement Failed:", fluxError);
