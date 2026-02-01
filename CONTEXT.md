@@ -51,3 +51,30 @@ El sistema se compone de los siguientes módulos críticos. Cualquier refactoriz
 4.  **Corrección de UX (Implementado):**
     - El frontend bloquea el botón 'Generar' **inmediatamente** al hacer clic (estado `PROCESSING`).
     - Esto actúa como un _debounce_ manual para prevenir múltiples peticiones accidentales que chocarían con el límite de tasa estricto.
+
+---
+
+## 📅 Actualización Crítica: Migración a Motores de Reconstrucción (31/01/2026)
+
+### 1. Cambio de Arquitectura (Flux Reconstruction)
+
+Se abandonó el enfoque de "Composición Simple + Maquillaje SDXL" por falta de realismo físico.
+
+- **Nuevo Motor:** `fal-ai/flux/dev/image-to-image`.
+- **Objetivo:** Inpainting generativo. Flux recibe el collage y "alucina" dedos y agarres físicos reales sobre el objeto flotante.
+- **Configuración Actual:** Strength 0.45, Guidance 3.5, Steps 25.
+
+### 2. Bitácora de Bugs y Soluciones (Post-Deployment)
+
+| Incidente               | Causa                                                         | Solución Definitiva                                                                     |
+| :---------------------- | :------------------------------------------------------------ | :-------------------------------------------------------------------------------------- |
+| **Fal.ai 404**          | ID de modelo incompleto (`bria-rmbg`).                        | Se estandarizó a namespaces completos: `fal-ai/birefnet` y `fal-ai/flux/...`.           |
+| **Video Ratio Erróneo** | Backend ignoraba `aspectRatio` del frontend.                  | Se inyectó dinámicamente `aspect_ratio` en el payload de Kling.                         |
+| **Objeto "Fantasma"**   | Kling borraba el producto por parecer un sticker.             | **Solución:** Migración a FLUX para generar integración física (manos) antes del video. |
+| **Posición Errónea**    | "Neck level" era antinatural; "Bottom-right" era irrelevante. | **Estándar:** "Universal Fit" (Centro Horizontal, ~55% Altura / Plexo Solar).           |
+
+### 3. Nuevas Reglas de Implementación
+
+- **Identidad:** Prohibido usar modelos que no sean img2img sobre el collage original.
+- **Refunds:** Fallback manual SQL implementado en caso de fallo RPC.
+- **Prompting:** No forzar acciones complejas en el prompt visual; dejar que Kling anime la acción desde una pose neutra de "holding".
