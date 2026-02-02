@@ -83,15 +83,15 @@ async function removeBackground(imageUrl) {
 }
 
 /**
- * Helper: Analyze Image using Vision AI (Moondream - Ultra-fast)
- * Returns a dynamic visual description of the image content
- * Target latency: ~2s (vs LLaVA-NeXT ~15s)
+ * Helper: Analyze Product Image using Vision AI (Moondream - Hybrid OCR+Description)
+ * Returns brand name if text visible, or 2-word object description otherwise
+ * Target latency: ~2s
  */
-async function analyzeImage(imageUrl) {
+async function analyzeProductImage(imageUrl) {
     const falKey = process.env.FAL_KEY;
     if (!falKey) throw new Error("Configuration Error: Missing FAL_KEY");
 
-    console.log("[VISION AI] Analyzing image with Moondream (ultra-fast)...");
+    console.log("[VISION AI] Analyzing product with Moondream (Hybrid OCR+Description)...");
     console.time('VisionAI');
     
     try {
@@ -104,7 +104,7 @@ async function analyzeImage(imageUrl) {
             body: JSON.stringify({
                 inputs: [{
                     image_url: imageUrl,
-                    prompt: "Describe the main person's appearance and clothing concisely."
+                    prompt: "Analyze this image. If there is visible text or a brand logo, output ONLY the brand name. If there is no text, output a concise 2-word description of the object (e.g., 'Red Apple', 'Leather Bag')."
                 }]
             })
         });
@@ -114,30 +114,36 @@ async function analyzeImage(imageUrl) {
         if (!response.ok) {
             const errorText = await response.text();
             console.warn(`[VISION AI] Moondream failed (${response.status}): ${errorText}`);
-            // Non-blocking: Return generic fallback instead of crashing
-            return "A person in the scene";
+            return "product"; // Fallback for products
         }
 
         const data = await response.json();
         // Moondream batched returns array of outputs
         const outputs = data.outputs || data;
-        const description = Array.isArray(outputs) && outputs[0] 
+        let description = Array.isArray(outputs) && outputs[0] 
             ? (outputs[0].output || outputs[0].text || outputs[0]) 
             : (data.output || data.text || "");
         
-        if (description && description.length > 10) {
-            console.log(`[VISION AI] Dynamic anchor generated: "${description.substring(0, 100)}..."`);
-            return typeof description === 'string' ? description : JSON.stringify(description);
+        // Clean up the response
+        if (typeof description === 'string') {
+            description = description.trim();
+            // Remove common filler words if present
+            description = description.replace(/^(the |a |an )/i, '');
+            // Limit to first 3 words max for cleaner prompts
+            const words = description.split(' ').slice(0, 3).join(' ');
+            if (words.length > 2) {
+                console.log(`[VISION AI] Detected object/brand: "${words}"`);
+                return words;
+            }
         }
         
         console.warn("[VISION AI] Empty or invalid response, using fallback");
-        return "A person in the scene";
+        return "product";
         
     } catch (error) {
         console.timeEnd('VisionAI');
         console.error("[VISION AI] Analysis error:", error);
-        // Non-blocking fallback
-        return "A person in the scene";
+        return "product"; // Non-blocking fallback
     }
 }
 
@@ -291,33 +297,29 @@ export default async function handler(req, res) {
              throw new Error("Failed to fetch model version");
         }
 
-        // --- SMART PRODUCT NAME EXTRACTION (4-TIER FALLBACK) ---
+        // --- SMART PRODUCT DETECTION (VISION AI + FALLBACK) ---
         let productName = product_name; // 1. Try from body (if frontend sends it)
 
-        // 2. If not exists, extract from user prompt (heuristic: word before "bottle")
-        if (!productName && finalPrompt) {
-            const match = finalPrompt.match(/([A-Z][a-zA-Z0-9]+)\s+bottle/i);
-            if (match) productName = match[1];
+        // 2. If not provided, use Vision AI to detect brand/object from product image
+        if (!productName && finalEndImage) {
+            console.log("[PRODUCT DETECTION] No product_name provided, using Vision AI...");
+            productName = await analyzeProductImage(finalEndImage);
         }
 
-        // 3. If not, try extracting from image URL/filename
-        if (!productName && finalEndImage) {
-            try {
-                const urlParts = new URL(finalEndImage).pathname.split('/');
-                const filename = urlParts[urlParts.length - 1];
-                const cleanName = filename.split('.')[0].replace(/[-_]/g, ' ').trim();
-                if (cleanName && cleanName.toLowerCase() !== 'image' && cleanName.length > 2) {
-                    productName = cleanName;
-                }
-            } catch (e) { /* URL parse failed, skip */ }
+        // 3. Fallback: extract from user prompt (heuristic: word before "bottle")
+        if (!productName || productName === "product") {
+            if (finalPrompt) {
+                const match = finalPrompt.match(/([A-Z][a-zA-Z0-9]+)\s+bottle/i);
+                if (match) productName = match[1];
+            }
         }
 
         // 4. Final fallback (prevents "undefined" in prompt)
-        if (!productName || productName.toLowerCase() === 'product' || productName.toLowerCase() === 'image') {
+        if (!productName) {
             productName = "product";
         }
         
-        console.log(`[PRODUCT ANCHOR] Identified product name: "${productName}"`);
+        console.log(`[PRODUCT ANCHOR] Final product name: "${productName}"`);
 
         // --- COMPOSITION MIDDLEWARE ---
         let composedImageUrl = null;
@@ -325,13 +327,10 @@ export default async function handler(req, res) {
 
         if (finalStartImage && finalEndImage && finalStartImage !== finalEndImage) {
              console.log("Intercepting: Composition Mode Active");
-             console.log(`[COMPOSITION] Product Name Anchor: "${productName}"`);
+             console.log(`[COMPOSITION] Product Anchor: "${productName}"`);
              try {
-                // DISABLED: Vision AI caused catastrophic product identity loss
-                // const dynamicVisualAnchor = await analyzeImage(finalStartImage);
-                
                 // Defensive: Ensure we don't crash standard flow
-                // PRODUCT ANVIL: We pass the extracted product name to anchor Flux
+                // PRODUCT ANVIL: We pass the detected product name to anchor Flux
                 const resultUrl = await composeScene(finalStartImage, finalEndImage, finalPrompt, replicate, supabase, user.id, aspect_ratio, productName);
                 if (resultUrl && resultUrl !== finalStartImage) {
                     
