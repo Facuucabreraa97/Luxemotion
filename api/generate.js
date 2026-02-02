@@ -291,20 +291,48 @@ export default async function handler(req, res) {
              throw new Error("Failed to fetch model version");
         }
 
+        // --- SMART PRODUCT NAME EXTRACTION (4-TIER FALLBACK) ---
+        let productName = product_name; // 1. Try from body (if frontend sends it)
+
+        // 2. If not exists, extract from user prompt (heuristic: word before "bottle")
+        if (!productName && finalPrompt) {
+            const match = finalPrompt.match(/([A-Z][a-zA-Z0-9]+)\s+bottle/i);
+            if (match) productName = match[1];
+        }
+
+        // 3. If not, try extracting from image URL/filename
+        if (!productName && finalEndImage) {
+            try {
+                const urlParts = new URL(finalEndImage).pathname.split('/');
+                const filename = urlParts[urlParts.length - 1];
+                const cleanName = filename.split('.')[0].replace(/[-_]/g, ' ').trim();
+                if (cleanName && cleanName.toLowerCase() !== 'image' && cleanName.length > 2) {
+                    productName = cleanName;
+                }
+            } catch (e) { /* URL parse failed, skip */ }
+        }
+
+        // 4. Final fallback (prevents "undefined" in prompt)
+        if (!productName || productName.toLowerCase() === 'product' || productName.toLowerCase() === 'image') {
+            productName = "product";
+        }
+        
+        console.log(`[PRODUCT ANCHOR] Identified product name: "${productName}"`);
+
         // --- COMPOSITION MIDDLEWARE ---
         let composedImageUrl = null;
         let isComposited = false;
 
         if (finalStartImage && finalEndImage && finalStartImage !== finalEndImage) {
              console.log("Intercepting: Composition Mode Active");
-             console.log(`[COMPOSITION] Product Name Anchor: "${product_name}"`);
+             console.log(`[COMPOSITION] Product Name Anchor: "${productName}"`);
              try {
                 // DISABLED: Vision AI caused catastrophic product identity loss
                 // const dynamicVisualAnchor = await analyzeImage(finalStartImage);
                 
                 // Defensive: Ensure we don't crash standard flow
-                // PRODUCT ANVIL: We pass the exact product name to anchor Flux
-                const resultUrl = await composeScene(finalStartImage, finalEndImage, finalPrompt, replicate, supabase, user.id, aspect_ratio, product_name);
+                // PRODUCT ANVIL: We pass the extracted product name to anchor Flux
+                const resultUrl = await composeScene(finalStartImage, finalEndImage, finalPrompt, replicate, supabase, user.id, aspect_ratio, productName);
                 if (resultUrl && resultUrl !== finalStartImage) {
                     
                     // PERSIST COMPOSITION ASSET
