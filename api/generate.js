@@ -234,7 +234,8 @@ export default async function handler(req, res) {
             start_image_url, subject_image_url,
             end_image_url, context_image_url,
             aspect_ratio = '16:9', prompt_structure, prompt,
-            duration = "5", seed: userSeed
+            duration = "5", seed: userSeed,
+            product_name = "product" // NEW: Product name for brand fidelity
         } = body;
 
         const finalStartImage = start_image_url || subject_image_url;
@@ -296,14 +297,14 @@ export default async function handler(req, res) {
 
         if (finalStartImage && finalEndImage && finalStartImage !== finalEndImage) {
              console.log("Intercepting: Composition Mode Active");
+             console.log(`[COMPOSITION] Product Name Anchor: "${product_name}"`);
              try {
-                // STEP 0: Analyze base image for dynamic visual anchoring
-                const dynamicVisualAnchor = await analyzeImage(finalStartImage);
-                console.log("[COMPOSITION] Visual anchor ready, proceeding with scene composition...");
+                // DISABLED: Vision AI caused catastrophic product identity loss
+                // const dynamicVisualAnchor = await analyzeImage(finalStartImage);
                 
                 // Defensive: Ensure we don't crash standard flow
-                // STRICT IDENTITY: We pass finalStartImage as the base + dynamic visual anchor.
-                const resultUrl = await composeScene(finalStartImage, finalEndImage, finalPrompt, replicate, supabase, user.id, aspect_ratio, dynamicVisualAnchor);
+                // PRODUCT ANVIL: We pass the exact product name to anchor Flux
+                const resultUrl = await composeScene(finalStartImage, finalEndImage, finalPrompt, replicate, supabase, user.id, aspect_ratio, product_name);
                 if (resultUrl && resultUrl !== finalStartImage) {
                     
                     // PERSIST COMPOSITION ASSET
@@ -411,10 +412,10 @@ export default async function handler(req, res) {
     }
 }
 
-// --- HELPER: SCENE COMPOSITOR (Sharp + Flux + Vision AI) ---
-async function composeScene(baseImage, objectImage, prompt, replicate, supabase, userId, targetAspectRatio = "16:9", visualAnchor = "A person in the scene") {
-    console.log("Composing Scene: Starting Dynamic Identity Pipeline...");
-    console.log(`[COMPOSE] Using visual anchor: "${visualAnchor.substring(0, 80)}..."`);
+// --- HELPER: SCENE COMPOSITOR (Sharp + Flux + Product Anvil) ---
+async function composeScene(baseImage, objectImage, prompt, replicate, supabase, userId, targetAspectRatio = "16:9", productName = "product") {
+    console.log("Composing Scene: Starting Product Anvil Pipeline...");
+    console.log(`[COMPOSE] Product Anchor: "${productName}"`);
     
     try {
         // 1. Remove Background (Product Image)
@@ -532,25 +533,25 @@ async function composeScene(baseImage, objectImage, prompt, replicate, supabase,
         console.log(`Final Collage Ready at Supabase: ${publicUrl}`);
         
         // --- STEP 5: FLUX.1 [dev] IMAGE-TO-IMAGE REFINEMENT ---
-        // Per CONTEXT.md: Use flux/dev/image-to-image with Strength 0.45 for hand/grip generation
-        // This preserves product identity while allowing Flux to "hallucinate" realistic hands
-        console.log("Applying FLUX.1 [dev] img2img (Strength 0.45)...");
+        // PRODUCT ANVIL: Product name anchors the prompt for brand fidelity
+        console.log(`Applying FLUX.1 [dev] img2img with Product Anvil: "${productName}"...`);
 
         try {
             const collageUrl = publicUrl;
             
             // --- CALL FLUX.1 [dev] IMAGE-TO-IMAGE ---
-            // Dynamic prompt using Vision AI anchor for scalability
-            const fluxDynamicPrompt = `${visualAnchor}, holding the product firmly with visible hands, realistic fingers gripping the object naturally, photorealistic, seamless integration, ${prompt}`;
-            console.log(`[FLUX] Dynamic prompt: "${fluxDynamicPrompt.substring(0, 150)}..."`);
+            // PRODUCT ANVIL PROMPT: The exact product name is the anchor for brand fidelity
+            const productAnchor = `The specific ${productName} bottle shown in the image, ensuring exact label and shape fidelity`;
+            const fluxDynamicPrompt = `${productAnchor}, being held firmly with visible hands and realistic fingers, ${prompt}`;
+            console.log(`[FLUX] Product Anvil Prompt: "${fluxDynamicPrompt.substring(0, 150)}..."`);
             
             const fluxResult = await fal.subscribe('fal-ai/flux/dev/image-to-image', {
                 input: {
                     image_url: collageUrl,
                     prompt: fluxDynamicPrompt,
-                    strength: 0.60,           // Strength for geometric restructuring (hand generation)
-                    guidance_scale: 4.5,       // INCREASED: Stricter prompt adherence for hand generation
-                    num_inference_steps: 25,   // Per CONTEXT.md
+                    strength: 0.50,            // REDUCED: Better identity preservation
+                    guidance_scale: 3.5,       // REDUCED: Less aggressive prompt adherence
+                    num_inference_steps: 25,
                     seed: Math.floor(Math.random() * 1000000)
                 },
                 logs: true,
