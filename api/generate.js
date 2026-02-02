@@ -83,15 +83,16 @@ async function removeBackground(imageUrl) {
 }
 
 /**
- * Helper: Analyze Product Image using Vision AI (Moondream - Hybrid OCR+Description)
- * Returns brand name if text visible, or 2-word object description otherwise
+ * Helper: Detect Product CATEGORY using Vision AI (Moondream)
+ * Returns ONLY the object category (Bottle, Can, Bag, etc.) - NO brand/text reading
+ * This prevents hallucination of brand names
  * Target latency: ~2s
  */
-async function analyzeProductImage(imageUrl) {
+async function detectProductCategory(imageUrl) {
     const falKey = process.env.FAL_KEY;
     if (!falKey) throw new Error("Configuration Error: Missing FAL_KEY");
 
-    console.log("[VISION AI] Analyzing product with Moondream (Hybrid OCR+Description)...");
+    console.log("[VISION AI] Detecting product CATEGORY only (anti-hallucination mode)...");
     console.time('VisionAI');
     
     try {
@@ -104,7 +105,7 @@ async function analyzeProductImage(imageUrl) {
             body: JSON.stringify({
                 inputs: [{
                     image_url: imageUrl,
-                    prompt: "Analyze this image. If there is visible text or a brand logo, output ONLY the brand name. If there is no text, output a concise 2-word description of the object (e.g., 'Red Apple', 'Leather Bag')."
+                    prompt: "Identify the single general category of the main object (e.g., Bottle, Can, Shoe, Bag, Phone). Output ONLY the category word. Do not describe text or logos."
                 }]
             })
         });
@@ -114,36 +115,31 @@ async function analyzeProductImage(imageUrl) {
         if (!response.ok) {
             const errorText = await response.text();
             console.warn(`[VISION AI] Moondream failed (${response.status}): ${errorText}`);
-            return "product"; // Fallback for products
+            return "object"; // Safe generic fallback
         }
 
         const data = await response.json();
-        // Moondream batched returns array of outputs
         const outputs = data.outputs || data;
-        let description = Array.isArray(outputs) && outputs[0] 
+        let category = Array.isArray(outputs) && outputs[0] 
             ? (outputs[0].output || outputs[0].text || outputs[0]) 
             : (data.output || data.text || "");
         
-        // Clean up the response
-        if (typeof description === 'string') {
-            description = description.trim();
-            // Remove common filler words if present
-            description = description.replace(/^(the |a |an )/i, '');
-            // Limit to first 3 words max for cleaner prompts
-            const words = description.split(' ').slice(0, 3).join(' ');
-            if (words.length > 2) {
-                console.log(`[VISION AI] Detected object/brand: "${words}"`);
-                return words;
+        // Clean up - extract only the first word (the category)
+        if (typeof category === 'string') {
+            category = category.trim().split(' ')[0].replace(/[^a-zA-Z]/g, '');
+            if (category.length > 2) {
+                console.log(`[VISION AI] Detected category: "${category}"`);
+                return category;
             }
         }
         
         console.warn("[VISION AI] Empty or invalid response, using fallback");
-        return "product";
+        return "object";
         
     } catch (error) {
         console.timeEnd('VisionAI');
         console.error("[VISION AI] Analysis error:", error);
-        return "product"; // Non-blocking fallback
+        return "object"; // Non-blocking fallback
     }
 }
 
@@ -240,8 +236,7 @@ export default async function handler(req, res) {
             start_image_url, subject_image_url,
             end_image_url, context_image_url,
             aspect_ratio = '16:9', prompt_structure, prompt,
-            duration = "5", seed: userSeed,
-            product_name = "product" // NEW: Product name for brand fidelity
+            duration = "5", seed: userSeed
         } = body;
 
         const finalStartImage = start_image_url || subject_image_url;
@@ -297,29 +292,16 @@ export default async function handler(req, res) {
              throw new Error("Failed to fetch model version");
         }
 
-        // --- SMART PRODUCT DETECTION (VISION AI + FALLBACK) ---
-        let productName = product_name; // 1. Try from body (if frontend sends it)
+        // --- SMART PRODUCT DETECTION (CATEGORY ONLY - NO OCR) ---
+        let productCategory = "object"; // Default safe category
 
-        // 2. If not provided, use Vision AI to detect brand/object from product image
-        if (!productName && finalEndImage) {
-            console.log("[PRODUCT DETECTION] No product_name provided, using Vision AI...");
-            productName = await analyzeProductImage(finalEndImage);
-        }
-
-        // 3. Fallback: extract from user prompt (heuristic: word before "bottle")
-        if (!productName || productName === "product") {
-            if (finalPrompt) {
-                const match = finalPrompt.match(/([A-Z][a-zA-Z0-9]+)\s+bottle/i);
-                if (match) productName = match[1];
-            }
-        }
-
-        // 4. Final fallback (prevents "undefined" in prompt)
-        if (!productName) {
-            productName = "product";
+        // Use Vision AI to detect CATEGORY only (prevents brand hallucination)
+        if (finalEndImage) {
+            console.log("[PRODUCT DETECTION] Using Vision AI for CATEGORY detection...");
+            productCategory = await detectProductCategory(finalEndImage);
         }
         
-        console.log(`[PRODUCT ANCHOR] Final product name: "${productName}"`);
+        console.log(`[PRODUCT ANCHOR] Final category: "${productCategory}"`);
 
         // --- COMPOSITION MIDDLEWARE ---
         let composedImageUrl = null;
@@ -327,11 +309,11 @@ export default async function handler(req, res) {
 
         if (finalStartImage && finalEndImage && finalStartImage !== finalEndImage) {
              console.log("Intercepting: Composition Mode Active");
-             console.log(`[COMPOSITION] Product Anchor: "${productName}"`);
+             console.log(`[COMPOSITION] Product Category: "${productCategory}"`);
              try {
                 // Defensive: Ensure we don't crash standard flow
-                // PRODUCT ANVIL: We pass the detected product name to anchor Flux
-                const resultUrl = await composeScene(finalStartImage, finalEndImage, finalPrompt, replicate, supabase, user.id, aspect_ratio, productName);
+                // CATEGORY ANCHOR: We pass the detected category to anchor Flux
+                const resultUrl = await composeScene(finalStartImage, finalEndImage, finalPrompt, replicate, supabase, user.id, aspect_ratio, productCategory);
                 if (resultUrl && resultUrl !== finalStartImage) {
                     
                     // PERSIST COMPOSITION ASSET
@@ -359,15 +341,23 @@ export default async function handler(req, res) {
              }
         }
 
-        // DIAGNOSTIC LOG: Verify which image is being sent to Kling
-        const klingSourceImage = isComposited ? composedImageUrl : (finalStartImage || undefined);
-        console.log('[KLING PIPELINE] Sending to Kling source:', klingSourceImage, '| isComposited:', isComposited);
+        // CRITICAL: Verify image URL exists before sending to Kling
+        const klingSourceImage = isComposited ? composedImageUrl : (finalStartImage || null);
+        
+        if (!klingSourceImage) {
+            throw new Error("CRITICAL: No image URL for Kling. Aborting to prevent text-to-video fallback.");
+        }
+        
+        // Sanitize prompt for Kling - remove technical anchor, keep it clean
+        const klingPrompt = `${finalPrompt}, holding the object, photorealistic`;
+        
+        console.log('🚀 SENDING TO KLING -> Image:', klingSourceImage, '| Prompt:', klingPrompt.substring(0, 100) + '...');
 
         // Payload Construction
         const inputPayload = {
-            prompt: finalPrompt,
+            prompt: klingPrompt,
             input_image: klingSourceImage,
-            aspect_ratio: aspect_ratio // PASS ASPECT RATIO FROM FRONTEND
+            aspect_ratio: aspect_ratio
         };
 
         prediction = await replicate.predictions.create({ version: versionId, input: inputPayload });
@@ -439,10 +429,10 @@ export default async function handler(req, res) {
     }
 }
 
-// --- HELPER: SCENE COMPOSITOR (Sharp + Flux + Product Anvil) ---
-async function composeScene(baseImage, objectImage, prompt, replicate, supabase, userId, targetAspectRatio = "16:9", productName = "product") {
-    console.log("Composing Scene: Starting Product Anvil Pipeline...");
-    console.log(`[COMPOSE] Product Anchor: "${productName}"`);
+// --- HELPER: SCENE COMPOSITOR (Sharp + Flux + Category Anchor) ---
+async function composeScene(baseImage, objectImage, prompt, replicate, supabase, userId, targetAspectRatio = "16:9", productCategory = "object") {
+    console.log("Composing Scene: Starting Category Anchor Pipeline...");
+    console.log(`[COMPOSE] Category Anchor: "${productCategory}"`);
     
     try {
         // 1. Remove Background (Product Image)
@@ -560,24 +550,24 @@ async function composeScene(baseImage, objectImage, prompt, replicate, supabase,
         console.log(`Final Collage Ready at Supabase: ${publicUrl}`);
         
         // --- STEP 5: FLUX.1 [dev] IMAGE-TO-IMAGE REFINEMENT ---
-        // PRODUCT ANVIL: Product name anchors the prompt for brand fidelity
-        console.log(`Applying FLUX.1 [dev] img2img with Product Anvil: "${productName}"...`);
+        // CATEGORY ANCHOR: Generic category preserves identity, Flux only adds hands
+        console.log(`Applying FLUX.1 [dev] img2img with Category Anchor: "${productCategory}"...`);
 
         try {
             const collageUrl = publicUrl;
             
             // --- CALL FLUX.1 [dev] IMAGE-TO-IMAGE ---
-            // PRODUCT ANVIL PROMPT: The exact product name is the anchor for brand fidelity
-            const productAnchor = `The specific ${productName} bottle shown in the image, ensuring exact label and shape fidelity`;
-            const fluxDynamicPrompt = `${productAnchor}, being held firmly with visible hands and realistic fingers, ${prompt}`;
-            console.log(`[FLUX] Product Anvil Prompt: "${fluxDynamicPrompt.substring(0, 150)}..."`);
+            // CATEGORY ANCHOR: Generic category without brand-specific text
+            const categoryAnchor = `The specific ${productCategory} shown in the image, ensuring exact visual fidelity`;
+            const fluxDynamicPrompt = `${categoryAnchor}, being held firmly with visible hands and realistic fingers, ${prompt}`;
+            console.log(`[FLUX] Category Anchor Prompt: "${fluxDynamicPrompt.substring(0, 150)}..."`);
             
             const fluxResult = await fal.subscribe('fal-ai/flux/dev/image-to-image', {
                 input: {
                     image_url: collageUrl,
                     prompt: fluxDynamicPrompt,
-                    strength: 0.50,            // REDUCED: Better identity preservation
-                    guidance_scale: 3.5,       // REDUCED: Less aggressive prompt adherence
+                    strength: 0.40,            // CRITICAL: Low strength = max identity preservation
+                    guidance_scale: 3.5,       // Moderate prompt adherence
                     num_inference_steps: 25,
                     seed: Math.floor(Math.random() * 1000000)
                 },
