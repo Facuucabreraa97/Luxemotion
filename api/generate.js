@@ -83,47 +83,58 @@ async function removeBackground(imageUrl) {
 }
 
 /**
- * Helper: Analyze Image using Vision AI (LLaVA-NeXT)
+ * Helper: Analyze Image using Vision AI (Moondream - Ultra-fast)
  * Returns a dynamic visual description of the image content
+ * Target latency: ~2s (vs LLaVA-NeXT ~15s)
  */
 async function analyzeImage(imageUrl) {
     const falKey = process.env.FAL_KEY;
     if (!falKey) throw new Error("Configuration Error: Missing FAL_KEY");
 
-    console.log("[VISION AI] Analyzing image for dynamic visual anchor...");
+    console.log("[VISION AI] Analyzing image with Moondream (ultra-fast)...");
+    console.time('VisionAI');
     
     try {
-        const response = await fetch("https://fal.run/fal-ai/llava-next", {
+        const response = await fetch("https://fal.run/fal-ai/moondream/batched", {
             method: "POST",
             headers: {
                 "Authorization": `Key ${falKey}`,
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                image_url: imageUrl,
-                prompt: "Describe this image visually in one paragraph, focusing on the main person's physical appearance, clothing, lighting, and background. Be concise and specific. Do not mention any objects they may be holding."
+                inputs: [{
+                    image_url: imageUrl,
+                    prompt: "Describe the main person's appearance and clothing concisely."
+                }]
             })
         });
 
+        console.timeEnd('VisionAI');
+
         if (!response.ok) {
             const errorText = await response.text();
-            console.warn(`[VISION AI] LLaVA-NeXT failed (${response.status}): ${errorText}`);
+            console.warn(`[VISION AI] Moondream failed (${response.status}): ${errorText}`);
             // Non-blocking: Return generic fallback instead of crashing
             return "A person in the scene";
         }
 
         const data = await response.json();
-        const description = data.output || data.text || data.response || "";
+        // Moondream batched returns array of outputs
+        const outputs = data.outputs || data;
+        const description = Array.isArray(outputs) && outputs[0] 
+            ? (outputs[0].output || outputs[0].text || outputs[0]) 
+            : (data.output || data.text || "");
         
         if (description && description.length > 10) {
             console.log(`[VISION AI] Dynamic anchor generated: "${description.substring(0, 100)}..."`);
-            return description;
+            return typeof description === 'string' ? description : JSON.stringify(description);
         }
         
         console.warn("[VISION AI] Empty or invalid response, using fallback");
         return "A person in the scene";
         
     } catch (error) {
+        console.timeEnd('VisionAI');
         console.error("[VISION AI] Analysis error:", error);
         // Non-blocking fallback
         return "A person in the scene";
