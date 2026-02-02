@@ -82,6 +82,54 @@ async function removeBackground(imageUrl) {
     return data.image.url;
 }
 
+/**
+ * Helper: Analyze Image using Vision AI (LLaVA-NeXT)
+ * Returns a dynamic visual description of the image content
+ */
+async function analyzeImage(imageUrl) {
+    const falKey = process.env.FAL_KEY;
+    if (!falKey) throw new Error("Configuration Error: Missing FAL_KEY");
+
+    console.log("[VISION AI] Analyzing image for dynamic visual anchor...");
+    
+    try {
+        const response = await fetch("https://fal.run/fal-ai/llava-next", {
+            method: "POST",
+            headers: {
+                "Authorization": `Key ${falKey}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                image_url: imageUrl,
+                prompt: "Describe this image visually in one paragraph, focusing on the main person's physical appearance, clothing, lighting, and background. Be concise and specific. Do not mention any objects they may be holding."
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.warn(`[VISION AI] LLaVA-NeXT failed (${response.status}): ${errorText}`);
+            // Non-blocking: Return generic fallback instead of crashing
+            return "A person in the scene";
+        }
+
+        const data = await response.json();
+        const description = data.output || data.text || data.response || "";
+        
+        if (description && description.length > 10) {
+            console.log(`[VISION AI] Dynamic anchor generated: "${description.substring(0, 100)}..."`);
+            return description;
+        }
+        
+        console.warn("[VISION AI] Empty or invalid response, using fallback");
+        return "A person in the scene";
+        
+    } catch (error) {
+        console.error("[VISION AI] Analysis error:", error);
+        // Non-blocking fallback
+        return "A person in the scene";
+    }
+}
+
 export default async function handler(req, res) {
     const token = process.env.REPLICATE_API_TOKEN;
     const supabaseUrl = process.env.SUPABASE_URL;
@@ -238,9 +286,13 @@ export default async function handler(req, res) {
         if (finalStartImage && finalEndImage && finalStartImage !== finalEndImage) {
              console.log("Intercepting: Composition Mode Active");
              try {
+                // STEP 0: Analyze base image for dynamic visual anchoring
+                const dynamicVisualAnchor = await analyzeImage(finalStartImage);
+                console.log("[COMPOSITION] Visual anchor ready, proceeding with scene composition...");
+                
                 // Defensive: Ensure we don't crash standard flow
-                // STRICT IDENTITY: We pass finalStartImage as the base.
-                const resultUrl = await composeScene(finalStartImage, finalEndImage, finalPrompt, replicate, supabase, user.id, aspect_ratio);
+                // STRICT IDENTITY: We pass finalStartImage as the base + dynamic visual anchor.
+                const resultUrl = await composeScene(finalStartImage, finalEndImage, finalPrompt, replicate, supabase, user.id, aspect_ratio, dynamicVisualAnchor);
                 if (resultUrl && resultUrl !== finalStartImage) {
                     
                     // PERSIST COMPOSITION ASSET
@@ -348,10 +400,10 @@ export default async function handler(req, res) {
     }
 }
 
-// --- HELPER: SCENE COMPOSITOR (Uses Sharp + SDXL) ---
-// --- HELPER: SCENE COMPOSITOR (Sharp Only - Strict Identity) ---
-async function composeScene(baseImage, objectImage, prompt, replicate, supabase, userId, targetAspectRatio = "16:9") {
-    console.log("Composing Scene: Starting Strict Identity Pipeline...");
+// --- HELPER: SCENE COMPOSITOR (Sharp + Flux + Vision AI) ---
+async function composeScene(baseImage, objectImage, prompt, replicate, supabase, userId, targetAspectRatio = "16:9", visualAnchor = "A person in the scene") {
+    console.log("Composing Scene: Starting Dynamic Identity Pipeline...");
+    console.log(`[COMPOSE] Using visual anchor: "${visualAnchor.substring(0, 80)}..."`);
     
     try {
         // 1. Remove Background (Product Image)
@@ -477,12 +529,15 @@ async function composeScene(baseImage, objectImage, prompt, replicate, supabase,
             const collageUrl = publicUrl;
             
             // --- CALL FLUX.1 [dev] IMAGE-TO-IMAGE ---
-            // Configuration per CONTEXT.md: Strength 0.45, Guidance 3.5, Steps 25
+            // Dynamic prompt using Vision AI anchor for scalability
+            const fluxDynamicPrompt = `${visualAnchor}, holding the product firmly with visible hands, realistic fingers gripping the object naturally, photorealistic, seamless integration, ${prompt}`;
+            console.log(`[FLUX] Dynamic prompt: "${fluxDynamicPrompt.substring(0, 150)}..."`);
+            
             const fluxResult = await fal.subscribe('fal-ai/flux/dev/image-to-image', {
                 input: {
                     image_url: collageUrl,
-                    prompt: "photorealistic scene, human hands naturally holding and gripping the product, realistic fingers with natural skin texture, seamless integration, professional photography",
-                    strength: 0.60,           // INCREASED: 0.45 was too weak, no hands generated
+                    prompt: fluxDynamicPrompt,
+                    strength: 0.60,           // Strength for geometric restructuring (hand generation)
                     guidance_scale: 4.5,       // INCREASED: Stricter prompt adherence for hand generation
                     num_inference_steps: 25,   // Per CONTEXT.md
                     seed: Math.floor(Math.random() * 1000000)
