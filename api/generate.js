@@ -482,8 +482,8 @@ async function composeScene(baseImage, objectImage, prompt, replicate, supabase,
                 input: {
                     image_url: collageUrl,
                     prompt: "photorealistic scene, human hands naturally holding and gripping the product, realistic fingers with natural skin texture, seamless integration, professional photography",
-                    strength: 0.45,           // CRITICAL: Low strength preserves product identity
-                    guidance_scale: 3.5,       // Per CONTEXT.md
+                    strength: 0.60,           // INCREASED: 0.45 was too weak, no hands generated
+                    guidance_scale: 4.5,       // INCREASED: Stricter prompt adherence for hand generation
                     num_inference_steps: 25,   // Per CONTEXT.md
                     seed: Math.floor(Math.random() * 1000000)
                 },
