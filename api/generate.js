@@ -46,6 +46,44 @@ async function uploadToSupabase(url, filePath, supabase) {
     }
 }
 
+/**
+ * Vision AI: Describe product for better prompt engineering
+ * Uses Moondream to extract visual details (color, shape, brand, text)
+ * Cost: ~$0.002 per call
+ */
+async function describeProduct(imageUrl) {
+    try {
+        console.log('[VISION AI] Analyzing product image...');
+        
+        const result = await fal.subscribe("fal-ai/moondream/batched", {
+            input: {
+                inputs: [{
+                    image_url: imageUrl,
+                    prompt: "Describe this product in one sentence: include the color, shape, material, and any visible brand name or text on the label. Be specific and concise."
+                }]
+            }
+        });
+        
+        const description = result?.outputs?.[0]?.text || "a branded product";
+        
+        // Clean and limit to 40 words to avoid prompt bloat
+        const cleanDescription = description
+            .replace(/\n/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .split(' ')
+            .slice(0, 40)
+            .join(' ');
+        
+        console.log(`[VISION AI] Product description: "${cleanDescription}"`);
+        return cleanDescription;
+        
+    } catch (error) {
+        console.warn('[VISION AI] Product description failed, using fallback:', error.message);
+        return "the product";
+    }
+}
+
 export default async function handler(req, res) {
     const token = process.env.REPLICATE_API_TOKEN;
     const supabaseUrl = process.env.SUPABASE_URL;
@@ -197,9 +235,12 @@ export default async function handler(req, res) {
             console.log(`[KLING ELEMENTS] Subject: ${finalStartImage.substring(0, 50)}...`);
             console.log(`[KLING ELEMENTS] Product: ${finalEndImage.substring(0, 50)}...`);
             
-            // Clean prompt for video generation
-            const klingPrompt = `${finalPrompt}, the person is naturally holding and presenting the product, photorealistic, cinematic`;
-            console.log(`[KLING ELEMENTS] Prompt: "${klingPrompt.substring(0, 100)}..."`);
+            // Get detailed product description from Vision AI for better identity preservation
+            const productDescription = await describeProduct(finalEndImage);
+            
+            // Build prompt with explicit product details
+            const klingPrompt = `${finalPrompt}, the person is naturally holding and presenting ${productDescription}, preserve exact product appearance and any visible text/labels, photorealistic, cinematic`;
+            console.log(`[KLING ELEMENTS] Enhanced Prompt: "${klingPrompt.substring(0, 150)}..."`);
             
             try {
                 // ASYNC QUEUE: Submit job and return immediately (avoids Vercel 120s timeout)
