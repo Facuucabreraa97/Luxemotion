@@ -185,12 +185,15 @@ export const Studio = () => {
         setLastMetadata(initialData.lux_metadata);
       }
 
-      // Detect provider from response metadata
-      const provider =
-        initialData.provider?.includes('fal') ||
-        initialData.lux_metadata?.mode?.includes('kling-elements')
-          ? 'fal'
-          : undefined;
+      // Detect provider from response - CRITICAL for polling
+      // Check if response indicates fal.ai provider
+      const isFalProvider =
+        initialData.provider?.startsWith('fal') ||
+        initialData.lux_metadata?.mode?.includes('kling-elements') ||
+        initialData.lux_metadata?.fal_request_id;
+
+      const provider = isFalProvider ? 'fal' : undefined;
+      console.log('[STUDIO] Provider detected:', provider, 'Mode:', initialData.lux_metadata?.mode);
 
       // Start Global Polling with provider info
       startGeneration(predictionId, provider);
