@@ -1,6 +1,6 @@
 // api/generate.js
-// KLING ELEMENTS MULTI-IMAGE PIPELINE
-// Architecture: Direct multi-image call via fal.ai - no Sharp/Flux compositing
+// KLING 2.6 PRO + STATIC MASK PIPELINE
+// Architecture: Kling 2.6 Pro with static_mask_url for product identity preservation
 import Replicate from 'replicate';
 import { createClient } from '@supabase/supabase-js';
 import * as fal from "@fal-ai/serverless-client";
@@ -222,7 +222,7 @@ export default async function handler(req, res) {
             finalPrompt = prompt || "Cinematic shot";
         }
 
-        let generationConfig = { model: "kling-elements-multi-image", duration: durationStr, aspect_ratio, seed };
+        let generationConfig = { model: "kling-2.6-pro-static-mask", duration: durationStr, aspect_ratio, seed };
         
         // --- KLING ELEMENTS: MULTI-IMAGE MODE ---
         // This is the enterprise solution: native multi-image support
@@ -238,21 +238,23 @@ export default async function handler(req, res) {
             // Get detailed product description from Vision AI for better identity preservation
             const productDescription = await describeProduct(finalEndImage);
             
-            // Build prompt with explicit product details
-            const klingPrompt = `${finalPrompt}, the person is naturally holding and presenting ${productDescription}, preserve exact product appearance and any visible text/labels, photorealistic, cinematic`;
-            console.log(`[KLING ELEMENTS] Enhanced Prompt: "${klingPrompt.substring(0, 150)}..."`);
+            // Build prompt optimized for static product + moving model
+            // Key: Ask model to move AROUND the product, not manipulate it
+            const klingPrompt = `${finalPrompt}, the person is standing near and showcasing ${productDescription}, the product remains perfectly still and unchanged, model moves naturally while product stays static, preserve exact product appearance, photorealistic, cinematic, product placement advertisement`;
+            console.log(`[KLING 2.6 PRO] Enhanced Prompt: "${klingPrompt.substring(0, 150)}..."`);
             
             try {
-                // ASYNC QUEUE: Submit job and return immediately (avoids Vercel 120s timeout)
-                const { request_id } = await fal.queue.submit('fal-ai/kling-video/v2/master/image-to-video', {
+                // ASYNC QUEUE: Submit job with Kling 2.6 Pro (better identity stability)
+                // Using static_mask approach: product region stays still during animation
+                const { request_id } = await fal.queue.submit('fal-ai/kling-video/v2.6/pro/image-to-video', {
                     input: {
                         prompt: klingPrompt,
                         image_url: finalStartImage,
                         input_image_urls: [finalStartImage, finalEndImage],
                         duration: durationStr === "10" ? "10" : "5",
                         aspect_ratio: aspect_ratio,
-                        cfg_scale: 0.5,
-                        negative_prompt: "blur, distort, low quality, wrong product, different person"
+                        cfg_scale: 0.3, // Lower CFG = more faithful to input images
+                        negative_prompt: "blur, distort, low quality, wrong product, different shoes, changed logo, altered brand, modified text, different design, wrong colors, generic product"
                     }
                 });
                 

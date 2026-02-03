@@ -36,21 +36,21 @@ El sistema se compone de los siguientes módulos críticos. Cualquier refactoriz
 
 ### [2026-01-30 01:20] Update: Diagnóstico de Errores y Seguridad
 
-1.  **Diagnóstico de Error (Replicate):**
-    - Los errores 500 en generación son **errores 429 (Rate Limit)** disfrazados.
-    - **Causa Raíz:** Saldo en cuenta < $5 USD impone un límite estricto de **'Burst of 1'** (solo 1 petición simultánea permitida).
+1. **Diagnóstico de Error (Replicate):**
+   - Los errores 500 en generación son **errores 429 (Rate Limit)** disfrazados.
+   - **Causa Raíz:** Saldo en cuenta < $5 USD impone un límite estricto de **'Burst of 1'** (solo 1 petición simultánea permitida).
 
-2.  **Validación Backend:**
-    - El sistema de protección de créditos (Atomic Credits) funciona correctamente.
-    - Si la API falla (incluso por Rate Limit), se ejecuta un **reembolso automático (Refund successful)**, protegiendo el saldo del usuario.
+2. **Validación Backend:**
+   - El sistema de protección de créditos (Atomic Credits) funciona correctamente.
+   - Si la API falla (incluso por Rate Limit), se ejecuta un **reembolso automático (Refund successful)**, protegiendo el saldo del usuario.
 
-3.  **Incidente de Seguridad [URGENTE]:**
-    - La API Key de Replicate fue expuesta en logs durante el debugging.
-    - **ACCIÓN PENDIENTE:** Rotar la API Key en `.env` local y en las variables de entorno de Vercel inmediatamente.
+3. **Incidente de Seguridad [URGENTE]:**
+   - La API Key de Replicate fue expuesta en logs durante el debugging.
+   - **ACCIÓN PENDIENTE:** Rotar la API Key en `.env` local y en las variables de entorno de Vercel inmediatamente.
 
-4.  **Corrección de UX (Implementado):**
-    - El frontend bloquea el botón 'Generar' **inmediatamente** al hacer clic (estado `PROCESSING`).
-    - Esto actúa como un _debounce_ manual para prevenir múltiples peticiones accidentales que chocarían con el límite de tasa estricto.
+4. **Corrección de UX (Implementado):**
+   - El frontend bloquea el botón 'Generar' **inmediatamente** al hacer clic (estado `PROCESSING`).
+   - Esto actúa como un _debounce_ manual para prevenir múltiples peticiones accidentales que chocarían con el límite de tasa estricto.
 
 ---
 
@@ -89,13 +89,14 @@ Se abandonó el pipeline de 4 pasos (Sharp + Flux + Kling single-image) por corr
 
 - **Arquitectura Anterior (DESCARTADA):**
 
-  ```
+  ```text
   Sharp Compositing → Flux img2img → Kling (1 imagen) → Video
   Problema: Perdía identidad del producto y marca
   ```
 
 - **Arquitectura Actual (KLING ELEMENTS):**
-  ```
+
+  ```text
   Fal.ai Kling Elements API (input_image_urls: [persona, producto]) → Video
   Ventaja: Multi-image nativo, preserva ambas identidades
   ```
@@ -118,38 +119,39 @@ Para evitar timeout de Vercel (120s), se implementó cola asíncrona:
 
 ### 4. Resultados Actuales
 
-| Elemento                     | Estado              | Notas                                     |
-| ---------------------------- | ------------------- | ----------------------------------------- |
-| **Imagen 1 (Modelo/Sujeto)** | ✅ PERFECTO         | Identidad preservada al 100%              |
-| **Imagen 2 (Producto)**      | ⚠️ Parcial          | Forma OK, pero marca/texto no preservados |
-| **Video Storage**            | 🔧 En investigación | Videos no persisten correctamente         |
-| **Tab Switching**            | 🔧 Bug              | Página se refresca al cambiar pestañas    |
+| Elemento                     | Estado              | Notas                                  |
+| ---------------------------- | ------------------- | -------------------------------------- |
+| **Imagen 1 (Modelo/Sujeto)** | ✅ PERFECTO         | Identidad preservada al 100%           |
+| **Imagen 2 (Producto)**      | 🔧 En prueba        | Migrado a Kling 2.6 Pro + CFG 0.3      |
+| **Video Storage**            | 🔧 En investigación | Videos no persisten correctamente      |
+| **Tab Switching**            | 🔧 Bug              | Página se refresca al cambiar pestañas |
 
 ### 5. Próximos Pasos
 
-1. **Storage:** Investigar por qué videos no persisten en Supabase
-2. **Product Identity:** Evaluar opciones para preservar marcas/texto
+1. **Product Identity:** Probar Kling 2.6 Pro con CFG bajo y prompts mejorados
+2. **Storage:** Investigar por qué videos no persisten en Supabase
 3. **Tab Refresh Bug:** Investigar issue de SPA/React state
 
-### 6. Configuración Actual (Fal.ai)
+### 6. Configuración Actual (Fal.ai - Kling 2.6 Pro)
 
 ```javascript
-// generate.js - Kling Elements Call
-fal.queue.submit('fal-ai/kling-video/v2/master/image-to-video', {
+// generate.js - Kling 2.6 Pro Call (Identity Preservation Focus)
+fal.queue.submit('fal-ai/kling-video/v2.6/pro/image-to-video', {
   input: {
-    prompt: klingPrompt,
+    prompt: klingPrompt, // Optimizado para producto estático
     image_url: finalStartImage,
     input_image_urls: [finalStartImage, finalEndImage],
     duration: '5' | '10',
     aspect_ratio: aspect_ratio,
-    cfg_scale: 0.5,
-    negative_prompt: 'blur, distort, low quality, wrong product, different person',
+    cfg_scale: 0.3, // Bajo = más fiel a inputs
+    negative_prompt:
+      'blur, distort, low quality, wrong product, different shoes, changed logo, altered brand, modified text, different design, wrong colors, generic product',
   },
 });
 ```
 
 ### 7. Costo por Video
 
-- **Kling v2 Master 5s:** ~$0.50
-- **Kling v2 Master 10s:** ~$1.00
-- **Provider:** Fal.ai (NO Replicate - videos no aparecerán en dashboard de Replicate)
+- **Kling 2.6 Pro 5s:** ~$0.35 (audio off) / ~$0.70 (audio on)
+- **Kling 2.6 Pro 10s:** ~$0.70 (audio off) / ~$1.40 (audio on)
+- **Provider:** Fal.ai
