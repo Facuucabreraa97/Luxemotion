@@ -139,62 +139,60 @@ function App() {
 
   return (
     <ToastProvider>
-      <ToastProvider>
-        <BrowserRouter>
-          <VideoGenerationProvider>
-            <Routes>
-              <Route path="/" element={<Landing />} />
-              <Route path="/waitlist" element={<Landing />} />
+      <BrowserRouter>
+        <VideoGenerationProvider>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/waitlist" element={<Landing />} />
 
-              <Route
-                path="/login"
-                element={
-                  !session ? (
-                    <Login />
-                  ) : isApprov ? (
-                    <Navigate to="/app/studio" replace />
-                  ) : (
-                    <Navigate to="/" replace />
-                  )
-                }
-              />
-
-              <Route
-                path="/admin"
-                element={
-                  <AdminRoute>
-                    <AdminDashboard />
-                  </AdminRoute>
-                }
-              />
-
-              <Route
-                path="/app"
-                element={
-                  session && isApprov ? <Layout session={session} /> : <Navigate to="/" replace />
-                }
-              >
-                <Route index element={<Navigate to="/app/studio" replace />} />
-                <Route path="studio" element={<Studio />} />
-                <Route path="marketplace" element={<Marketplace />} />
-                <Route path="gallery" element={<Profile />} />
-                <Route path="billing" element={<Plans />} />
-              </Route>
-
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-            <Toaster
-              position="bottom-right"
-              toastOptions={{
-                style: {
-                  background: '#333',
-                  color: '#fff',
-                },
-              }}
+            <Route
+              path="/login"
+              element={
+                !session ? (
+                  <Login />
+                ) : isApprov ? (
+                  <Navigate to="/app/studio" replace />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              }
             />
-          </VideoGenerationProvider>
-        </BrowserRouter>
-      </ToastProvider>
+
+            <Route
+              path="/admin"
+              element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              }
+            />
+
+            <Route
+              path="/app"
+              element={
+                session && isApprov ? <Layout session={session} /> : <Navigate to="/" replace />
+              }
+            >
+              <Route index element={<Navigate to="/app/studio" replace />} />
+              <Route path="studio" element={<Studio />} />
+              <Route path="marketplace" element={<Marketplace />} />
+              <Route path="gallery" element={<Profile />} />
+              <Route path="billing" element={<Plans />} />
+            </Route>
+
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+          <Toaster
+            position="bottom-right"
+            toastOptions={{
+              style: {
+                background: '#333',
+                color: '#fff',
+              },
+            }}
+          />
+        </VideoGenerationProvider>
+      </BrowserRouter>
     </ToastProvider>
   );
 }

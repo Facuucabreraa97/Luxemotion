@@ -175,9 +175,10 @@ export const VideoGenerationProvider = ({ children }: { children: ReactNode }) =
   // Restore on mount
   useEffect(() => {
     const savedId = localStorage.getItem('active_prediction_id');
+    const savedProvider = localStorage.getItem('active_provider');
     if (savedId) {
-      console.log('Restoring global generation:', savedId);
-      pollStatus(savedId);
+      console.log('Restoring global generation:', savedId, 'provider:', savedProvider);
+      pollStatus(savedId, savedProvider || undefined);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
