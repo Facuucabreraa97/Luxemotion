@@ -78,3 +78,78 @@ Se abandonó el enfoque de "Composición Simple + Maquillaje SDXL" por falta de 
 - **Identidad:** Prohibido usar modelos que no sean img2img sobre el collage original.
 - **Refunds:** Fallback manual SQL implementado en caso de fallo RPC.
 - **Prompting:** No forzar acciones complejas en el prompt visual; dejar que Kling anime la acción desde una pose neutra de "holding".
+
+---
+
+## 📅 Actualización Crítica: Migración a Kling Elements (03/02/2026)
+
+### 1. Cambio de Arquitectura (Enterprise Multi-Image)
+
+Se abandonó el pipeline de 4 pasos (Sharp + Flux + Kling single-image) por corromper identidades.
+
+- **Arquitectura Anterior (DESCARTADA):**
+
+  ```
+  Sharp Compositing → Flux img2img → Kling (1 imagen) → Video
+  Problema: Perdía identidad del producto y marca
+  ```
+
+- **Arquitectura Actual (KLING ELEMENTS):**
+  ```
+  Fal.ai Kling Elements API (input_image_urls: [persona, producto]) → Video
+  Ventaja: Multi-image nativo, preserva ambas identidades
+  ```
+
+### 2. Código Eliminado (~300 líneas)
+
+| Función                   | Propósito Original | Razón de Eliminación                |
+| ------------------------- | ------------------ | ----------------------------------- |
+| `composeScene()`          | Sharp compositing  | Reemplazado por multi-image nativo  |
+| `detectProductCategory()` | Vision AI OCR      | No necesario con referencia directa |
+| `removeBackground()`      | BiRefNet RMBG      | No necesario con multi-image        |
+
+### 3. Async Queue Implementation
+
+Para evitar timeout de Vercel (120s), se implementó cola asíncrona:
+
+- **Backend:** `fal.queue.submit()` retorna inmediatamente con `request_id`
+- **Nuevo Endpoint:** `/api/fal-status.js` para polling
+- **Frontend:** Detecta provider `fal` y hace polling al endpoint correcto
+
+### 4. Resultados Actuales
+
+| Elemento                     | Estado              | Notas                                     |
+| ---------------------------- | ------------------- | ----------------------------------------- |
+| **Imagen 1 (Modelo/Sujeto)** | ✅ PERFECTO         | Identidad preservada al 100%              |
+| **Imagen 2 (Producto)**      | ⚠️ Parcial          | Forma OK, pero marca/texto no preservados |
+| **Video Storage**            | 🔧 En investigación | Videos no persisten correctamente         |
+| **Tab Switching**            | 🔧 Bug              | Página se refresca al cambiar pestañas    |
+
+### 5. Próximos Pasos
+
+1. **Storage:** Investigar por qué videos no persisten en Supabase
+2. **Product Identity:** Evaluar opciones para preservar marcas/texto
+3. **Tab Refresh Bug:** Investigar issue de SPA/React state
+
+### 6. Configuración Actual (Fal.ai)
+
+```javascript
+// generate.js - Kling Elements Call
+fal.queue.submit('fal-ai/kling-video/v2/master/image-to-video', {
+  input: {
+    prompt: klingPrompt,
+    image_url: finalStartImage,
+    input_image_urls: [finalStartImage, finalEndImage],
+    duration: '5' | '10',
+    aspect_ratio: aspect_ratio,
+    cfg_scale: 0.5,
+    negative_prompt: 'blur, distort, low quality, wrong product, different person',
+  },
+});
+```
+
+### 7. Costo por Video
+
+- **Kling v2 Master 5s:** ~$0.50
+- **Kling v2 Master 10s:** ~$1.00
+- **Provider:** Fal.ai (NO Replicate - videos no aparecerán en dashboard de Replicate)

@@ -72,23 +72,32 @@ export default async function handler(req, res) {
             if (videoUrl) {
                 console.log(`[FAL-STATUS] Video ready: ${videoUrl}`);
                 
-                // Get user from generations table
-                const { data: generation } = await supabase
+                // Get generation record with all metadata
+                const { data: generation, error: genError } = await supabase
                     .from('generations')
-                    .select('user_id')
+                    .select('user_id, prompt, input_params')
                     .eq('replicate_id', request_id)
                     .single();
 
+                if (genError) {
+                    console.error('[FAL-STATUS] Failed to find generation record:', genError);
+                }
+
                 let persistedUrl = videoUrl;
+                let persistenceSuccess = false;
                 
-                // Try to persist to Supabase
+                // CRITICAL: Persist to Supabase - fal.ai URLs expire in ~24h
                 if (generation?.user_id) {
                     try {
                         const filename = `${generation.user_id}/video_${Date.now()}_kling.mp4`;
+                        console.log(`[FAL-STATUS] Attempting to persist video to: ${filename}`);
                         persistedUrl = await uploadToSupabase(videoUrl, filename, supabase);
-                        console.log(`[FAL-STATUS] Video persisted: ${persistedUrl}`);
+                        persistenceSuccess = true;
+                        console.log(`[FAL-STATUS] Video persisted successfully: ${persistedUrl}`);
                     } catch (e) {
-                        console.warn('[FAL-STATUS] Persistence failed, using fal URL:', e.message);
+                        console.error('[FAL-STATUS] CRITICAL: Video persistence FAILED:', e.message);
+                        console.error('[FAL-STATUS] User will lose video after fal.ai expiry (~24h)');
+                        // Still continue but mark as failed persistence
                     }
                     
                     // Update generation record
@@ -100,12 +109,22 @@ export default async function handler(req, res) {
                             result_url: persistedUrl 
                         })
                         .eq('replicate_id', request_id);
+                } else {
+                    console.error('[FAL-STATUS] No user_id found - cannot persist video');
                 }
 
+                // Return with metadata for frontend saveDraft
                 return res.status(200).json({
                     status: 'succeeded',
                     output: persistedUrl,
-                    video_url: persistedUrl
+                    video_url: persistedUrl,
+                    persistence_status: persistenceSuccess ? 'saved' : 'temporary',
+                    lux_metadata: {
+                        prompt_structure: {
+                            user_prompt: generation?.prompt || 'AI Generated Video'
+                        },
+                        generation_config: generation?.input_params || {}
+                    }
                 });
             }
         }
