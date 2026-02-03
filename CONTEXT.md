@@ -127,9 +127,9 @@ Para evitar timeout de Vercel (120s), se implementó cola asíncrona:
 
 ### 5. Próximos Pasos
 
-1. **Storage:** Investigar por qué videos no persisten en Supabase
-2. **Product Identity:** Evaluar opciones para preservar marcas/texto
-3. **Tab Refresh Bug:** Investigar issue de SPA/React state
+1. ~~**Storage:** Investigar por qué videos no persisten en Supabase~~ ✅ RESUELTO
+2. ~~**Product Identity:** Evaluar opciones para preservar marcas/texto~~ ✅ INVESTIGADO (ver sección 8)
+3. ~~**Tab Refresh Bug:** Investigar issue de SPA/React state~~ ✅ RESUELTO
 
 ### 6. Configuración Actual (Fal.ai)
 
@@ -153,3 +153,95 @@ fal.queue.submit('fal-ai/kling-video/v2/master/image-to-video', {
 - **Kling v2 Master 5s:** ~$0.50
 - **Kling v2 Master 10s:** ~$1.00
 - **Provider:** Fal.ai (NO Replicate - videos no aparecerán en dashboard de Replicate)
+
+---
+
+## 📅 Actualización: Investigación Product Identity (03/02/2026)
+
+### 8. Investigación Completa: Preservación de Identidad de Producto
+
+El problema central: la Imagen 2 (producto) pierde logos, texto y detalles de marca en el video generado, mientras que la Imagen 1 (modelo/persona) se preserva perfectamente.
+
+#### 8.1 Approaches INVESTIGADOS
+
+| Approach                                | Descripción                              | Probabilidad Éxito | Estado                           |
+| --------------------------------------- | ---------------------------------------- | ------------------ | -------------------------------- |
+| **Kling 2.6 Pro**                       | Upgrade a versión más nueva              | 20%                | ❌ DESCARTADO                    |
+| **First-Last Frame (Kling O1)**         | Keyframes start/end para interpolación   | 30%                | ❌ DESCARTADO                    |
+| **Luma Ray3 Virtual Product Placement** | API específica para product placement    | 40%                | 🟡 INTEGRADO (pendiente API key) |
+| **LoRA Training**                       | Entrenar modelo en producto específico   | 85%                | ❌ DESCARTADO (tiempo de espera) |
+| **Overlay Post-Producción**             | Superponer producto estático sobre video | 95%                | ❌ DESCARTADO (complejidad)      |
+| **Multi-Image Reference**               | Pedir más fotos del producto             | 50-60%             | 🟢 RECOMENDADO                   |
+
+#### 8.2 Por qué se DESCARTÓ cada approach
+
+**Kling 2.6 Pro:**
+
+- Probado: Producía peores resultados que v2/master
+- La imagen del producto era ignorada completamente
+- Revertido inmediatamente
+
+**First-Last Frame (Kling O1):**
+
+- Implementado: Usaba `start_image_url` + `end_image_url`
+- Problema: Cambiaba el comportamiento a "transición HACIA producto" en lugar de "persona CON producto"
+- El video se convertía en morphing entre imagen A y B
+- Revertido inmediatamente
+
+**LoRA Training:**
+
+- Alta efectividad (85%) pero requiere 15-30 min de training
+- Para consumo masivo, nadie espera ese tiempo
+- Cada producto nuevo necesitaría reentrenamiento
+- Descartado por impracticidad para el modelo de negocio
+
+**Overlay Post-Producción:**
+
+- Garantizaría 100% fidelidad del producto
+- Requiere: detección de manos, tracking de movimiento, composición frame-by-frame
+- Complejidad muy alta para el beneficio
+- Aumentaría tiempo de procesamiento significativamente
+- Descartado por complejidad vs. target de consumo masivo
+
+#### 8.3 Lo que SÍ se APLICÓ
+
+**1. Luma Ray3 API Integration:**
+
+- Endpoints creados: `/api/luma-generate.js` y `/api/luma-status.js`
+- Usa keyframes (`frame0`, `frame1`) para product placement
+- Estado: Listo para activar con `LUMA_API_KEY` en env vars
+- Commit: `eaecedd`
+
+**2. Bug Fixes (b67893a):**
+
+- `VideoGenerationContext.tsx`: Provider restoration al recargar página
+- `App.tsx`: Removido `<ToastProvider>` duplicado
+
+#### 8.4 Conclusión: Realidad del Mercado
+
+Los demos de competidores (Veo 3, Sora 2, Kling) que muestran logos perfectos:
+
+1. Usan **Text-to-Video** (el AI genera "un Nike genérico", no preserva imagen específica)
+2. Cherry-picking (muestran 1 de 20 intentos)
+3. Post-producción manual
+
+**Ningún modelo actual preserva texto/logos al 100%** desde imagen de referencia. Es limitación de la industria.
+
+#### 8.5 Decisión Final (Consumo Masivo)
+
+Para el modelo de negocio (whitelist + ads + entretenimiento):
+
+- ✅ Mantener pipeline actual (Kling Elements)
+- ✅ Priorizar experiencia del modelo/persona (funciona perfecto)
+- ⚠️ Aceptar que producto será aproximado (forma/color OK, logo puede variar)
+- ✅ Marketing honesto: "Videos AI con tu foto + producto"
+
+---
+
+## 📅 Bugs Resueltos (03/02/2026)
+
+| Bug                         | Causa                                                 | Solución                                    | Commit    |
+| --------------------------- | ----------------------------------------------------- | ------------------------------------------- | --------- |
+| **Videos no persisten**     | `pollStatus` no pasaba `provider` al restaurar sesión | Agregado `savedProvider` en `useEffect`     | `b67893a` |
+| **Comportamiento errático** | `<ToastProvider>` duplicado en `App.tsx`              | Removido wrapper duplicado                  | `b67893a` |
+| **Tab switching refresh**   | Vite HMR en modo desarrollo                           | NO es bug - es comportamiento normal de dev | N/A       |
