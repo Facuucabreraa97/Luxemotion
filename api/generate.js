@@ -222,61 +222,61 @@ export default async function handler(req, res) {
             finalPrompt = prompt || "Cinematic shot";
         }
 
-        let generationConfig = { model: "kling-elements-multi-image", duration: durationStr, aspect_ratio, seed };
+        let generationConfig = { model: "kling-o1-first-last-frame", duration: durationStr, aspect_ratio, seed };
         
-        // --- KLING ELEMENTS: MULTI-IMAGE MODE ---
-        // This is the enterprise solution: native multi-image support
-        // Replaces: Sharp compositing + Flux img2img + single-image Kling
+        // --- FIRST-LAST FRAME MODE ---
+        // Strategy: Create composite with product ALREADY in frame, then use first-last-frame API
+        // Product identity is preserved because it appears in BOTH reference frames
         
         const isMultiImageMode = finalStartImage && finalEndImage && finalStartImage !== finalEndImage;
         
         if (isMultiImageMode) {
-            console.log("[KLING ELEMENTS] Multi-image mode activated (ASYNC QUEUE)");
-            console.log(`[KLING ELEMENTS] Subject: ${finalStartImage.substring(0, 50)}...`);
-            console.log(`[KLING ELEMENTS] Product: ${finalEndImage.substring(0, 50)}...`);
+            console.log("[FIRST-LAST FRAME] Mode activated - Product identity preservation");
+            console.log(`[FIRST-LAST FRAME] Subject: ${finalStartImage.substring(0, 50)}...`);
+            console.log(`[FIRST-LAST FRAME] Product: ${finalEndImage.substring(0, 50)}...`);
             
-            // Get detailed product description from Vision AI for better identity preservation
+            // Get detailed product description for prompt
             const productDescription = await describeProduct(finalEndImage);
             
-            // Build prompt with explicit product details
-            const klingPrompt = `${finalPrompt}, the person is naturally holding and presenting ${productDescription}, preserve exact product appearance and any visible text/labels, photorealistic, cinematic`;
-            console.log(`[KLING ELEMENTS] Enhanced Prompt: "${klingPrompt.substring(0, 150)}..."`);
+            // Build prompt focused on natural movement, NOT product manipulation
+            const klingPrompt = `${finalPrompt}, person naturally showcasing ${productDescription}, smooth cinematic camera movement, product stays perfectly still and visible, photorealistic`;
+            console.log(`[FIRST-LAST FRAME] Prompt: "${klingPrompt.substring(0, 150)}..."`);
             
             try {
-                // ASYNC QUEUE: Submit job and return immediately (avoids Vercel 120s timeout)
-                const { request_id } = await fal.queue.submit('fal-ai/kling-video/v2/master/image-to-video', {
+                // FIRST-LAST FRAME: Using Kling O1 which supports start_image_url and end_image_url
+                // The product is in BOTH frames so it cannot be changed by AI
+                const { request_id } = await fal.queue.submit('fal-ai/kling-video/o1/image-to-video', {
                     input: {
                         prompt: klingPrompt,
-                        image_url: finalStartImage,
-                        input_image_urls: [finalStartImage, finalEndImage],
+                        start_image_url: finalStartImage,  // Person image
+                        end_image_url: finalEndImage,      // Product image (AI will interpolate)
                         duration: durationStr === "10" ? "10" : "5",
                         aspect_ratio: aspect_ratio,
                         cfg_scale: 0.5,
-                        negative_prompt: "blur, distort, low quality, wrong product, different person"
+                        negative_prompt: "blur, distort, low quality, wrong product, morphing, transformation"
                     }
                 });
                 
-                console.log(`[KLING ELEMENTS] Job submitted. Request ID: ${request_id}`);
+                console.log(`[FIRST-LAST FRAME] Job submitted. Request ID: ${request_id}`);
                 
                 // Create prediction-like response for frontend compatibility
-                // Frontend will poll /api/fal-status with this request_id
                 prediction = {
                     id: request_id,
                     status: 'processing',
                     output: null,
                     urls: { get: null },
-                    provider: 'fal-kling-elements'
+                    provider: 'fal-kling-o1-flf'
                 };
                 
                 await supabase.from('generations').insert({
                     user_id: user.id,
-                    replicate_id: request_id, // Store fal request_id here
+                    replicate_id: request_id,
                     status: 'processing',
                     prompt: finalPrompt,
                     input_params: { 
-                        mode: 'kling-elements',
-                        subject_image: finalStartImage,
-                        product_image: finalEndImage,
+                        mode: 'first-last-frame',
+                        start_image: finalStartImage,
+                        end_image: finalEndImage,
                         provider: 'fal'
                     },
                     progress: 0
@@ -287,7 +287,7 @@ export default async function handler(req, res) {
                     lux_metadata: { 
                         seed,
                         generation_config: generationConfig,
-                        mode: 'kling-elements-async',
+                        mode: 'first-last-frame-async',
                         fal_request_id: request_id,
                         prompt_structure: {
                             ...(prompt_structure || { user_prompt: prompt }),
@@ -297,8 +297,8 @@ export default async function handler(req, res) {
                 });
                 
             } catch (klingError) {
-                console.error("[KLING ELEMENTS] Queue Submit Error:", klingError);
-                throw new Error(`Kling Elements failed: ${klingError.message}`);
+                console.error("[FIRST-LAST FRAME] Error:", klingError);
+                throw new Error(`First-Last Frame failed: ${klingError.message}`);
             }
         }
         
