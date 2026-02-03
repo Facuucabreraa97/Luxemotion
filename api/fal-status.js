@@ -53,24 +53,8 @@ export default async function handler(req, res) {
     try {
         console.log(`[FAL-STATUS] Checking status for: ${request_id}`);
         
-        // First, find the generation record to determine which endpoint to use
-        const { data: generation } = await supabase
-            .from('generations')
-            .select('input_params')
-            .eq('replicate_id', request_id)
-            .single();
-        
-        // Determine endpoint based on mode (default to v2/master for backwards compat)
-        const mode = generation?.input_params?.mode;
-        let modelEndpoint = 'fal-ai/kling-video/v2/master/image-to-video';
-        
-        if (mode === 'first-last-frame') {
-            modelEndpoint = 'fal-ai/kling-video/o1/image-to-video';
-        }
-        console.log(`[FAL-STATUS] Using endpoint: ${modelEndpoint} (mode: ${mode || 'default'})`);
-        
         // Check fal.ai queue status
-        const status = await fal.queue.status(modelEndpoint, {
+        const status = await fal.queue.status('fal-ai/kling-video/v2/master/image-to-video', {
             requestId: request_id,
             logs: true
         });
@@ -79,7 +63,7 @@ export default async function handler(req, res) {
 
         // If completed, get the result
         if (status.status === 'COMPLETED') {
-            const result = await fal.queue.result(modelEndpoint, {
+            const result = await fal.queue.result('fal-ai/kling-video/v2/master/image-to-video', {
                 requestId: request_id
             });
 
