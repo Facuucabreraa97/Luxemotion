@@ -185,8 +185,15 @@ export const Studio = () => {
         setLastMetadata(initialData.lux_metadata);
       }
 
-      // Start Global Polling
-      startGeneration(predictionId);
+      // Detect provider from response metadata
+      const provider =
+        initialData.provider?.includes('fal') ||
+        initialData.lux_metadata?.mode?.includes('kling-elements')
+          ? 'fal'
+          : undefined;
+
+      // Start Global Polling with provider info
+      startGeneration(predictionId, provider);
       setLocalStatus('IDLE');
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Unknown error';

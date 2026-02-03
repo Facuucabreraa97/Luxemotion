@@ -17,7 +17,7 @@ interface VideoGenerationContextType {
   activeId: string | null;
   status: GenerationStatus;
   lastGeneratedUrl: string | null;
-  startGeneration: (id: string) => void;
+  startGeneration: (id: string, provider?: string) => void;
 }
 
 const VideoGenerationContext = createContext<VideoGenerationContextType | undefined>(undefined);
@@ -30,14 +30,17 @@ export const VideoGenerationProvider = ({ children }: { children: ReactNode }) =
   const navigate = useNavigate();
 
   // Polling Logic
-  const pollStatus = async (id: string) => {
+  const pollStatus = async (id: string, provider?: string) => {
     setIsGenerating(true);
     setActiveId(id);
     setStatus('starting');
-    setLastGeneratedUrl(null); // Reset previous result
+    setLastGeneratedUrl(null);
 
     let currentStatus: GenerationStatus = 'starting';
     let pollCount = 0;
+
+    // Detect if this is a fal.ai job (stored in localStorage or passed directly)
+    const isFalProvider = provider === 'fal' || localStorage.getItem('active_provider') === 'fal';
 
     try {
       while (
@@ -50,7 +53,6 @@ export const VideoGenerationProvider = ({ children }: { children: ReactNode }) =
         await new Promise((r) => setTimeout(r, 3000));
 
         try {
-          // Get session for auth
           const {
             data: { session },
           } = await supabase.auth.getSession();
@@ -58,8 +60,12 @@ export const VideoGenerationProvider = ({ children }: { children: ReactNode }) =
             ? { Authorization: `Bearer ${session.access_token}` }
             : {};
 
-          // Using existing endpoint /api/generate?id=...
-          const res = await fetch(`/api/generate?id=${id}`, { headers });
+          // Use different endpoint based on provider
+          const endpoint = isFalProvider
+            ? `/api/fal-status?request_id=${id}`
+            : `/api/generate?id=${id}`;
+
+          const res = await fetch(endpoint, { headers });
           if (!res.ok) throw new Error('Network error');
 
           const data = await res.json();
@@ -105,6 +111,7 @@ export const VideoGenerationProvider = ({ children }: { children: ReactNode }) =
             }
 
             localStorage.removeItem('active_prediction_id');
+            localStorage.removeItem('active_provider');
             setIsGenerating(false);
             setActiveId(null);
             // Keep status as succeeded for a moment so UI can show success state logic
@@ -147,6 +154,7 @@ export const VideoGenerationProvider = ({ children }: { children: ReactNode }) =
     } catch (e) {
       console.error(e);
       localStorage.removeItem('active_prediction_id');
+      localStorage.removeItem('active_provider');
       setIsGenerating(false);
       setActiveId(null);
       setStatus('failed');
@@ -154,9 +162,14 @@ export const VideoGenerationProvider = ({ children }: { children: ReactNode }) =
     }
   };
 
-  const startGeneration = (id: string) => {
+  const startGeneration = (id: string, provider?: string) => {
     localStorage.setItem('active_prediction_id', id);
-    pollStatus(id);
+    if (provider) {
+      localStorage.setItem('active_provider', provider);
+    } else {
+      localStorage.removeItem('active_provider');
+    }
+    pollStatus(id, provider);
   };
 
   // Restore on mount

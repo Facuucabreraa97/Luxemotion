@@ -193,7 +193,7 @@ export default async function handler(req, res) {
         const isMultiImageMode = finalStartImage && finalEndImage && finalStartImage !== finalEndImage;
         
         if (isMultiImageMode) {
-            console.log("[KLING ELEMENTS] Multi-image mode activated");
+            console.log("[KLING ELEMENTS] Multi-image mode activated (ASYNC QUEUE)");
             console.log(`[KLING ELEMENTS] Subject: ${finalStartImage.substring(0, 50)}...`);
             console.log(`[KLING ELEMENTS] Product: ${finalEndImage.substring(0, 50)}...`);
             
@@ -202,60 +202,43 @@ export default async function handler(req, res) {
             console.log(`[KLING ELEMENTS] Prompt: "${klingPrompt.substring(0, 100)}..."`);
             
             try {
-                // KLING ELEMENTS via fal.ai - supports 1-4 reference images
-                const klingResult = await fal.subscribe('fal-ai/kling-video/v2/master/image-to-video', {
+                // ASYNC QUEUE: Submit job and return immediately (avoids Vercel 120s timeout)
+                const { request_id } = await fal.queue.submit('fal-ai/kling-video/v2/master/image-to-video', {
                     input: {
                         prompt: klingPrompt,
-                        image_url: finalStartImage,            // Primary subject (the person)
-                        input_image_urls: [finalStartImage, finalEndImage], // Both images for consistency
+                        image_url: finalStartImage,
+                        input_image_urls: [finalStartImage, finalEndImage],
                         duration: durationStr === "10" ? "10" : "5",
                         aspect_ratio: aspect_ratio,
                         cfg_scale: 0.5,
                         negative_prompt: "blur, distort, low quality, wrong product, different person"
-                    },
-                    logs: true
+                    }
                 });
                 
-                console.log("[KLING ELEMENTS] Raw Response:", JSON.stringify(klingResult, null, 2).substring(0, 500) + "...");
-                
-                const videoUrl = klingResult?.video?.url;
-                
-                if (!videoUrl) {
-                    throw new Error("Kling Elements returned no video URL");
-                }
-                
-                console.log(`[KLING ELEMENTS] Video generated: ${videoUrl}`);
-                
-                // Persist video to Supabase
-                const videoFilename = `${user.id}/video_${Date.now()}_elements.mp4`;
-                let persistedVideoUrl;
-                try {
-                    persistedVideoUrl = await uploadToSupabase(videoUrl, videoFilename, supabase);
-                } catch (persistErr) {
-                    console.warn("Failed to persist video, using fal.ai URL:", persistErr);
-                    persistedVideoUrl = videoUrl; // Use original URL as fallback
-                }
+                console.log(`[KLING ELEMENTS] Job submitted. Request ID: ${request_id}`);
                 
                 // Create prediction-like response for frontend compatibility
+                // Frontend will poll /api/fal-status with this request_id
                 prediction = {
-                    id: `kling-${Date.now()}`,
-                    status: 'succeeded',
-                    output: persistedVideoUrl,
-                    urls: { get: persistedVideoUrl }
+                    id: request_id,
+                    status: 'processing',
+                    output: null,
+                    urls: { get: null },
+                    provider: 'fal-kling-elements'
                 };
                 
                 await supabase.from('generations').insert({
                     user_id: user.id,
-                    replicate_id: prediction.id,
-                    status: 'succeeded',
+                    replicate_id: request_id, // Store fal request_id here
+                    status: 'processing',
                     prompt: finalPrompt,
                     input_params: { 
                         mode: 'kling-elements',
                         subject_image: finalStartImage,
-                        product_image: finalEndImage
+                        product_image: finalEndImage,
+                        provider: 'fal'
                     },
-                    progress: 100,
-                    result_url: persistedVideoUrl
+                    progress: 0
                 });
                 
                 return res.status(201).json({ 
@@ -263,7 +246,8 @@ export default async function handler(req, res) {
                     lux_metadata: { 
                         seed,
                         generation_config: generationConfig,
-                        mode: 'kling-elements-multi-image',
+                        mode: 'kling-elements-async',
+                        fal_request_id: request_id,
                         prompt_structure: {
                             ...(prompt_structure || { user_prompt: prompt }),
                             system_prompt: systemPrompt
@@ -272,7 +256,7 @@ export default async function handler(req, res) {
                 });
                 
             } catch (klingError) {
-                console.error("[KLING ELEMENTS] Error:", klingError);
+                console.error("[KLING ELEMENTS] Queue Submit Error:", klingError);
                 throw new Error(`Kling Elements failed: ${klingError.message}`);
             }
         }
