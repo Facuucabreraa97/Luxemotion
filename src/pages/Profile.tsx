@@ -22,6 +22,7 @@ const Profile = () => {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
 
   useEffect(() => {
     loadProfileData();
@@ -204,15 +205,32 @@ const Profile = () => {
                     key={asset.id}
                     className="group bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:-translate-y-1 transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-500/10 cursor-pointer"
                   >
-                    <div className="aspect-square bg-gray-900 relative overflow-hidden">
+                    <div
+                      className="aspect-square bg-gray-900 relative overflow-hidden"
+                      onClick={() => asset.video_url && setSelectedAsset(asset)}
+                    >
                       {asset.video_url ? (
-                        <video
-                          src={asset.video_url}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          autoPlay
-                          muted
-                          loop
-                        />
+                        <>
+                          <video
+                            src={asset.video_url}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            autoPlay
+                            muted
+                            loop
+                          />
+                          {/* Play icon overlay */}
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
+                              <svg
+                                className="w-8 h-8 text-white ml-1"
+                                fill="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path d="M8 5v14l11-7z" />
+                              </svg>
+                            </div>
+                          </div>
+                        </>
                       ) : asset.image_url ? (
                         <img
                           src={asset.image_url}
@@ -271,6 +289,51 @@ const Profile = () => {
           )}
         </div>
       </div>
+
+      {/* Video Modal */}
+      {selectedAsset && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm"
+          onClick={() => setSelectedAsset(null)}
+        >
+          <div
+            className="relative max-w-4xl w-full mx-4 max-h-[90vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => setSelectedAsset(null)}
+              className="absolute -top-12 right-0 text-white/70 hover:text-white transition-colors"
+            >
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+
+            {/* Video player */}
+            <div className="rounded-2xl overflow-hidden bg-black shadow-2xl">
+              <video
+                src={selectedAsset.video_url || ''}
+                className="w-full max-h-[80vh] object-contain"
+                controls
+                autoPlay
+                loop
+              />
+            </div>
+
+            {/* Video info */}
+            <div className="mt-4 text-center">
+              <h3 className="text-xl font-bold text-white">{selectedAsset.name}</h3>
+              <p className="text-gray-400 text-sm mt-1">{selectedAsset.description}</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
