@@ -207,7 +207,7 @@ const Profile = () => {
                   >
                     <div
                       className="aspect-square bg-gray-900 relative overflow-hidden"
-                      onClick={() => asset.video_url && setSelectedAsset(asset)}
+                      onClick={() => (asset.video_url || asset.image_url) && setSelectedAsset(asset)}
                     >
                       {asset.video_url ? (
                         <>
@@ -232,11 +232,26 @@ const Profile = () => {
                           </div>
                         </>
                       ) : asset.image_url ? (
-                        <img
-                          src={asset.image_url}
-                          alt={asset.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
+                        <>
+                          <img
+                            src={asset.image_url}
+                            alt={asset.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                          {/* Expand icon overlay */}
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
+                              <svg
+                                className="w-6 h-6 text-white"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5" />
+                              </svg>
+                            </div>
+                          </div>
+                        </>
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-4xl">
                           🎬
@@ -290,46 +305,80 @@ const Profile = () => {
         </div>
       </div>
 
-      {/* Video Modal */}
+      {/* Media Modal - Responsive for Mobile & Desktop */}
       {selectedAsset && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm p-4 md:p-8"
           onClick={() => setSelectedAsset(null)}
         >
+          {/* Close button - Mobile top-right, Desktop above content */}
+          <button
+            onClick={() => setSelectedAsset(null)}
+            className="absolute top-4 right-4 md:top-8 md:right-8 z-10 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+            aria-label="Close"
+          >
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+
           <div
-            className="relative max-w-4xl w-full mx-4 max-h-[90vh]"
+            className="relative w-full max-w-5xl max-h-[90vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Close button */}
-            <button
-              onClick={() => setSelectedAsset(null)}
-              className="absolute -top-12 right-0 text-white/70 hover:text-white transition-colors"
-            >
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
+            {/* Media container - Responsive sizing */}
+            <div className="flex-1 flex items-center justify-center rounded-2xl overflow-hidden bg-black shadow-2xl">
+              {selectedAsset.video_url ? (
+                <video
+                  src={selectedAsset.video_url}
+                  className="w-full h-full max-h-[70vh] md:max-h-[75vh] object-contain"
+                  controls
+                  autoPlay
+                  loop
+                  playsInline
                 />
-              </svg>
-            </button>
-
-            {/* Video player */}
-            <div className="rounded-2xl overflow-hidden bg-black shadow-2xl">
-              <video
-                src={selectedAsset.video_url || ''}
-                className="w-full max-h-[80vh] object-contain"
-                controls
-                autoPlay
-                loop
-              />
+              ) : selectedAsset.image_url ? (
+                <img
+                  src={selectedAsset.image_url}
+                  alt={selectedAsset.name}
+                  className="w-full h-full max-h-[70vh] md:max-h-[75vh] object-contain"
+                />
+              ) : (
+                <div className="w-full h-64 flex items-center justify-center text-6xl">🎬</div>
+              )}
             </div>
 
-            {/* Video info */}
-            <div className="mt-4 text-center">
-              <h3 className="text-xl font-bold text-white">{selectedAsset.name}</h3>
-              <p className="text-gray-400 text-sm mt-1">{selectedAsset.description}</p>
+            {/* Info section - Always visible */}
+            <div className="mt-4 text-center px-4">
+              <h3 className="text-lg md:text-xl font-bold text-white truncate">{selectedAsset.name}</h3>
+              {selectedAsset.description && (
+                <p className="text-gray-400 text-sm mt-1 line-clamp-2">{selectedAsset.description}</p>
+              )}
+              
+              {/* Action buttons for mobile */}
+              <div className="flex justify-center gap-3 mt-4">
+                {selectedAsset.video_url && (
+                  <a
+                    href={selectedAsset.video_url}
+                    download
+                    className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-medium text-white transition-colors"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Download
+                  </a>
+                )}
+                <button
+                  onClick={() => setSelectedAsset(null)}
+                  className="px-4 py-2 bg-white text-black rounded-lg text-sm font-bold hover:bg-gray-200 transition-colors md:hidden"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>

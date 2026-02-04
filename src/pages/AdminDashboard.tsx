@@ -13,15 +13,17 @@ import {
   ShieldCheck,
   RefreshCw,
   LogOut,
+  History,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { AdminService, AdminStats, AdminUserView } from '@/services/admin.service';
 import { useToast } from '@/modules/core/ui/Toast';
+import { PromptHistoryTab } from './admin/PromptHistoryTab';
 
 export const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'whitelist'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'whitelist' | 'prompts'>('overview');
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [users, setUsers] = useState<AdminUserView[]>([]);
   const [loading, setLoading] = useState(true);
@@ -110,6 +112,12 @@ export const AdminDashboard = () => {
             count={pendingRequests.length}
             active={activeTab === 'whitelist'}
             onClick={() => setActiveTab('whitelist')}
+          />
+          <SidebarItem
+            icon={<History size={18} />}
+            label="Prompt History"
+            active={activeTab === 'prompts'}
+            onClick={() => setActiveTab('prompts')}
           />
         </nav>
 
@@ -317,6 +325,13 @@ export const AdminDashboard = () => {
                     </div>
                   ))
                 )}
+              </div>
+            )}
+
+            {/* PROMPTS TAB */}
+            {activeTab === 'prompts' && (
+              <div className="bg-[#111] rounded-xl border border-white/10 p-6">
+                <PromptHistoryTab />
               </div>
             )}
           </>

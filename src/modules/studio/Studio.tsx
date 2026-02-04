@@ -7,6 +7,7 @@ import { Upload, X, Film, Sparkles, Settings, ChevronDown, ChevronUp } from 'luc
 import { useVideoGeneration } from '@/context/VideoGenerationContext';
 import { WalletDisplay } from './WalletDisplay';
 import { GenerationProgress } from '@/features/creation/components/GenerationProgress';
+import { PromptHistory } from './PromptHistory';
 
 export const Studio = () => {
   const { isGenerating, startGeneration, status, lastGeneratedUrl } = useVideoGeneration();
@@ -332,9 +333,12 @@ export const Studio = () => {
 
             {/* PROMPT / IMAGE INPUT */}
             <div className="flex-1">
-              <label className="text-[10px] font-bold text-gray-500 uppercase block mb-3">
-                Input
-              </label>
+              <div className="flex items-center justify-between mb-3">
+                <label className="text-[10px] font-bold text-gray-500 uppercase">
+                  Input
+                </label>
+                <PromptHistory onSelect={(p) => setPrompt(p)} />
+              </div>
 
               {mode === 'image' && (
                 <div className="grid grid-cols-2 gap-4 mb-4">

@@ -17,6 +17,15 @@ export interface AdminUserView {
     avatar_url: string | null;
 }
 
+export interface AdminGeneration {
+    id: string;
+    user_id: string;
+    prompt: string;
+    status: string;
+    created_at: string;
+    user_email?: string;
+}
+
 export const AdminService = {
     async getStats(): Promise<AdminStats | null> {
         const { data, error } = await supabase.rpc('get_admin_stats');
@@ -78,5 +87,39 @@ export const AdminService = {
             target_email: email
         });
         if (error) throw error;
+    },
+
+    async getAllGenerations(limit: number = 200): Promise<AdminGeneration[]> {
+        // Get generations with user profile join for email
+        const { data, error } = await supabase
+            .from('generations')
+            .select(`
+                id,
+                user_id,
+                prompt,
+                status,
+                created_at,
+                profiles!generations_user_id_fkey (
+                    email
+                )
+            `)
+            .not('prompt', 'is', null)
+            .order('created_at', { ascending: false })
+            .limit(limit);
+
+        if (error) {
+            console.error('Error fetching generations:', error);
+            return [];
+        }
+
+        // Map to flatten the profile email
+        return (data || []).map((g: Record<string, unknown>) => ({
+            id: g.id as string,
+            user_id: g.user_id as string,
+            prompt: g.prompt as string,
+            status: g.status as string,
+            created_at: g.created_at as string,
+            user_email: (g.profiles as { email?: string } | null)?.email || 'Unknown'
+        }));
     }
 };
