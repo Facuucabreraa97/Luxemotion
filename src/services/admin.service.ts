@@ -90,19 +90,10 @@ export const AdminService = {
     },
 
     async getAllGenerations(limit: number = 200): Promise<AdminGeneration[]> {
-        // Get generations with user profile join for email
-        const { data, error } = await supabase
+        // Step 1: Fetch generations (no FK join to avoid PGRST200)
+        const { data: gens, error } = await supabase
             .from('generations')
-            .select(`
-                id,
-                user_id,
-                prompt,
-                status,
-                created_at,
-                profiles!generations_user_id_fkey (
-                    email
-                )
-            `)
+            .select('id, user_id, prompt, status, created_at')
             .not('prompt', 'is', null)
             .order('created_at', { ascending: false })
             .limit(limit);
@@ -112,14 +103,31 @@ export const AdminService = {
             return [];
         }
 
-        // Map to flatten the profile email
-        return (data || []).map((g: Record<string, unknown>) => ({
+        if (!gens || gens.length === 0) return [];
+
+        // Step 2: Batch-fetch emails from profiles for all unique user_ids
+        const uniqueUserIds = [...new Set(gens.map(g => g.user_id).filter(Boolean))];
+        const emailMap: Record<string, string> = {};
+
+        if (uniqueUserIds.length > 0) {
+            const { data: profiles } = await supabase
+                .from('profiles')
+                .select('id, email')
+                .in('id', uniqueUserIds);
+
+            (profiles || []).forEach((p: { id: string; email: string }) => {
+                emailMap[p.id] = p.email;
+            });
+        }
+
+        // Step 3: Merge
+        return gens.map((g) => ({
             id: g.id as string,
             user_id: g.user_id as string,
             prompt: g.prompt as string,
             status: g.status as string,
             created_at: g.created_at as string,
-            user_email: (g.profiles as { email?: string } | null)?.email || 'Unknown'
+            user_email: emailMap[g.user_id] || 'Unknown'
         }));
     }
 };
