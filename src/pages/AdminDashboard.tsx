@@ -14,16 +14,22 @@ import {
   RefreshCw,
   LogOut,
   History,
+  CreditCard as CreditCardIcon,
+  Settings,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { AdminService, AdminStats, AdminUserView } from '@/services/admin.service';
+import { PaymentService } from '@/services/payment.service';
 import { useToast } from '@/modules/core/ui/Toast';
 import { PromptHistoryTab } from './admin/PromptHistoryTab';
+import { PaymentConfigTab } from './admin/PaymentConfigTab';
+import { PaymentApprovalsTab } from './admin/PaymentApprovalsTab';
 
 export const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'whitelist' | 'prompts'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'whitelist' | 'prompts' | 'pay_config' | 'pay_approvals'>('overview');
+  const [pendingPaymentsCount, setPendingPaymentsCount] = useState(0);
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [users, setUsers] = useState<AdminUserView[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,6 +56,10 @@ export const AdminDashboard = () => {
 
         setStats(statsData);
         setUsers(usersData || []);
+
+        // Fetch pending payment count for badge
+        const pendingPay = await PaymentService.getPendingPayments();
+        setPendingPaymentsCount(pendingPay.length);
       } catch (e) {
         console.error(e);
         toast('Failed to load admin data', 'error');
@@ -119,6 +129,22 @@ export const AdminDashboard = () => {
             active={activeTab === 'prompts'}
             onClick={() => setActiveTab('prompts')}
           />
+
+          <div className="border-t border-white/10 my-3" />
+
+          <SidebarItem
+            icon={<Settings size={18} />}
+            label="Payment Config"
+            active={activeTab === 'pay_config'}
+            onClick={() => setActiveTab('pay_config')}
+          />
+          <SidebarItem
+            icon={<CreditCardIcon size={18} />}
+            label="Payment Approvals"
+            count={pendingPaymentsCount}
+            active={activeTab === 'pay_approvals'}
+            onClick={() => setActiveTab('pay_approvals')}
+          />
         </nav>
 
         <div className="p-4 border-t border-white/10">
@@ -142,7 +168,7 @@ export const AdminDashboard = () => {
             {/* Header */}
             <header className="flex justify-between items-center mb-10">
               <div>
-                <h2 className="text-2xl font-bold capitalize">{activeTab}</h2>
+                <h2 className="text-2xl font-bold capitalize">{activeTab.replace('pay_', 'Payment ').replace('_', ' ')}</h2>
                 <p className="text-gray-500">Real-time system metrics and controls</p>
               </div>
               <button
@@ -333,6 +359,16 @@ export const AdminDashboard = () => {
               <div className="bg-[#111] rounded-xl border border-white/10 p-6">
                 <PromptHistoryTab />
               </div>
+            )}
+
+            {/* PAYMENT CONFIG TAB */}
+            {activeTab === 'pay_config' && (
+              <PaymentConfigTab />
+            )}
+
+            {/* PAYMENT APPROVALS TAB */}
+            {activeTab === 'pay_approvals' && (
+              <PaymentApprovalsTab />
             )}
           </>
         )}

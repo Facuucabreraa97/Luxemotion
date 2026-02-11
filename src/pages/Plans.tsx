@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Star, Zap, Crown, Info } from 'lucide-react';
+import { CheckoutModal } from '@/components/CheckoutModal';
 
 export const Plans = () => {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('yearly');
   const [currency, setCurrency] = useState<'USD' | 'ARS' | 'USDT'>('USD');
   const [dolarBlue, setDolarBlue] = useState<number>(1200);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<{ name: string; price: number; credits: number } | null>(null);
 
   useEffect(() => {
     fetchDolarBlue();
@@ -88,9 +91,21 @@ export const Plans = () => {
     return `$ ${price.toFixed(2)}`;
   };
 
-  const handleSubscribe = (planName: string) => {
-    const msg = `Choosing the ${planName} path.\nPayment gateway integration in progress.`;
-    alert(msg);
+  const creditAmounts: Record<string, number> = {
+    TALENT: 1200,
+    PRODUCER: 4000,
+    MOGUL: 12000
+  };
+
+  const handleSubscribe = (planName: string, basePrice: number) => {
+    let price = basePrice;
+    if (billingCycle === 'yearly') price = price * 0.8;
+    setSelectedPlan({
+      name: planName,
+      price,
+      credits: creditAmounts[planName] || 1200
+    });
+    setCheckoutOpen(true);
   };
 
   return (
@@ -147,7 +162,7 @@ export const Plans = () => {
         {plans.map((plan) => (
           <div
             key={plan.name}
-            onClick={() => handleSubscribe(plan.name)}
+            onClick={() => handleSubscribe(plan.name, plan.price)}
             className={`relative p-8 rounded-3xl border flex flex-col group cursor-pointer transition-all duration-500 ${
               plan.highlight
                 ? 'bg-[#0f0f0f] border-amber-500/30 md:-translate-y-4 shadow-2xl shadow-amber-900/10'
@@ -244,6 +259,17 @@ export const Plans = () => {
           )}
         </p>
       </div>
+
+      {/* Checkout Modal */}
+      {selectedPlan && (
+        <CheckoutModal
+          isOpen={checkoutOpen}
+          onClose={() => setCheckoutOpen(false)}
+          planName={selectedPlan.name}
+          creditAmount={selectedPlan.credits}
+          priceUSD={selectedPlan.price}
+        />
+      )}
     </div>
   );
 };
