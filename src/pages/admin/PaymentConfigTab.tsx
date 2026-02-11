@@ -1,12 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { PaymentService, PaymentMethodConfig } from '@/services/payment.service';
-import { RefreshCw, Save, ToggleLeft, ToggleRight, Plus } from 'lucide-react';
+import { RefreshCw, Save, ToggleLeft, ToggleRight, Plus, Upload } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 export const PaymentConfigTab = () => {
   const [methods, setMethods] = useState<PaymentMethodConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [uploadingQr, setUploadingQr] = useState<string | null>(null);
+  const qrInputRef = useRef<HTMLInputElement>(null);
+  const [qrUploadTargetId, setQrUploadTargetId] = useState<string | null>(null);
 
   // New method form
   const [showNewForm, setShowNewForm] = useState(false);
@@ -80,6 +84,37 @@ export const PaymentConfigTab = () => {
       loadMethods();
     } catch (e) {
       showToast('Error creating method');
+    }
+  };
+
+  const handleQrUpload = async (methodId: string, file: File) => {
+    setUploadingQr(methodId);
+    try {
+      const fileName = `qr_${methodId}_${Date.now()}.${file.name.split('.').pop()}`;
+      const filePath = `qr-codes/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('payments')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) {
+        showToast('Error uploading QR: ' + uploadError.message);
+        return;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from('payments')
+        .getPublicUrl(filePath);
+
+      const publicUrl = urlData.publicUrl;
+
+      // Update local state
+      handleFieldChange(methodId, 'qr_url', publicUrl);
+      showToast('QR uploaded! Click Save to persist.');
+    } catch (e) {
+      showToast('Error uploading QR image');
+    } finally {
+      setUploadingQr(null);
     }
   };
 
@@ -235,17 +270,50 @@ export const PaymentConfigTab = () => {
               ))}
             </div>
 
-            {/* QR Preview */}
-            {method.data.qr_url && (
-              <div className="mt-4">
-                <label className="block text-xs text-gray-500 uppercase font-bold mb-2">QR Preview</label>
-                <img
-                  src={method.data.qr_url}
-                  alt="QR Code"
-                  className="w-32 h-32 rounded-lg border border-white/10 bg-white p-1 object-contain"
-                />
+            {/* QR Preview + Upload */}
+            <div className="mt-4">
+              <label className="block text-xs text-gray-500 uppercase font-bold mb-2">QR Code</label>
+              <div className="flex items-end gap-4">
+                {method.data.qr_url ? (
+                  <img
+                    src={method.data.qr_url}
+                    alt="QR Code"
+                    className="w-32 h-32 rounded-lg border border-white/10 bg-white p-1 object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <div className="w-32 h-32 rounded-lg border border-dashed border-white/20 bg-white/5 flex items-center justify-center text-gray-600 text-xs">
+                    No QR
+                  </div>
+                )}
+                <div>
+                  <input
+                    ref={qrUploadTargetId === method.id ? qrInputRef : undefined}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleQrUpload(method.id, file);
+                    }}
+                  />
+                  <button
+                    onClick={() => {
+                      setQrUploadTargetId(method.id);
+                      setTimeout(() => qrInputRef.current?.click(), 50);
+                    }}
+                    disabled={uploadingQr === method.id}
+                    className="flex items-center gap-2 px-3 py-2 bg-white/5 text-gray-300 border border-white/10 rounded-lg hover:bg-white/10 transition text-xs font-bold disabled:opacity-50"
+                  >
+                    <Upload size={14} />
+                    {uploadingQr === method.id ? 'Uploading...' : 'Upload QR'}
+                  </button>
+                  <p className="text-[10px] text-gray-600 mt-1">Or paste URL above</p>
+                </div>
               </div>
-            )}
+            </div>
 
             {/* Save */}
             <div className="mt-6 flex justify-end">

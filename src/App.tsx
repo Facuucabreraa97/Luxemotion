@@ -20,6 +20,7 @@ import { Plans } from '@/pages/Plans';
 import { Landing } from '@/pages/Landing';
 import { AdminDashboard } from '@/pages/AdminDashboard';
 import { UserService } from '@/services/user.service';
+import { LanguageProvider } from '@/context/LanguageContext';
 
 function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -138,6 +139,7 @@ function App() {
   };
 
   return (
+    <LanguageProvider>
     <ToastProvider>
       <BrowserRouter>
         <VideoGenerationProvider>
@@ -194,6 +196,7 @@ function App() {
         </VideoGenerationProvider>
       </BrowserRouter>
     </ToastProvider>
+    </LanguageProvider>
   );
 }
 

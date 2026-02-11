@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { Navigate, Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Session } from '@supabase/supabase-js';
-// UserProfile import removed
-import { LogOut, Video, LayoutGrid, ShoppingBag } from 'lucide-react';
+import { LogOut, Video, LayoutGrid, ShoppingBag, CreditCard } from 'lucide-react';
 import { LevelProgress } from '@/modules/gamification/LevelProgress';
+import { useTranslation } from '@/context/LanguageContext';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 interface LayoutProps {
   session: Session | null;
@@ -22,6 +23,7 @@ export const Layout: React.FC<LayoutProps> = ({ session }) => {
 
   const NavItems = () => {
     const [imgError, setImgError] = useState(false);
+    const { t } = useTranslation();
     return (
       <>
         <div className="mb-8 px-6 pt-6">
@@ -48,7 +50,7 @@ export const Layout: React.FC<LayoutProps> = ({ session }) => {
               `flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive ? 'bg-blue-600/10 text-blue-500 border border-blue-600/20' : 'text-gray-400 hover:text-white hover:bg-white/5'}`
             }
           >
-            <Video size={20} /> <span className="font-medium">Studio</span>
+            <Video size={20} /> <span className="font-medium">{t('sidebar.studio')}</span>
           </NavLink>
           <NavLink
             to="/app/gallery"
@@ -56,7 +58,7 @@ export const Layout: React.FC<LayoutProps> = ({ session }) => {
               `flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive ? 'bg-blue-600/10 text-blue-500 border border-blue-600/20' : 'text-gray-400 hover:text-white hover:bg-white/5'}`
             }
           >
-            <LayoutGrid size={20} /> <span className="font-medium">Gallery</span>
+            <LayoutGrid size={20} /> <span className="font-medium">{t('sidebar.gallery')}</span>
           </NavLink>
           <NavLink
             to="/app/marketplace"
@@ -64,15 +66,24 @@ export const Layout: React.FC<LayoutProps> = ({ session }) => {
               `flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive ? 'bg-blue-600/10 text-blue-500 border border-blue-600/20' : 'text-gray-400 hover:text-white hover:bg-white/5'}`
             }
           >
-            <ShoppingBag size={20} /> <span className="font-medium">Marketplace</span>
+            <ShoppingBag size={20} /> <span className="font-medium">{t('sidebar.marketplace')}</span>
+          </NavLink>
+          <NavLink
+            to="/app/billing"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive ? 'bg-blue-600/10 text-blue-500 border border-blue-600/20' : 'text-gray-400 hover:text-white hover:bg-white/5'}`
+            }
+          >
+            <CreditCard size={20} /> <span className="font-medium">{t('sidebar.billing')}</span>
           </NavLink>
         </nav>
-        <div className="p-4 mt-auto border-t border-white/5">
+        <div className="p-4 mt-auto border-t border-white/5 space-y-1">
+          <LanguageSwitcher />
           <button
             onClick={handleLogout}
             className="flex items-center gap-3 text-gray-400 hover:text-red-400 transition-colors w-full px-4 py-2"
           >
-            <LogOut size={18} /> <span>Sign Out</span>
+            <LogOut size={18} /> <span>{t('sidebar.signOut')}</span>
           </button>
         </div>
       </>
@@ -123,6 +134,14 @@ export const Layout: React.FC<LayoutProps> = ({ session }) => {
             }
           >
             <ShoppingBag size={20} />
+          </NavLink>
+          <NavLink
+            to="/app/billing"
+            className={({ isActive }) =>
+              `p-3 rounded-xl transition-all ${isActive ? 'bg-white text-black shadow-lg scale-105' : 'text-gray-500'}`
+            }
+          >
+            <CreditCard size={20} />
           </NavLink>
           <button onClick={handleLogout} className="p-3 text-red-500/50 hover:text-red-500">
             <LogOut size={20} />

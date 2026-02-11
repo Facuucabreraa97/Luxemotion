@@ -242,6 +242,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     src={selectedMethod.data.qr_url}
                     alt="QR Code"
                     className="w-48 h-48 rounded-xl border border-white/10 bg-white p-2 object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
                   />
                 </div>
               )}
