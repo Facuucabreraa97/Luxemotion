@@ -21,14 +21,16 @@ export const MarketService = {
     if (error) throw error;
   },
 
-  // [SECURE] COMPRAR ACTIVO via Edge Function
+  // [SECURE] COMPRAR ACTIVO via ACID RPC (atomic transaction)
   async buyAsset(assetId: string, buyerId: string) {
-    const { error } = await supabase.functions.invoke('execute-purchase', {
-      body: { assetId, buyerId },
+    const { data, error } = await supabase.rpc('buy_talent', {
+      p_talent_id: parseInt(assetId),
+      p_buyer_id: buyerId,
     });
 
     if (error) throw error;
-    return { success: true };
+    if (data && !data.success) throw new Error(data.message);
+    return data;
   },
 
   // OBTENER MIS ACTIVOS
