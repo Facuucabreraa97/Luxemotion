@@ -34,22 +34,15 @@ export const PaymentApprovalsTab = () => {
   const handleReview = async (txId: string, decision: 'approved' | 'rejected') => {
     const overrideAmount = bonusAmounts[txId];
 
-    // Extract plan info from transaction description (format: [PLAN:tier:cycle])
+    // Read plan info directly from transaction columns (robust)
     const tx = pending.find(t => t.id === txId);
-    let planTier: string | undefined;
-    let billingCycle: string | undefined;
-    if (tx?.description) {
-      const match = tx.description.match(/\[PLAN:(\w+):(\w+)\]/);
-      if (match) {
-        planTier = match[1];
-        billingCycle = match[2];
-      }
-    }
+    const planTier = tx?.plan_tier || undefined;
+    const billingCycle = tx?.billing_cycle || undefined;
 
     const planLabel = planTier ? ` → ${planTier.toUpperCase()} (${billingCycle})` : '';
     const confirmMsg = decision === 'approved'
-      ? `Approve this payment and credit ${overrideAmount !== undefined ? overrideAmount : '(original)'} CR?${planLabel}`
-      : 'Reject this payment? No credits will be added.';
+      ? `Approve ${overrideAmount !== undefined ? overrideAmount : '(original)'} CR${planLabel}?`
+      : 'Reject this payment?';
 
     if (!window.confirm(confirmMsg)) return;
 
@@ -63,7 +56,7 @@ export const PaymentApprovalsTab = () => {
         billingCycle
       );
       if (result.success) {
-        showToast(decision === 'approved' ? `✓ Approved${planLabel} (${overrideAmount ?? 'original'} CR)` : '✗ Rejected');
+        showToast(decision === 'approved' ? `✓ Approved${planLabel}` : '✗ Rejected');
         loadPayments();
       } else {
         showToast(result.message);
@@ -160,6 +153,11 @@ export const PaymentApprovalsTab = () => {
                       <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full font-bold">
                         PENDING
                       </span>
+                      {tx.plan_tier && (
+                        <span className="text-xs bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full font-bold uppercase">
+                          ⚡ {tx.plan_tier} ({tx.billing_cycle || 'monthly'})
+                        </span>
+                      )}
                     </div>
                     <div className="text-sm text-gray-300 mb-1">{tx.user_email}</div>
                     <div className="flex items-center gap-4 text-xs text-gray-500">

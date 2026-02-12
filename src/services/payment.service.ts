@@ -29,6 +29,8 @@ export interface PendingPayment {
     review_status: string;
     created_at: string;
     user_email?: string;
+    plan_tier?: string | null;
+    billing_cycle?: string | null;
 }
 
 // ── Service ────────────────────────────────────────────────
@@ -141,7 +143,7 @@ export const PaymentService = {
     async getPendingPayments(): Promise<PendingPayment[]> {
         const { data: txs, error } = await supabase
             .from('transactions')
-            .select('id, user_id, amount, description, payment_method, proof_url, tx_hash, review_status, created_at')
+            .select('id, user_id, amount, description, payment_method, proof_url, tx_hash, review_status, created_at, plan_tier, billing_cycle')
             .eq('review_status', 'pending_review')
             .order('created_at', { ascending: false });
 
@@ -177,7 +179,7 @@ export const PaymentService = {
     async getReviewedPayments(limit = 50): Promise<PendingPayment[]> {
         const { data: txs, error } = await supabase
             .from('transactions')
-            .select('id, user_id, amount, description, payment_method, proof_url, tx_hash, review_status, created_at')
+            .select('id, user_id, amount, description, payment_method, proof_url, tx_hash, review_status, created_at, plan_tier, billing_cycle')
             .in('review_status', ['approved', 'rejected'])
             .order('created_at', { ascending: false })
             .limit(limit);
