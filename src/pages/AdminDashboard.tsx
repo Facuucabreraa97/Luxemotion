@@ -16,6 +16,7 @@ import {
   History,
   CreditCard as CreditCardIcon,
   Settings,
+  Mail,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { AdminService, AdminStats, AdminUserView } from '@/services/admin.service';
@@ -90,6 +91,7 @@ export const AdminDashboard = () => {
   );
 
   const pendingRequests = users.filter((u) => u.whitelist_status === 'pending');
+  const approvedUsers = users.filter((u) => u.whitelist_status === 'approved');
 
   return (
     <div className="min-h-screen bg-black text-white font-sans flex text-sm">
@@ -331,13 +333,13 @@ export const AdminDashboard = () => {
                         <button
                           onClick={() =>
                             handleAction(
-                              () => AdminService.toggleBan(req.email, false),
-                              'Approved!'
+                              () => AdminService.approveAndNotify(req.email),
+                              'Approved & Email Sent!'
                             )
                           }
                           className="px-4 py-2 bg-emerald-500 text-black font-bold rounded-lg hover:bg-emerald-400 transition flex items-center gap-2"
                         >
-                          <Check size={16} /> Approve
+                          <Check size={16} /> Approve & Notify
                         </button>
                         <button
                           onClick={() =>
@@ -350,6 +352,39 @@ export const AdminDashboard = () => {
                       </div>
                     </div>
                   ))
+                )}
+
+                {/* Recently Approved - Re-send Invite */}
+                {approvedUsers.length > 0 && (
+                  <>
+                    <h3 className="text-gray-500 text-xs font-bold uppercase tracking-wider mt-8 mb-3">
+                      Recently Approved ({approvedUsers.length})
+                    </h3>
+                    {approvedUsers.slice(0, 20).map((user) => (
+                      <div
+                        key={user.email}
+                        className="bg-[#111] p-4 rounded-xl border border-white/5 flex justify-between items-center"
+                      >
+                        <div>
+                          <h3 className="font-medium text-sm">{user.email}</h3>
+                          <p className="text-gray-600 text-xs">
+                            Approved · {user.last_sign_in_at ? `Last login: ${new Date(user.last_sign_in_at).toLocaleDateString()}` : 'Never logged in'}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() =>
+                            handleAction(
+                              () => AdminService.sendWelcomeEmail(user.email),
+                              'Invite re-sent!'
+                            )
+                          }
+                          className="px-3 py-1.5 bg-white/5 text-cyan-400 text-xs font-bold rounded-lg hover:bg-cyan-500/10 transition flex items-center gap-1.5"
+                        >
+                          <Mail size={14} /> Re-send Invite
+                        </button>
+                      </div>
+                    ))}
+                  </>
                 )}
               </div>
             )}

@@ -129,5 +129,26 @@ export const AdminService = {
             created_at: g.created_at as string,
             user_email: emailMap[g.user_id] || 'Unknown'
         }));
-    }
+    },
+
+    async sendWelcomeEmail(email: string) {
+        const { data, error } = await supabase.functions.invoke('send-welcome-email', {
+            body: { email },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        return data;
+    },
+
+    async approveAndNotify(email: string) {
+        // Step 1: Approve in DB
+        await AdminService.toggleBan(email, false);
+        // Step 2: Send welcome email (best-effort, don't block approval)
+        try {
+            await AdminService.sendWelcomeEmail(email);
+        } catch (emailErr) {
+            console.warn('Welcome email failed (user still approved):', emailErr);
+            throw new Error('Approved but email failed. Use Re-send Invite.');
+        }
+    },
 };
