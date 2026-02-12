@@ -7,7 +7,7 @@ export const Plans = () => {
   const [currency, setCurrency] = useState<'USD' | 'ARS' | 'USDT'>('USD');
   const [dolarBlue, setDolarBlue] = useState<number>(1200);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<{ name: string; price: number; credits: number } | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<{ name: string; price: number; credits: number; tier: string; cycle: 'monthly' | 'yearly' } | null>(null);
 
   useEffect(() => {
     fetchDolarBlue();
@@ -100,10 +100,16 @@ export const Plans = () => {
   const handleSubscribe = (planName: string, basePrice: number) => {
     let price = basePrice;
     if (billingCycle === 'yearly') price = price * 0.8;
+
+    // For yearly, show total for 12 months
+    const checkoutPrice = billingCycle === 'yearly' ? price * 12 : price;
+
     setSelectedPlan({
       name: planName,
-      price,
-      credits: creditAmounts[planName] || 1200
+      price: checkoutPrice,
+      credits: creditAmounts[planName] || 1200,
+      tier: planName.toLowerCase(),
+      cycle: billingCycle
     });
     setCheckoutOpen(true);
   };
@@ -268,6 +274,8 @@ export const Plans = () => {
           planName={selectedPlan.name}
           creditAmount={selectedPlan.credits}
           priceUSD={selectedPlan.price}
+          planTier={selectedPlan.tier}
+          billingCycle={selectedPlan.cycle}
         />
       )}
     </div>

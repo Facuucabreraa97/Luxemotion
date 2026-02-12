@@ -33,8 +33,22 @@ export const PaymentApprovalsTab = () => {
 
   const handleReview = async (txId: string, decision: 'approved' | 'rejected') => {
     const overrideAmount = bonusAmounts[txId];
+
+    // Extract plan info from transaction description (format: [PLAN:tier:cycle])
+    const tx = pending.find(t => t.id === txId);
+    let planTier: string | undefined;
+    let billingCycle: string | undefined;
+    if (tx?.description) {
+      const match = tx.description.match(/\[PLAN:(\w+):(\w+)\]/);
+      if (match) {
+        planTier = match[1];
+        billingCycle = match[2];
+      }
+    }
+
+    const planLabel = planTier ? ` → ${planTier.toUpperCase()} (${billingCycle})` : '';
     const confirmMsg = decision === 'approved'
-      ? `Approve this payment and credit the user with ${overrideAmount !== undefined ? overrideAmount : '(original)'} CR?`
+      ? `Approve this payment and credit ${overrideAmount !== undefined ? overrideAmount : '(original)'} CR?${planLabel}`
       : 'Reject this payment? No credits will be added.';
 
     if (!window.confirm(confirmMsg)) return;
@@ -44,10 +58,12 @@ export const PaymentApprovalsTab = () => {
       const result = await PaymentService.reviewPayment(
         txId,
         decision,
-        overrideAmount !== undefined ? overrideAmount : undefined
+        overrideAmount !== undefined ? overrideAmount : undefined,
+        planTier,
+        billingCycle
       );
       if (result.success) {
-        showToast(decision === 'approved' ? `✓ Payment approved (${overrideAmount ?? 'original'} CR)` : '✗ Payment rejected');
+        showToast(decision === 'approved' ? `✓ Approved${planLabel} (${overrideAmount ?? 'original'} CR)` : '✗ Rejected');
         loadPayments();
       } else {
         showToast(result.message);

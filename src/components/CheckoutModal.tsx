@@ -8,6 +8,8 @@ interface CheckoutModalProps {
   planName?: string;
   creditAmount: number;
   priceUSD: number;
+  planTier?: string;
+  billingCycle?: 'monthly' | 'yearly';
 }
 
 type Step = 'select_method' | 'payment_details' | 'upload_proof' | 'confirmation';
@@ -18,6 +20,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   planName,
   creditAmount,
   priceUSD,
+  planTier,
+  billingCycle,
 }) => {
   const [methods, setMethods] = useState<PaymentMethodConfig[]>([]);
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethodConfig | null>(null);
@@ -99,7 +103,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         selectedMethod.id,
         proofFile || undefined,
         txHash || undefined,
-        planName ? `${planName} Plan - ${creditAmount} Credits` : `${creditAmount} Credits`
+        planName ? `${planName} Plan - ${creditAmount} Credits` : `${creditAmount} Credits`,
+        planTier,
+        billingCycle
       );
 
       if (result.success) {

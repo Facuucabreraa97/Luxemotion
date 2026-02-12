@@ -88,7 +88,9 @@ export const PaymentService = {
         paymentMethod: string,
         proofFile?: File,
         txHash?: string,
-        description?: string
+        description?: string,
+        planTier?: string,
+        billingCycle?: string
     ): Promise<{ success: boolean; message: string }> {
 
         let proofUrl: string | null = null;
@@ -114,14 +116,18 @@ export const PaymentService = {
             proofUrl = urlData.publicUrl;
         }
 
-        // Call RPC
-        const { data, error } = await supabase.rpc('submit_manual_payment', {
+        const rpcParams: Record<string, unknown> = {
             p_amount: amount,
             p_payment_method: paymentMethod,
             p_proof_url: proofUrl,
             p_tx_hash: txHash || null,
             p_description: description || 'Credit Purchase'
-        });
+        };
+        if (planTier) rpcParams.p_plan_tier = planTier;
+        if (billingCycle) rpcParams.p_billing_cycle = billingCycle;
+
+        // Call RPC
+        const { data, error } = await supabase.rpc('submit_manual_payment', rpcParams);
 
         if (error) {
             console.error('Error submitting payment:', error);
@@ -238,7 +244,9 @@ export const PaymentService = {
     async reviewPayment(
         transactionId: string,
         decision: 'approved' | 'rejected',
-        overrideAmount?: number
+        overrideAmount?: number,
+        planTier?: string,
+        billingCycle?: string
     ): Promise<{ success: boolean; message: string }> {
         const params: Record<string, unknown> = {
             p_transaction_id: transactionId,
@@ -247,6 +255,9 @@ export const PaymentService = {
         if (overrideAmount !== undefined && overrideAmount > 0) {
             params.p_override_amount = overrideAmount;
         }
+        if (planTier) params.p_plan_tier = planTier;
+        if (billingCycle) params.p_billing_cycle = billingCycle;
+
         const { data, error } = await supabase.rpc('review_payment', params);
 
         if (error) {

@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { Session } from '@supabase/supabase-js';
 import { LogOut, Video, LayoutGrid, ShoppingBag, CreditCard } from 'lucide-react';
 import { LevelProgress } from '@/modules/gamification/LevelProgress';
+import { PlanStatusWidget } from '@/components/PlanStatusWidget';
 import { useTranslation } from '@/context/LanguageContext';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
@@ -39,8 +40,9 @@ export const Layout: React.FC<LayoutProps> = ({ session }) => {
               MIVIDEO<span className="text-blue-500">AI</span>
             </h1>
           )}
-          <div className="mt-4">
+          <div className="mt-4 space-y-2">
             <LevelProgress />
+            <PlanStatusWidget />
           </div>
         </div>
         <nav className="flex-1 px-4 space-y-2">
