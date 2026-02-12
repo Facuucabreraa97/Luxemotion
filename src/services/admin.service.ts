@@ -132,7 +132,7 @@ export const AdminService = {
     },
 
     async sendWelcomeEmail(email: string) {
-        const { data, error } = await supabase.functions.invoke('send-email', {
+        const { data, error } = await supabase.functions.invoke('swift-task', {
             body: { email, template: 'welcome' },
         });
         if (error) throw error;
@@ -141,7 +141,7 @@ export const AdminService = {
     },
 
     async sendEmail(email: string, template: string, vars: Record<string, string> = {}) {
-        const { data, error } = await supabase.functions.invoke('send-email', {
+        const { data, error } = await supabase.functions.invoke('swift-task', {
             body: { email, template, vars },
         });
         if (error) throw error;
