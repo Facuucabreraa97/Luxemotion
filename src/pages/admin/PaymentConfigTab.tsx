@@ -58,7 +58,10 @@ export const PaymentConfigTab = () => {
   const handleSave = async (method: PaymentMethodConfig) => {
     setSaving(method.id);
     try {
-      await PaymentService.updatePaymentMethod(method.id, { data: method.data });
+      await PaymentService.updatePaymentMethod(method.id, {
+        data: method.data,
+        support_whatsapp_number: method.support_whatsapp_number || ''
+      } as Partial<PaymentMethodConfig>);
       showToast(`${method.label} saved ✓`);
     } catch (e) {
       showToast('Error saving');
@@ -313,6 +316,25 @@ export const PaymentConfigTab = () => {
                   <p className="text-[10px] text-gray-600 mt-1">Or paste URL above</p>
                 </div>
               </div>
+            </div>
+
+            {/* WhatsApp Support Number */}
+            <div className="mt-4">
+              <label className="block text-xs text-gray-500 uppercase font-bold mb-1 tracking-wider">
+                💬 WhatsApp Support Number
+              </label>
+              <input
+                type="text"
+                value={method.support_whatsapp_number || ''}
+                onChange={e => {
+                  setMethods(prev => prev.map(m =>
+                    m.id === method.id ? { ...m, support_whatsapp_number: e.target.value } : m
+                  ));
+                }}
+                placeholder="5491123456789 (international, no +)"
+                className="w-full max-w-sm bg-black border border-white/10 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:border-white/30 transition"
+              />
+              <p className="text-[10px] text-gray-600 mt-1">Users will see a "Confirm by WhatsApp" button after payment</p>
             </div>
 
             {/* Save */}

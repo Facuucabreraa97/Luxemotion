@@ -1,6 +1,8 @@
-import React from 'react';
-import { Wallet, AlertTriangle, Plus } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Wallet, AlertTriangle, Plus, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { PaymentService } from '@/services/payment.service';
+import { supabase } from '@/lib/supabase';
 
 interface WalletDisplayProps {
   balance: number | null;
@@ -14,6 +16,18 @@ export const WalletDisplay: React.FC<WalletDisplayProps> = ({
   requiredCost,
 }) => {
   const isLowBalance = balance !== null && balance < requiredCost;
+  const [pendingCredits, setPendingCredits] = useState<number>(0);
+
+  useEffect(() => {
+    const fetchPending = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const pending = await PaymentService.getPendingCredits(user.id);
+        setPendingCredits(pending);
+      }
+    };
+    fetchPending();
+  }, [balance]); // re-fetch when balance changes
 
   // Format numbers for clean display
   const formattedBalance = balance !== null ? balance.toLocaleString() : '---';
@@ -60,6 +74,14 @@ export const WalletDisplay: React.FC<WalletDisplayProps> = ({
           {isLoading ? '...' : formattedBalance}
         </h3>
         <span className="text-xs font-bold text-gray-500 mb-1">CR</span>
+
+        {/* Pending Credits Indicator */}
+        {!isLoading && pendingCredits > 0 && (
+          <span className="flex items-center gap-1 text-amber-400 text-sm font-bold mb-1 animate-pulse">
+            <Clock size={12} />
+            (+{pendingCredits.toLocaleString()})
+          </span>
+        )}
       </div>
 
       {/* Logic-based Message */}
@@ -72,6 +94,14 @@ export const WalletDisplay: React.FC<WalletDisplayProps> = ({
               This generation requires {requiredCost} CR.
             </p>
           </div>
+        </div>
+      )}
+
+      {/* Pending separator message */}
+      {!isLoading && pendingCredits > 0 && (
+        <div className="mt-2 text-[10px] text-amber-400/70 flex items-center gap-1">
+          <Clock size={10} />
+          <span>{pendingCredits.toLocaleString()} CR pending approval</span>
         </div>
       )}
     </div>

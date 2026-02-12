@@ -245,3 +245,118 @@ Para el modelo de negocio (whitelist + ads + entretenimiento):
 | **Videos no persisten**     | `pollStatus` no pasaba `provider` al restaurar sesión | Agregado `savedProvider` en `useEffect`     | `b67893a` |
 | **Comportamiento errático** | `<ToastProvider>` duplicado en `App.tsx`              | Removido wrapper duplicado                  | `b67893a` |
 | **Tab switching refresh**   | Vite HMR en modo desarrollo                           | NO es bug - es comportamiento normal de dev | N/A       |
+
+---
+
+## 📅 Actualización: Payment Gateway + Sidebar + i18n (11/02/2026)
+
+### 9. Manual Payment Gateway (MercadoPago + Crypto)
+
+Se implementó un sistema de pagos manuales completo con flujo de aprobación admin.
+
+#### 9.1 Arquitectura
+
+```
+Usuario elige plan → CheckoutModal → Selecciona método → Sube comprobante
+    → submit_manual_payment RPC → Estado 'pending_review'
+    → Admin aprueba en PaymentApprovalsTab → review_payment RPC → Créditos acreditados
+```
+
+#### 9.2 Base de Datos
+
+| Cambio | Archivo | Descripción |
+|--------|---------|-------------|
+| **ALTER TABLE `transactions`** | `payment_gateway_migration.sql` | Nuevas columnas: `payment_method`, `proof_url`, `tx_hash`, `review_status`, `reviewed_by`, `reviewed_at` |
+| **CREATE TABLE `payment_methods_config`** | `payment_gateway_migration.sql` | Config editable para cada método de pago (alias, CVU, wallet, QR, instrucciones) |
+| **RPC `submit_manual_payment`** | `payment_gateway_migration.sql` | Crea transacción con `review_status = 'pending_review'` |
+| **RPC `review_payment`** | `payment_gateway_migration.sql` | Admin aprueba/rechaza; si aprueba, acredita créditos atómicamente |
+| **Storage bucket `payments`** | `setup_payments_bucket.sql` | Políticas: read público, upload comprobantes (users), upload QR (admins) |
+
+**REGLA CRÍTICA:** El RPC `review_payment` verifica `is_admin` y ejecuta crédito + actualización de estado en una transacción atómica.
+
+#### 9.3 Métodos Seed
+
+| Método | ID | Datos |
+|--------|----|-------|
+| **MercadoPago** | `mercadopago` | alias, CVU, qr_url, instrucciones |
+| **USDT TRC-20** | `crypto_usdt_trc20` | wallet_address, network, qr_url, instrucciones |
+
+#### 9.4 Archivos Nuevos
+
+| Archivo | Propósito |
+|---------|-----------|
+| `supabase/payment_gateway_migration.sql` | Migración completa de DB |
+| `supabase/setup_payments_bucket.sql` | Políticas de Storage bucket |
+| `src/services/payment.service.ts` | Service layer: CRUD métodos, submit/review, upload proof |
+| `src/pages/admin/PaymentConfigTab.tsx` | Admin: config de métodos (alias, CVU, wallet, QR upload) |
+| `src/pages/admin/PaymentApprovalsTab.tsx` | Admin: aprobar/rechazar pagos pendientes |
+| `src/components/CheckoutModal.tsx` | Modal multi-paso para checkout del usuario |
+
+#### 9.5 Archivos Modificados
+
+| Archivo | Cambio |
+|---------|--------|
+| `src/pages/AdminDashboard.tsx` | +2 tabs en sidebar: "Payment Config" + "Payment Approvals" (con badge de pendientes) |
+| `src/pages/Plans.tsx` | `handleSubscribe` abre `CheckoutModal` en vez de `alert()` |
+
+#### 9.6 QR Fix
+
+- Las `<img>` de QR tienen `onError` handler que oculta imágenes rotas
+- `PaymentConfigTab` tiene botón **Upload QR** que sube directo al bucket `payments/qr-codes/`
+- El admin puede pegar URL manualmente O subir imagen
+
+---
+
+### 10. Sidebar: Billing
+
+- Nuevo NavLink `Billing` con ícono `CreditCard` en `Layout.tsx`
+- Ubicación: debajo de Marketplace (desktop sidebar + mobile bottom dock)
+- Ruta: `/app/billing` → `Plans.tsx` (ruta ya existía en `App.tsx`)
+
+---
+
+### 11. Sistema de Internacionalización (i18n)
+
+Se implementó un sistema ES/EN completo con detección automática del idioma del navegador.
+
+#### 11.1 Archivos Nuevos
+
+| Archivo | Propósito |
+|---------|-----------|
+| `src/context/LanguageContext.tsx` | Contexto global + hook `useTranslation` + persistencia en `localStorage` |
+| `src/locales/en.ts` | Diccionario inglés (sidebar, checkout, plans, common) |
+| `src/locales/es.ts` | Diccionario español |
+| `src/components/LanguageSwitcher.tsx` | Botón toggle 🇺🇸 EN / 🇦🇷 ES con ícono Globe |
+
+#### 11.2 Integración
+
+- `App.tsx` envuelto con `<LanguageProvider>` (contexto global)
+- `Layout.tsx` (Sidebar): todos los labels usan `t('sidebar.studio')`, `t('sidebar.billing')` etc.
+- `LanguageSwitcher` ubicado en el footer del sidebar (arriba de Sign Out)
+- Auto-detecta idioma del browser en primera visita
+- Diccionarios incluyen claves para: sidebar, checkout modal, plans page, y textos comunes
+
+#### 11.3 Uso
+
+```typescript
+// En cualquier componente dentro de <LanguageProvider>
+const { t, language, setLanguage } = useTranslation();
+return <span>{t('sidebar.billing')}</span>; // → "Billing" o "Facturación"
+```
+
+---
+
+### 12. Commits Recientes
+
+| Commit | Descripción |
+|--------|-------------|
+| `5d48867` | feat: manual payment gateway - MercadoPago + Crypto support |
+| `63d0697` | feat: QR fix + Sidebar Billing + i18n system (ES/EN) |
+
+### 13. SQLs Pendientes de Ejecución en Supabase
+
+> ⚠️ **ACCIÓN REQUERIDA:** Ejecutar estos archivos en Supabase SQL Editor para que las nuevas features funcionen:
+
+1. `supabase/payment_gateway_migration.sql` — Tablas, columnas, RLS, RPCs
+2. `supabase/setup_payments_bucket.sql` — Bucket de storage + políticas
+

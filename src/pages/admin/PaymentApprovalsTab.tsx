@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { PaymentService, PendingPayment } from '@/services/payment.service';
-import { Check, X, RefreshCw, ExternalLink, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { Check, X, RefreshCw, ExternalLink, Clock, CheckCircle, XCircle, Gift } from 'lucide-react';
 
 export const PaymentApprovalsTab = () => {
   const [pending, setPending] = useState<PendingPayment[]>([]);
@@ -9,6 +9,7 @@ export const PaymentApprovalsTab = () => {
   const [processing, setProcessing] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<'pending' | 'history'>('pending');
   const [toast, setToast] = useState<string | null>(null);
+  const [bonusAmounts, setBonusAmounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     loadPayments();
@@ -31,22 +32,27 @@ export const PaymentApprovalsTab = () => {
   };
 
   const handleReview = async (txId: string, decision: 'approved' | 'rejected') => {
+    const overrideAmount = bonusAmounts[txId];
     const confirmMsg = decision === 'approved'
-      ? 'Approve this payment and credit the user?'
+      ? `Approve this payment and credit the user with ${overrideAmount !== undefined ? overrideAmount : '(original)'} CR?`
       : 'Reject this payment? No credits will be added.';
 
     if (!window.confirm(confirmMsg)) return;
 
     setProcessing(txId);
     try {
-      const result = await PaymentService.reviewPayment(txId, decision);
+      const result = await PaymentService.reviewPayment(
+        txId,
+        decision,
+        overrideAmount !== undefined ? overrideAmount : undefined
+      );
       if (result.success) {
-        showToast(decision === 'approved' ? '✓ Payment approved, credits added' : '✗ Payment rejected');
+        showToast(decision === 'approved' ? `✓ Payment approved (${overrideAmount ?? 'original'} CR)` : '✗ Payment rejected');
         loadPayments();
       } else {
         showToast(result.message);
       }
-    } catch (e) {
+    } catch {
       showToast('Error processing review');
     } finally {
       setProcessing(null);
@@ -162,6 +168,27 @@ export const PaymentApprovalsTab = () => {
                       <ExternalLink size={12} /> View Proof
                     </a>
                   )}
+
+                  {/* Bonus Amount Editor */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex flex-col items-end">
+                      <label className="text-[10px] text-gray-600 uppercase font-bold mb-1 flex items-center gap-1">
+                        <Gift size={10} /> Final CR
+                      </label>
+                      <input
+                        type="number"
+                        value={bonusAmounts[tx.id] ?? tx.amount}
+                        onChange={e => setBonusAmounts(prev => ({ ...prev, [tx.id]: parseInt(e.target.value) || 0 }))}
+                        className="w-24 bg-black border border-white/10 rounded-lg px-2 py-1.5 text-sm text-center font-mono font-bold text-emerald-400 focus:outline-none focus:border-emerald-500/50 transition"
+                        min={0}
+                      />
+                      {bonusAmounts[tx.id] !== undefined && bonusAmounts[tx.id] !== tx.amount && (
+                        <span className="text-[9px] text-amber-400 mt-0.5">
+                          original: {tx.amount}
+                        </span>
+                      )}
+                    </div>
+                  </div>
 
                   {/* Actions */}
                   <div className="flex gap-2 shrink-0">

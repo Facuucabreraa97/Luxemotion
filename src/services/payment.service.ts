@@ -15,6 +15,7 @@ export interface PaymentMethodConfig {
     };
     display_order: number;
     updated_at: string;
+    support_whatsapp_number?: string;
 }
 
 export interface PendingPayment {
@@ -202,12 +203,51 @@ export const PaymentService = {
         })) as PendingPayment[];
     },
 
-    // ── Admin: Approve or reject a payment ──
-    async reviewPayment(transactionId: string, decision: 'approved' | 'rejected'): Promise<{ success: boolean; message: string }> {
-        const { data, error } = await supabase.rpc('review_payment', {
+    // ── Anti-fraud: Check if tx_hash already exists ──
+    async checkDuplicateTxHash(txHash: string): Promise<boolean> {
+        if (!txHash.trim()) return false;
+        const { data, error } = await supabase
+            .from('transactions')
+            .select('id')
+            .eq('tx_hash', txHash.trim())
+            .limit(1);
+
+        if (error) {
+            console.error('Error checking duplicate tx_hash:', error);
+            return false;
+        }
+        return (data?.length ?? 0) > 0;
+    },
+
+    // ── User: Get sum of pending credits ──
+    async getPendingCredits(userId: string): Promise<number> {
+        const { data, error } = await supabase
+            .from('transactions')
+            .select('amount')
+            .eq('user_id', userId)
+            .eq('review_status', 'pending_review');
+
+        if (error) {
+            console.error('Error fetching pending credits:', error);
+            return 0;
+        }
+        return (data || []).reduce((sum: number, tx: { amount: number }) => sum + tx.amount, 0);
+    },
+
+    // ── Admin: Approve or reject a payment (with optional bonus) ──
+    async reviewPayment(
+        transactionId: string,
+        decision: 'approved' | 'rejected',
+        overrideAmount?: number
+    ): Promise<{ success: boolean; message: string }> {
+        const params: Record<string, unknown> = {
             p_transaction_id: transactionId,
             p_decision: decision
-        });
+        };
+        if (overrideAmount !== undefined && overrideAmount > 0) {
+            params.p_override_amount = overrideAmount;
+        }
+        const { data, error } = await supabase.rpc('review_payment', params);
 
         if (error) {
             console.error('Error reviewing payment:', error);

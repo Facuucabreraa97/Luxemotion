@@ -26,8 +26,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [proofPreview, setProofPreview] = useState<string | null>(null);
   const [txHash, setTxHash] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [lastTxId, setLastTxId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -37,6 +39,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       setProofFile(null);
       setProofPreview(null);
       setTxHash('');
+      setSubmitError(null);
+      setLastTxId(null);
       loadMethods();
     }
   }, [isOpen]);
@@ -78,7 +82,18 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     }
 
     setSubmitting(true);
+    setSubmitError(null);
     try {
+      // Anti-fraud: check for duplicate tx_hash
+      if (txHash.trim()) {
+        const isDuplicate = await PaymentService.checkDuplicateTxHash(txHash.trim());
+        if (isDuplicate) {
+          setSubmitError('Este comprobante ya fue registrado / This receipt was already submitted');
+          setSubmitting(false);
+          return;
+        }
+      }
+
       const result = await PaymentService.submitPayment(
         creditAmount,
         selectedMethod.id,
@@ -88,12 +103,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       );
 
       if (result.success) {
+        setLastTxId(result.message); // store for WhatsApp
         setStep('confirmation');
       } else {
-        alert(result.message);
+        setSubmitError(result.message);
       }
-    } catch (e) {
-      alert('Error submitting payment. Please try again.');
+    } catch {
+      setSubmitError('Error submitting payment. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -337,6 +353,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   'Submit Payment'
                 )}
               </button>
+              {submitError && (
+                <div className="mt-3 bg-red-500/10 border border-red-500/20 rounded-lg p-3 text-red-400 text-sm text-center">
+                  ⚠️ {submitError}
+                </div>
+              )}
             </div>
           )}
 
@@ -351,12 +372,29 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 Your payment is being reviewed by our team.<br />
                 Credits will be added once approved.
               </p>
-              <button
-                onClick={onClose}
-                className="px-6 py-3 bg-white text-black font-bold rounded-xl hover:bg-gray-200 transition text-sm"
-              >
-                Close
-              </button>
+
+              {/* WhatsApp Concierge */}
+              {selectedMethod?.support_whatsapp_number && (
+                <a
+                  href={`https://wa.me/${selectedMethod.support_whatsapp_number}?text=${encodeURIComponent(
+                    `Hola! Acabo de enviar un pago por ${creditAmount} créditos vía ${selectedMethod.label}. ID: ${lastTxId || 'pending'}. Quedo a la espera de la confirmación.`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-5 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-500 transition text-sm mb-3"
+                >
+                  💬 Confirmar por WhatsApp
+                </a>
+              )}
+
+              <div>
+                <button
+                  onClick={onClose}
+                  className="px-6 py-3 bg-white text-black font-bold rounded-xl hover:bg-gray-200 transition text-sm"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           )}
         </div>
