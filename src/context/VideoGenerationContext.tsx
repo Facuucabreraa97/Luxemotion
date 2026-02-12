@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { MarketService } from '@/services/market.service';
 import { supabase } from '@/lib/supabase';
 
 export type GenerationStatus =
@@ -74,32 +73,13 @@ export const VideoGenerationProvider = ({ children }: { children: ReactNode }) =
 
           if (currentStatus === 'succeeded') {
             const resultUrl = Array.isArray(data.output) ? data.output[0] : data.output;
-            const metadata = data.lux_metadata || {};
             setLastGeneratedUrl(resultUrl);
 
-            // AUTO-SAVE to DB
+            // Update 'generations' table status (keep for history, NOT creating talents here)
             const {
               data: { user },
             } = await supabase.auth.getUser();
             if (user) {
-              await MarketService.saveDraft(
-                {
-                  name:
-                    metadata.prompt_structure?.user_prompt?.substring(0, 30) || 'Untitled Video',
-                  description: metadata.prompt_structure?.user_prompt || 'AI Generated Video',
-                  image_url: 'https://via.placeholder.com/1080x1920?text=Video+Asset', // Fallback cover
-                  video_url: resultUrl,
-                  price: 0,
-                  supply_total: 1,
-                  royalty_percent: 5,
-                  seed: metadata.seed,
-                  generation_config: metadata.generation_config,
-                  prompt_structure: metadata.prompt_structure,
-                },
-                user.id
-              );
-
-              // Update 'generations' table status (Optional but good for history)
               await supabase
                 .from('generations')
                 .update({
