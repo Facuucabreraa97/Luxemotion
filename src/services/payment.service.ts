@@ -250,17 +250,14 @@ export const PaymentService = {
         planTier?: string,
         billingCycle?: string
     ): Promise<{ success: boolean; message: string }> {
-        const params: Record<string, unknown> = {
+        // ALWAYS send all 5 params to avoid PostgREST overload ambiguity
+        const { data, error } = await supabase.rpc('review_payment', {
             p_transaction_id: transactionId,
-            p_decision: decision
-        };
-        if (overrideAmount !== undefined && overrideAmount > 0) {
-            params.p_override_amount = overrideAmount;
-        }
-        if (planTier) params.p_plan_tier = planTier;
-        if (billingCycle) params.p_billing_cycle = billingCycle;
-
-        const { data, error } = await supabase.rpc('review_payment', params);
+            p_decision: decision,
+            p_override_amount: (overrideAmount !== undefined && overrideAmount > 0) ? overrideAmount : null,
+            p_plan_tier: planTier || null,
+            p_billing_cycle: billingCycle || null
+        });
 
         if (error) {
             console.error('Error reviewing payment:', error);
