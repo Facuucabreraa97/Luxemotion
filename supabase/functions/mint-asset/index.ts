@@ -30,23 +30,23 @@ serve(async (req: Request) => {
         const authHeader = req.headers.get('Authorization')
         if (!authHeader) throw new Error("Missing Authorization header")
 
-        const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(authHeader.replace('Bearer ', ''))
-        if (userError || !user) throw new Error("Invalid Token")
+        const { data: { user: authUser }, error: authError } = await supabaseAdmin.auth.getUser(authHeader.replace('Bearer ', ''))
+        if (authError || !authUser) throw new Error("Invalid Token")
 
-        if (user.id !== userId) throw new Error("Unauthorized: Cannot mint for another user")
+        if (authUser.id !== userId) throw new Error("Unauthorized: Cannot mint for another user")
 
-        // 1. Check Balance
-        const { data: user, error: userError } = await supabaseAdmin
+        // 2. Check Balance
+        const { data: profile, error: profileError } = await supabaseAdmin
             .from('profiles')
             .select('credits')
             .eq('id', userId)
             .single()
 
-        if (userError || !user) throw new Error("User not found")
-        if ((user.credits || 0) < MINT_FEE) throw new Error(`Insufficient funds. Minting costs ${MINT_FEE} credits.`)
+        if (profileError || !profile) throw new Error("User not found")
+        if ((profile.credits || 0) < MINT_FEE) throw new Error(`Insufficient funds. Minting costs ${MINT_FEE} credits.`)
 
-        // 2. Deduct Fee
-        const newBalance = user.credits - MINT_FEE
+        // 3. Deduct Fee
+        const newBalance = profile.credits - MINT_FEE
         const { error: updateError } = await supabaseAdmin
             .from('profiles')
             .update({ credits: newBalance })
@@ -54,7 +54,7 @@ serve(async (req: Request) => {
 
         if (updateError) throw updateError
 
-        // 3. Log Fee
+        // 4. Log Fee
         await supabaseAdmin.from('transactions').insert([{
             user_id: userId,
             type: 'MINT',
@@ -62,13 +62,14 @@ serve(async (req: Request) => {
             metadata: { action: 'Asset Creation', asset_name: assetData.name }
         }])
 
-        // 4. Create Asset
+        // 5. Create Asset
         const { data: asset, error: createError } = await supabaseAdmin
             .from('talents')
             .insert([{
                 ...assetData,
                 creator_id: userId,
                 owner_id: userId,
+                user_id: userId,
                 for_sale: false,
                 supply_sold: 0
             }])

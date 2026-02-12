@@ -1,11 +1,10 @@
 import { supabase } from '../lib/supabase'; // Ruta relativa segura
 import { Asset } from '../types';
-import { UserService } from './user.service';
 
 export const MarketService = {
   // [SECURE] ACUÑAR (MINT) via Edge Function
   async mintAsset(assetData: Partial<Asset>, userId: string) {
-    const { data, error } = await supabase.functions.invoke('mint-assets', {
+    const { data, error } = await supabase.functions.invoke('mint-asset', {
       body: { assetData, userId },
     });
 
@@ -76,11 +75,31 @@ export const MarketService = {
 
   // FINALIZAR MINTEO (Convertir Draft a Asset Real)
   async finalizeMint(assetId: string, price: number) {
-    // 1. Cobrar Fee de Minteo de forma segura (Backend)
-    const fee = -50;
-    await UserService.manageCredits(fee, 'MINT_FEE');
+    const MINT_FEE = 50;
 
-    // 2. Activar Asset
+    // 1. Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Authentication required');
+
+    // 2. Check balance
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('credits')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile || (profile.credits || 0) < MINT_FEE) {
+      throw new Error(`Insufficient credits. Minting costs ${MINT_FEE} CR.`);
+    }
+
+    // 3. Deduct fee via RPC (atomic, no admin required)
+    const { error: deductError } = await supabase.rpc('decrease_credits', {
+      user_id: user.id,
+      amount: MINT_FEE,
+    });
+    if (deductError) throw new Error('Failed to deduct mint fee: ' + deductError.message);
+
+    // 4. Activate Asset
     const { data, error } = await supabase
       .from('talents')
       .update({
@@ -93,8 +112,8 @@ export const MarketService = {
       .single();
 
     if (error) {
-      // Rollback credits if update fails (Manual compensation)
-      await UserService.manageCredits(-fee, 'MINT_REFUND');
+      // Rollback: refund credits
+      await supabase.rpc('increase_credits', { user_id: user.id, amount: MINT_FEE });
       throw error;
     }
     return data;
@@ -103,9 +122,9 @@ export const MarketService = {
   // HISTORIAL DE TRANSACCIONES (Solo Lectura)
   async getTransactions(userId: string) {
     const { data } = await supabase
-      .from('market_transactions') // Asegurar que esta vista/tabla exista
-      .select('*, talent:talents(name)')
-      .or(`user_id.eq.${userId},metadata->to.eq.${userId}`)
+      .from('transactions')
+      .select('*')
+      .eq('user_id', userId)
       .order('created_at', { ascending: false });
     return data || [];
   },
