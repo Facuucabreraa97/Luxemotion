@@ -1,14 +1,29 @@
 // api/generate.js
-// KLING ELEMENTS MULTI-IMAGE PIPELINE
-// Architecture: Direct multi-image call via fal.ai - no Sharp/Flux compositing
+// HYBRID GENERATION PIPELINE: Draft (Wan-2.1) + Master (Kling v2.5)
 import Replicate from 'replicate';
 import { createClient } from '@supabase/supabase-js';
 import * as fal from "@fal-ai/serverless-client";
 
 export const config = {
-    maxDuration: 120, // Extended for video generation
+    maxDuration: 120,
 };
 export const dynamic = 'force-dynamic';
+
+// ── TIER CONFIGURATION ──────────────────────────────────────
+const TIER_CONFIG = {
+    draft: {
+        credits: 20,
+        fal_model_id: 'fal-ai/wan-i2v',
+        label: 'Draft (Wan-2.1)',
+        params: { resolution: '480p', num_frames: 81 }
+    },
+    master: {
+        credits: 250,
+        fal_model_id: 'fal-ai/kling-video/v2/master/image-to-video',
+        label: 'Master (Kling v2.5 Pro)',
+        params: {}
+    }
+};
 
 /**
  * Helper: Download and Upload to Supabase Storage
@@ -177,21 +192,24 @@ export default async function handler(req, res) {
             start_image_url, subject_image_url,
             end_image_url, context_image_url,
             aspect_ratio = '16:9', prompt_structure, prompt,
-            duration = "5", seed: userSeed
+            duration = "5", seed: userSeed,
+            tier = 'master' // NEW: 'draft' or 'master'
         } = body;
 
         const finalStartImage = start_image_url || subject_image_url;
         const finalEndImage = end_image_url || context_image_url;
 
         const durationStr = String(duration);
-        cost = durationStr === "10" ? 100 : 50;
         
-        // creditsDeducted already declared in outer scope
+        // TIER-BASED COST (replaces old duration-based cost)
+        const tierConfig = TIER_CONFIG[tier] || TIER_CONFIG.master;
+        cost = tierConfig.credits;
+        console.log(`[TIER] ${tierConfig.label} — Cost: ${cost} CR`);
 
         // Balance Check
         const { data: profile } = await supabase.from('profiles').select('credits').eq('id', user.id).single();
         if (!profile || profile.credits < cost) {
-            return res.status(402).json({ error: "Insufficient Credits" });
+            return res.status(402).json({ error: `Insufficient Credits. ${tierConfig.label} costs ${cost} CR.` });
         }
 
         // Deduct Credits
@@ -222,29 +240,88 @@ export default async function handler(req, res) {
             finalPrompt = prompt || "Cinematic shot";
         }
 
-        let generationConfig = { model: "kling-elements-multi-image", duration: durationStr, aspect_ratio, seed };
+        let generationConfig = { model: tierConfig.label, duration: durationStr, aspect_ratio, seed, tier };
         
-        // --- KLING ELEMENTS: MULTI-IMAGE MODE ---
-        // This is the enterprise solution: native multi-image support
-        // Replaces: Sharp compositing + Flux img2img + single-image Kling
+        // ═══════════════════════════════════════════════════════
+        // DRAFT TIER: Wan-2.1 via fal.ai (fast, cheap)
+        // ═══════════════════════════════════════════════════════
+        if (tier === 'draft' && finalStartImage) {
+            console.log(`[DRAFT] Wan-2.1 generation starting...`);
+            
+            try {
+                const { request_id } = await fal.queue.submit(tierConfig.fal_model_id, {
+                    input: {
+                        prompt: finalPrompt,
+                        image_url: finalStartImage,
+                        image_size: { width: 854, height: 480 },
+                        num_frames: 81,
+                        enable_safety_checker: false
+                    }
+                });
+                
+                console.log(`[DRAFT] Job submitted: ${request_id}`);
+                
+                prediction = {
+                    id: request_id,
+                    status: 'processing',
+                    output: null,
+                    urls: { get: null },
+                    provider: 'fal-draft'
+                };
+                
+                await supabase.from('generations').insert({
+                    user_id: user.id,
+                    replicate_id: request_id,
+                    status: 'processing',
+                    prompt: finalPrompt,
+                    input_params: { 
+                        mode: 'draft',
+                        image: finalStartImage,
+                        provider: 'fal'
+                    },
+                    progress: 0,
+                    quality_tier: 'draft',
+                    cost_in_credits: cost,
+                    fal_model_id: tierConfig.fal_model_id
+                });
+                
+                return res.status(201).json({ 
+                    ...prediction,
+                    lux_metadata: { 
+                        seed,
+                        generation_config: generationConfig,
+                        mode: 'draft-wan21',
+                        fal_request_id: request_id,
+                        tier: 'draft',
+                        prompt_structure: {
+                            ...(prompt_structure || { user_prompt: prompt }),
+                            system_prompt: systemPrompt
+                        }
+                    }
+                });
+            } catch (draftError) {
+                console.error("[DRAFT] Error:", draftError);
+                throw new Error(`Draft generation failed: ${draftError.message}`);
+            }
+        }
         
+        // ═══════════════════════════════════════════════════════
+        // MASTER TIER: Kling Elements Multi-Image (async queue)
+        // ═══════════════════════════════════════════════════════
         const isMultiImageMode = finalStartImage && finalEndImage && finalStartImage !== finalEndImage;
         
         if (isMultiImageMode) {
-            console.log("[KLING ELEMENTS] Multi-image mode activated (ASYNC QUEUE)");
-            console.log(`[KLING ELEMENTS] Subject: ${finalStartImage.substring(0, 50)}...`);
-            console.log(`[KLING ELEMENTS] Product: ${finalEndImage.substring(0, 50)}...`);
+            console.log("[MASTER] Multi-image mode activated (ASYNC QUEUE)");
+            console.log(`[MASTER] Subject: ${finalStartImage.substring(0, 50)}...`);
+            console.log(`[MASTER] Product: ${finalEndImage.substring(0, 50)}...`);
             
-            // Get detailed product description from Vision AI for better identity preservation
             const productDescription = await describeProduct(finalEndImage);
             
-            // Build prompt with explicit product details
             const klingPrompt = `${finalPrompt}, the person is naturally holding and presenting ${productDescription}, preserve exact product appearance and any visible text/labels, photorealistic, cinematic`;
-            console.log(`[KLING ELEMENTS] Enhanced Prompt: "${klingPrompt.substring(0, 150)}..."`);
+            console.log(`[MASTER] Enhanced Prompt: "${klingPrompt.substring(0, 150)}..."`);
             
             try {
-                // ASYNC QUEUE: Submit job and return immediately (avoids Vercel 120s timeout)
-                const { request_id } = await fal.queue.submit('fal-ai/kling-video/v2/master/image-to-video', {
+                const { request_id } = await fal.queue.submit(tierConfig.fal_model_id, {
                     input: {
                         prompt: klingPrompt,
                         image_url: finalStartImage,
@@ -256,10 +333,8 @@ export default async function handler(req, res) {
                     }
                 });
                 
-                console.log(`[KLING ELEMENTS] Job submitted. Request ID: ${request_id}`);
+                console.log(`[MASTER] Job submitted: ${request_id}`);
                 
-                // Create prediction-like response for frontend compatibility
-                // Frontend will poll /api/fal-status with this request_id
                 prediction = {
                     id: request_id,
                     status: 'processing',
@@ -270,7 +345,7 @@ export default async function handler(req, res) {
                 
                 await supabase.from('generations').insert({
                     user_id: user.id,
-                    replicate_id: request_id, // Store fal request_id here
+                    replicate_id: request_id,
                     status: 'processing',
                     prompt: finalPrompt,
                     input_params: { 
@@ -279,7 +354,10 @@ export default async function handler(req, res) {
                         product_image: finalEndImage,
                         provider: 'fal'
                     },
-                    progress: 0
+                    progress: 0,
+                    quality_tier: 'master',
+                    cost_in_credits: cost,
+                    fal_model_id: tierConfig.fal_model_id
                 });
                 
                 return res.status(201).json({ 
@@ -289,6 +367,7 @@ export default async function handler(req, res) {
                         generation_config: generationConfig,
                         mode: 'kling-elements-async',
                         fal_request_id: request_id,
+                        tier: 'master',
                         prompt_structure: {
                             ...(prompt_structure || { user_prompt: prompt }),
                             system_prompt: systemPrompt
@@ -297,13 +376,13 @@ export default async function handler(req, res) {
                 });
                 
             } catch (klingError) {
-                console.error("[KLING ELEMENTS] Queue Submit Error:", klingError);
+                console.error("[MASTER] Queue Submit Error:", klingError);
                 throw new Error(`Kling Elements failed: ${klingError.message}`);
             }
         }
         
         // --- FALLBACK: Single image mode (standard Replicate Kling) ---
-        console.log("[KLING] Single-image mode (standard)");
+        console.log(`[MASTER] Single-image mode (standard Replicate)`);
         
         let versionId;
         try {
@@ -336,7 +415,9 @@ export default async function handler(req, res) {
             status: 'starting',
             prompt: finalPrompt,
             input_params: inputPayload,
-            progress: 0
+            progress: 0,
+            quality_tier: 'master',
+            cost_in_credits: cost
         });
 
         return res.status(201).json({ 

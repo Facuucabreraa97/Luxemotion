@@ -1,5 +1,5 @@
 // api/fal-status.js
-// Poll fal.ai queue status for async video generation
+// Poll fal.ai queue status for async video generation (Draft + Master)
 import * as fal from "@fal-ai/serverless-client";
 import { createClient } from '@supabase/supabase-js';
 
@@ -53,8 +53,20 @@ export default async function handler(req, res) {
     try {
         console.log(`[FAL-STATUS] Checking status for: ${request_id}`);
         
+        // Look up the model ID from the generation record
+        const { data: genRecord } = await supabase
+            .from('generations')
+            .select('fal_model_id, quality_tier, user_id, prompt, input_params')
+            .eq('replicate_id', request_id)
+            .single();
+        
+        // Use stored model ID, fallback to kling master
+        const falModelId = genRecord?.fal_model_id || 'fal-ai/kling-video/v2/master/image-to-video';
+        const qualityTier = genRecord?.quality_tier || 'master';
+        console.log(`[FAL-STATUS] Model: ${falModelId} (${qualityTier})`);
+        
         // Check fal.ai queue status
-        const status = await fal.queue.status('fal-ai/kling-video/v2/master/image-to-video', {
+        const status = await fal.queue.status(falModelId, {
             requestId: request_id,
             logs: true
         });
@@ -63,25 +75,18 @@ export default async function handler(req, res) {
 
         // If completed, get the result
         if (status.status === 'COMPLETED') {
-            const result = await fal.queue.result('fal-ai/kling-video/v2/master/image-to-video', {
+            const result = await fal.queue.result(falModelId, {
                 requestId: request_id
             });
 
-            const videoUrl = result?.video?.url;
+            // Handle different response shapes per model
+            const videoUrl = result?.video?.url || result?.output?.video?.url || null;
             
             if (videoUrl) {
-                console.log(`[FAL-STATUS] Video ready: ${videoUrl}`);
+                console.log(`[FAL-STATUS] Video ready (${qualityTier}): ${videoUrl}`);
                 
-                // Get generation record with all metadata
-                const { data: generation, error: genError } = await supabase
-                    .from('generations')
-                    .select('user_id, prompt, input_params')
-                    .eq('replicate_id', request_id)
-                    .single();
-
-                if (genError) {
-                    console.error('[FAL-STATUS] Failed to find generation record:', genError);
-                }
+                // Use generation record we already fetched
+                const generation = genRecord;
 
                 let persistedUrl = videoUrl;
                 let persistenceSuccess = false;

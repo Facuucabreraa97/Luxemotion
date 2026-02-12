@@ -3,7 +3,7 @@ import { Asset } from '@/types';
 import { MarketService } from '@/services/market.service';
 import { StorageService } from '@/services/storage.service';
 import { supabase } from '@/lib/supabase';
-import { Upload, X, Film, Sparkles, Settings, ChevronDown, ChevronUp } from 'lucide-react';
+import { Upload, X, Film, Sparkles, Settings, ChevronDown, ChevronUp, Zap, Clapperboard } from 'lucide-react';
 import { useVideoGeneration } from '@/context/VideoGenerationContext';
 import { WalletDisplay } from './WalletDisplay';
 import { GenerationProgress } from '@/features/creation/components/GenerationProgress';
@@ -27,6 +27,11 @@ export const Studio = () => {
   const [seed, setSeed] = useState<string>('');
   const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
 
+  // TIER STATE
+  const [selectedTier, setSelectedTier] = useState<'draft' | 'master'>('draft');
+
+  const TIER_COSTS = { draft: 20, master: 250 } as const;
+
   // Preview URLs for UI
   const [startPreview, setStartPreview] = useState<string>('');
   const [endPreview, setEndPreview] = useState<string>('');
@@ -41,8 +46,8 @@ export const Studio = () => {
   const [credits, setCredits] = useState<number | null>(null);
   const [loadingCredits, setLoadingCredits] = useState<boolean>(true);
 
-  // Cost Calculation
-  const cost = duration === '10' ? 100 : 50;
+  // Cost Calculation (tier-based)
+  const cost = TIER_COSTS[selectedTier];
 
   // Auto-Update Video URL when generation finishes
   useEffect(() => {
@@ -139,12 +144,13 @@ export const Studio = () => {
         body: JSON.stringify({
           prompt,
           start_image_url: startUrl || undefined,
-          subject_image_url: startUrl || undefined, // Send both to be safe
+          subject_image_url: startUrl || undefined,
           end_image_url: endUrl || undefined,
-          context_image_url: endUrl || undefined, // Send both to be safe
+          context_image_url: endUrl || undefined,
           aspect_ratio: aspectRatio,
           duration: duration,
           seed: seed ? seed : undefined,
+          tier: selectedTier,
           prompt_structure: {
             user_prompt: prompt,
             style_preset: styleMode,
@@ -310,25 +316,68 @@ export const Studio = () => {
               </div>
             </div>
 
-            {/* STYLE SELECTOR */}
+            {/* ══════ QUALITY TIER SELECTOR ══════ */}
             <div>
               <label className="text-[10px] font-bold text-gray-500 uppercase block mb-3">
-                Style Vibe
+                Quality Tier
               </label>
               <div className="flex gap-2">
+                {/* DRAFT */}
                 <button
-                  onClick={() => setStyleMode('cinematic')}
-                  className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${styleMode === 'cinematic' ? 'bg-white text-black border-white' : 'border-white/10 text-gray-500 hover:border-white/30'}`}
+                  onClick={() => setSelectedTier('draft')}
+                  className={`flex-1 py-3 rounded-xl text-xs font-bold border-2 transition-all relative overflow-hidden ${
+                    selectedTier === 'draft'
+                      ? 'bg-blue-500/15 text-blue-400 border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.15)]'
+                      : 'border-white/10 text-gray-500 hover:border-white/20 hover:bg-white/5'
+                  }`}
                 >
-                  Cinematic
+                  <div className="flex items-center justify-center gap-1.5">
+                    <Zap size={13} />
+                    <span>Draft</span>
+                  </div>
+                  <div className={`text-[9px] mt-0.5 font-mono ${selectedTier === 'draft' ? 'text-blue-500/70' : 'text-gray-600'}`}>
+                    {TIER_COSTS.draft} CR · Wan-2.1
+                  </div>
                 </button>
+
+                {/* MASTER */}
                 <button
-                  onClick={() => setStyleMode('organic')}
-                  className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${styleMode === 'organic' ? 'bg-gradient-to-r from-pink-500/20 to-purple-500/20 text-white border-purple-500/50' : 'border-white/10 text-gray-500 hover:border-white/30'}`}
+                  onClick={() => {
+                    if (credits !== null && credits < TIER_COSTS.master) return;
+                    setSelectedTier('master');
+                  }}
+                  disabled={credits !== null && credits < TIER_COSTS.master}
+                  className={`flex-1 py-3 rounded-xl text-xs font-bold border-2 transition-all relative overflow-hidden ${
+                    credits !== null && credits < TIER_COSTS.master
+                      ? 'border-white/5 text-gray-700 cursor-not-allowed opacity-50'
+                      : selectedTier === 'master'
+                        ? 'bg-amber-500/15 text-amber-400 border-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.15)]'
+                        : 'border-white/10 text-gray-500 hover:border-white/20 hover:bg-white/5'
+                  }`}
                 >
-                  Influencer (Organic)
+                  <div className="flex items-center justify-center gap-1.5">
+                    <Clapperboard size={13} />
+                    <span>Master</span>
+                  </div>
+                  <div className={`text-[9px] mt-0.5 font-mono ${
+                    credits !== null && credits < TIER_COSTS.master
+                      ? 'text-gray-700'
+                      : selectedTier === 'master' ? 'text-amber-500/70' : 'text-gray-600'
+                  }`}>
+                    {TIER_COSTS.master} CR · Kling Pro
+                  </div>
                 </button>
               </div>
+              {selectedTier === 'draft' && (
+                <p className="text-[9px] text-blue-500/50 mt-2 text-center font-mono">
+                  480p preview · Test motion before mastering
+                </p>
+              )}
+              {selectedTier === 'master' && (
+                <p className="text-[9px] text-amber-500/50 mt-2 text-center font-mono">
+                  1080p cinema quality · Final render
+                </p>
+              )}
             </div>
 
             {/* PROMPT / IMAGE INPUT */}
@@ -584,7 +633,7 @@ export const Studio = () => {
                       Creating Reality
                     </h3>
                     <p className="text-xs text-gray-500 uppercase tracking-widest font-mono">
-                      AI Model v2.5 Turbo Pro
+                      {selectedTier === 'draft' ? '⚡ Draft Mode · Wan-2.1' : '🎬 Master Mode · Kling v2.5 Pro'}
                     </p>
                   </div>
                   <GenerationProgress status={status} />
