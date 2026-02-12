@@ -224,7 +224,7 @@ export const Studio = () => {
         {
           name: prompt.substring(0, 30) || 'Untitled Creation',
 
-          image_url: startPreview || 'https://via.placeholder.com/1080x1920?text=Video+Asset',
+          image_url: startPreview || undefined,
           video_url: videoUrl,
           price: 0,
           supply_total: 1,

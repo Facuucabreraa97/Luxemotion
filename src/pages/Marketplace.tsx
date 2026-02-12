@@ -70,10 +70,19 @@ export const Marketplace = () => {
                         <div key={asset.id} className="group glass-panel rounded-2xl overflow-hidden flex flex-col hover:-translate-y-1 transition-all duration-300 hover:shadow-2xl hover:shadow-accent/10">
                             {/* MEDIA */}
                             <div className="aspect-[4/5] bg-black relative overflow-hidden">
-                                {asset.image_url ? (
+                                {asset.video_url ? (
+                                    <video
+                                        src={asset.video_url}
+                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                                        autoPlay
+                                        muted
+                                        loop
+                                        playsInline
+                                    />
+                                ) : asset.image_url && !asset.image_url.includes('placeholder') ? (
                                     <img src={asset.image_url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" loading="lazy" />
                                 ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-4xl">💠</div>
+                                    <div className="w-full h-full flex items-center justify-center text-4xl bg-gradient-to-br from-gray-900 to-gray-800">💠</div>
                                 )}
 
                                 {/* Overlay Gradient */}
