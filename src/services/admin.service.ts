@@ -132,8 +132,17 @@ export const AdminService = {
     },
 
     async sendWelcomeEmail(email: string) {
-        const { data, error } = await supabase.functions.invoke('send-welcome-email', {
-            body: { email },
+        const { data, error } = await supabase.functions.invoke('send-email', {
+            body: { email, template: 'welcome' },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        return data;
+    },
+
+    async sendEmail(email: string, template: string, vars: Record<string, string> = {}) {
+        const { data, error } = await supabase.functions.invoke('send-email', {
+            body: { email, template, vars },
         });
         if (error) throw error;
         if (data?.error) throw new Error(data.error);
