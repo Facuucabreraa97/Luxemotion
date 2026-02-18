@@ -13,7 +13,6 @@ El sistema se compone de los siguientes módulos críticos. Cualquier refactoriz
 - **Marketplace:** El núcleo transaccional. Permite la compra/venta de personajes digitales (Assets).
 - **Studio de Creación:** Herramientas para generar contenido de video/imagen de los influencers.
 - **Modo Casting:** Algoritmos de match entre marcas e influencers según estilo y KPI.
-- **Modo Velvet (+18):** Generación de contenido adulto. **REGLA CRÍTICA:** Debe ser privado, controlado y automatizado. La seguridad y privacidad en este módulo es prioridad máxima.
 - **Galería/Ranking:** Sistema de valoración de los influencers más exitosos.
 
 ## 3. Business Goals (2026 Roadmap)
@@ -29,7 +28,7 @@ El sistema se compone de los siguientes módulos críticos. Cualquier refactoriz
 ## 5. Development Rules for AI Agents
 
 1. **Monetización:** Nunca alterar la lógica que calcula créditos o pagos en el Marketplace.
-2. **Privacidad:** El contenido generado en "Modo Velvet" nunca debe ser accesible públicamente sin autenticación estricta.
+2. **Seguridad:** Todos los endpoints deben verificar autenticación y autorización server-side.
 3. **Performance:** La generación de video es costosa; optimizar cualquier código relacionado con llamadas a APIs de generación.
 
 ## 6. Development Log & Critical Updates

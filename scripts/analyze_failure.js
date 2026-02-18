@@ -78,7 +78,7 @@ ${contextContent}
 TASK: Rewrite the following file to be bug-free, production-ready, and ALIGNED WITH BUSINESS RULES.
 RULES:
 1. Return ONLY the full valid code.
-2. If logic contradicts business context (e.g. unsecured Velvet Mode), fix it immediately.
+2. If logic contradicts business context (e.g. unsecured endpoints), fix it immediately.
 3. Fix all syntax errors.
 
 INPUT CODE:

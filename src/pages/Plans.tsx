@@ -50,7 +50,7 @@ export const Plans = () => {
       features: [
         '3,500 Credits / month ($0.011/cr)',
         '~50 HQ Videos (5s)',
-        'Velvet Rope Priority (Skip Queue)',
+        'Priority Queue (Skip the Line)',
         'Watermark Removal',
         'Rollover Credits (2 months)',
         'Commercial License',
