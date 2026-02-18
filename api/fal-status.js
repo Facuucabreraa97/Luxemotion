@@ -134,12 +134,40 @@ export default async function handler(req, res) {
             }
         }
 
-        // Still processing or other status
+        // Handle FAILED status with automatic refund
+        if (status.status === 'FAILED') {
+            console.error('[FAL-STATUS] Generation FAILED for:', request_id);
+
+            if (genRecord?.user_id) {
+                const refundAmount = genRecord.cost_in_credits || 250;
+                const { error: refundErr } = await supabase.rpc('increase_credits', {
+                    user_id: genRecord.user_id,
+                    amount: refundAmount
+                });
+                if (refundErr) {
+                    console.error('[FAL-STATUS] REFUND FAILED - CRITICAL:', refundErr);
+                } else {
+                    console.log(`[FAL-STATUS] Refund ${refundAmount} CR to ${genRecord.user_id}`);
+                }
+
+                await supabase.from('generations')
+                    .update({ status: 'failed' })
+                    .eq('replicate_id', request_id);
+            }
+
+            return res.status(200).json({
+                status: 'failed',
+                refunded: true,
+                logs: status.logs || []
+            });
+        }
+
+        // Still processing
         const progress = status.status === 'IN_QUEUE' ? 10 : 
                         status.status === 'IN_PROGRESS' ? 50 : 0;
 
         return res.status(200).json({
-            status: status.status === 'FAILED' ? 'failed' : 'processing',
+            status: 'processing',
             progress,
             queue_position: status.queue_position || null,
             logs: status.logs || []

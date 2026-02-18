@@ -137,6 +137,26 @@ export default async function handler(req, res) {
 
         if (lumaResult.state === 'failed') {
             console.error('[LUMA-STATUS] Generation failed:', lumaResult.failure_reason);
+
+            // Refund credits from generation record
+            const { data: genRefund } = await supabase
+                .from('generations')
+                .select('user_id, cost_in_credits')
+                .eq('replicate_id', generation_id)
+                .single();
+
+            if (genRefund?.user_id) {
+                const refundAmount = genRefund.cost_in_credits || 250;
+                const { error: refundErr } = await supabase.rpc('increase_credits', {
+                    user_id: genRefund.user_id,
+                    amount: refundAmount
+                });
+                if (refundErr) {
+                    console.error('[LUMA-STATUS] REFUND FAILED - CRITICAL:', refundErr);
+                } else {
+                    console.log(`[LUMA-STATUS] Refund ${refundAmount} CR to ${genRefund.user_id}`);
+                }
+            }
             
             // Update generation record
             await supabase
@@ -146,6 +166,7 @@ export default async function handler(req, res) {
             
             return res.status(200).json({
                 status: 'failed',
+                refunded: true,
                 error: lumaResult.failure_reason || 'Generation failed'
             });
         }

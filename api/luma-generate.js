@@ -32,6 +32,9 @@ export default async function handler(req, res) {
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const LUMA_COST = 250; // Same as master tier
+    let creditsDeducted = false;
+    let user = null;
 
     try {
         // Auth check
@@ -53,9 +56,21 @@ export default async function handler(req, res) {
             .eq('id', user.id)
             .single();
 
-        if (!profile || profile.credits < 1) {
-            return res.status(402).json({ error: 'Insufficient credits' });
+        if (!profile || profile.credits < LUMA_COST) {
+            return res.status(402).json({ error: `Insufficient credits. Luma costs ${LUMA_COST} CR.` });
         }
+
+        // DEDUCT BEFORE API CALL (mirrors generate.js pattern)
+        const { error: deductError } = await supabase.rpc('decrease_credits', {
+            user_id: user.id, amount: LUMA_COST
+        });
+        if (deductError) {
+            // Fallback direct update
+            await supabase.from('profiles').update({
+                credits: profile.credits - LUMA_COST
+            }).eq('id', user.id);
+        }
+        creditsDeducted = true;
 
         // Parse request body
         const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
@@ -131,8 +146,7 @@ export default async function handler(req, res) {
         const lumaResult = await lumaResponse.json();
         console.log('[LUMA] Generation started:', lumaResult.id);
 
-        // Deduct credit
-        await supabase.rpc('deduct_credit', { user_id: user.id, amount: 1 });
+        // Credits already deducted before API call
 
         // Store generation record
         await supabase.from('generations').insert({
@@ -146,7 +160,9 @@ export default async function handler(req, res) {
                 product_image,
                 provider: 'luma'
             },
-            progress: 0
+            progress: 0,
+            quality_tier: 'master',
+            cost_in_credits: LUMA_COST
         });
 
         // Return response compatible with frontend
@@ -165,6 +181,19 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('[LUMA] Error:', error);
+
+        // ATOMIC REFUND on failure
+        if (creditsDeducted && user) {
+            const { error: refundError } = await supabase.rpc('increase_credits', {
+                user_id: user.id, amount: LUMA_COST
+            });
+            if (refundError) {
+                console.error('[LUMA] REFUND FAILED - CRITICAL:', refundError);
+            } else {
+                console.log(`[LUMA] Refund successful (${LUMA_COST} CR)`);
+            }
+        }
+
         return res.status(500).json({ 
             error: error.message || 'Luma generation failed'
         });
