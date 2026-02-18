@@ -157,7 +157,7 @@ export default async function handler(req, res) {
                     amount: refundAmount
                 });
                 if (refundErr) {
-                    console.error('[FAL-STATUS] REFUND FAILED - CRITICAL:', refundErr);
+                    console.error('[FAL-STATUS] REFUND FAILED - CRITICAL:', refundErr instanceof Error ? refundErr.message : 'Unknown');
                 } else {
                     console.log(`[FAL-STATUS] Refund ${refundAmount} CR to ${genRecord.user_id}`);
                 }
@@ -186,13 +186,13 @@ export default async function handler(req, res) {
         });
 
     } catch (error) {
-        console.error('[FAL-STATUS] Error:', error);
+        console.error('[FAL-STATUS] Error:', error instanceof Error ? error.message : 'Unknown');
         
         // Check if it's a "not found" error
         if (error.message?.includes('not found') || error.status === 404) {
             return res.status(404).json({ error: 'Request not found' });
         }
         
-        return res.status(500).json({ error: error.message || 'Unknown error' });
+        return res.status(500).json({ error: 'Internal Server Error' });
     }
 }

@@ -4,6 +4,7 @@ import { MarketService } from '@/services/market.service';
 import { supabase } from '@/lib/supabase';
 import { Asset } from '@/types';
 import { Search, Filter, ShoppingBag, Sparkles } from 'lucide-react';
+import { LazyVideo } from '@/components/LazyVideo';
 
 export const Marketplace = () => {
     const [assets, setAssets] = useState<Asset[]>([]);
@@ -71,16 +72,17 @@ export const Marketplace = () => {
                             {/* MEDIA */}
                             <div className="aspect-[4/5] bg-black relative overflow-hidden">
                                 {asset.video_url ? (
-                                    <video
+                                    <LazyVideo
                                         src={asset.video_url}
                                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                                        autoPlay
-                                        muted
-                                        loop
-                                        playsInline
                                     />
                                 ) : asset.image_url && !asset.image_url.includes('placeholder') ? (
-                                    <img src={asset.image_url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" loading="lazy" />
+                                    <img
+                                        src={asset.image_url}
+                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                                        loading="lazy"
+                                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                    />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center text-4xl bg-gradient-to-br from-gray-900 to-gray-800">💠</div>
                                 )}

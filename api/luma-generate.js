@@ -192,14 +192,14 @@ export default async function handler(req, res) {
                 user_id: user.id, amount: LUMA_COST
             });
             if (refundError) {
-                console.error('[LUMA] REFUND FAILED - CRITICAL:', refundError);
+                console.error('[LUMA] REFUND FAILED - CRITICAL:', refundError instanceof Error ? refundError.message : 'Unknown');
             } else {
                 console.log(`[LUMA] Refund successful (${LUMA_COST} CR)`);
             }
         }
 
         return res.status(500).json({ 
-            error: error.message || 'Luma generation failed'
+            error: 'Internal Server Error'
         });
     }
 }

@@ -194,7 +194,7 @@ export default async function handler(req, res) {
         });
 
     } catch (error) {
-        console.error('[LUMA-STATUS] Error:', error);
-        return res.status(500).json({ error: error.message || 'Unknown error' });
+        console.error('[LUMA-STATUS] Error:', error instanceof Error ? error.message : 'Unknown');
+        return res.status(500).json({ error: 'Internal Server Error' });
     }
 }

@@ -69,7 +69,7 @@ export const MarketService = {
       .single();
 
     if (error) {
-      console.error('SAVE DRAFT ERROR:', error);
+      console.error('SAVE DRAFT ERROR:', error instanceof Error ? error.message : 'Unknown');
       throw error;
     }
     return data;

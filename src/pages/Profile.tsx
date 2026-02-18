@@ -5,6 +5,7 @@ import { Asset } from '@/types';
 import { DailyQuests } from '@/modules/gamification/DailyQuests';
 import { AchievementsGrid } from '@/modules/gamification/AchievementsGrid';
 import { User } from '@supabase/supabase-js';
+import { LazyVideo } from '@/components/LazyVideo';
 
 interface Transaction {
   id: string;
@@ -211,12 +212,9 @@ const Profile = () => {
                     >
                       {asset.video_url ? (
                         <>
-                          <video
+                          <LazyVideo
                             src={asset.video_url}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                            autoPlay
-                            muted
-                            loop
                           />
                           {/* Play icon overlay */}
                           <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -237,6 +235,8 @@ const Profile = () => {
                             src={asset.image_url}
                             alt={asset.name}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            loading="lazy"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                           />
                           {/* Expand icon overlay */}
                           <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">

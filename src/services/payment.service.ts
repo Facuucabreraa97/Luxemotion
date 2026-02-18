@@ -45,7 +45,7 @@ export const PaymentService = {
             .order('display_order', { ascending: true });
 
         if (error) {
-            console.error('Error fetching payment methods:', error);
+            console.error('Error fetching payment methods:', error instanceof Error ? error.message : 'Unknown');
             return [];
         }
         return data as PaymentMethodConfig[];
@@ -59,7 +59,7 @@ export const PaymentService = {
             .order('display_order', { ascending: true });
 
         if (error) {
-            console.error('Error fetching all payment methods:', error);
+            console.error('Error fetching all payment methods:', error instanceof Error ? error.message : 'Unknown');
             return [];
         }
         return data as PaymentMethodConfig[];
@@ -107,7 +107,7 @@ export const PaymentService = {
                 .upload(filePath, proofFile);
 
             if (uploadError) {
-                console.error('Error uploading proof:', uploadError);
+                console.error('Error uploading proof:', uploadError instanceof Error ? uploadError.message : 'Unknown');
                 return { success: false, message: 'Failed to upload payment proof' };
             }
 
@@ -132,7 +132,7 @@ export const PaymentService = {
         const { data, error } = await supabase.rpc('submit_manual_payment', rpcParams);
 
         if (error) {
-            console.error('Error submitting payment:', error);
+            console.error('Error submitting payment:', error instanceof Error ? error.message : 'Unknown');
             return { success: false, message: error.message };
         }
 
@@ -148,7 +148,7 @@ export const PaymentService = {
             .order('created_at', { ascending: false });
 
         if (error) {
-            console.error('Error fetching pending payments:', error);
+            console.error('Error fetching pending payments:', error instanceof Error ? error.message : 'Unknown');
             return [];
         }
 
@@ -185,7 +185,7 @@ export const PaymentService = {
             .limit(limit);
 
         if (error) {
-            console.error('Error fetching reviewed payments:', error);
+            console.error('Error fetching reviewed payments:', error instanceof Error ? error.message : 'Unknown');
             return [];
         }
 
@@ -221,7 +221,7 @@ export const PaymentService = {
             .limit(1);
 
         if (error) {
-            console.error('Error checking duplicate tx_hash:', error);
+            console.error('Error checking duplicate tx_hash:', error instanceof Error ? error.message : 'Unknown');
             return false;
         }
         return (data?.length ?? 0) > 0;
@@ -236,7 +236,7 @@ export const PaymentService = {
             .eq('review_status', 'pending_review');
 
         if (error) {
-            console.error('Error fetching pending credits:', error);
+            console.error('Error fetching pending credits:', error instanceof Error ? error.message : 'Unknown');
             return 0;
         }
         return (data || []).reduce((sum: number, tx: { amount: number }) => sum + tx.amount, 0);
@@ -260,7 +260,7 @@ export const PaymentService = {
         });
 
         if (error) {
-            console.error('Error reviewing payment:', error);
+            console.error('Error reviewing payment:', error instanceof Error ? error.message : 'Unknown');
             return { success: false, message: error.message };
         }
 

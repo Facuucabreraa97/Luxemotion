@@ -4,18 +4,17 @@ import { UserProfile } from '@/types';
 export const UserService = {
   async checkWhitelist(email: string) {
     // [SECURE] Validate via Edge Function
-    // DEBUG: Logging to see why login fails
-    console.log('Checking whitelist for:', email);
+
     const { data, error } = await supabase.functions.invoke('check-whitelist', {
       body: { email },
     });
 
     if (error) {
-      console.error('Whitelist Check Error:', error);
+      console.error('Whitelist Check Error:', error instanceof Error ? error.message : 'Unknown');
       return 'pending';
     }
 
-    console.log('Whitelist Response:', data);
+
     if (!data) return 'pending';
     return data.status;
   },
@@ -25,7 +24,7 @@ export const UserService = {
     const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
 
     if (error) {
-      console.warn('Error fetching profile:', error);
+      console.warn('Error fetching profile:', error instanceof Error ? error.message : 'Unknown');
       return null;
     }
     return data as UserProfile;

@@ -438,7 +438,7 @@ export default async function handler(req, res) {
         });
 
     } catch (error) {
-        console.error("API Error:", error);
+        console.error("API Error:", error instanceof Error ? error.message : 'Unknown');
 
         // --- ATOMIC REFUND LOGIC (FIXED) ---
         if (creditsDeducted) {
@@ -448,7 +448,7 @@ export default async function handler(req, res) {
             const { error: refundError } = await supabase.rpc('increase_credits', { user_id: user.id, amount: cost });
             
             if (refundError) {
-                console.error("REFUND FAILED - CRITICAL (RPC Error):", refundError);
+                console.error("REFUND FAILED - CRITICAL (RPC Error):", refundError?.message || refundError);
                 
                 // 2. Fallback: Manual Update (Non-atomic but necessary emergency fix)
                 try {
@@ -466,7 +466,7 @@ export default async function handler(req, res) {
                          console.log("MANUAL FALLBACK REFUND SUCCESSFUL.");
                     }
                 } catch (fallbackErr) {
-                     console.error("CRITICAL: MANUAL FALLBACK ALSO FAILED.", fallbackErr);
+                     console.error("CRITICAL: MANUAL FALLBACK ALSO FAILED.", fallbackErr instanceof Error ? fallbackErr.message : 'Unknown');
                 }
             } else {
                 console.log("Refund successful (RPC).");
@@ -478,6 +478,6 @@ export default async function handler(req, res) {
             return res.status(429).json({ error: "System Busy (Rate Limit). Please retry." });
         }
 
-        return res.status(500).json({ error: error.message || "Unknown Error" });
+        return res.status(500).json({ error: "Internal Server Error" });
     }
 }

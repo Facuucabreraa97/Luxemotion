@@ -30,7 +30,7 @@ export const AdminService = {
     async getStats(): Promise<AdminStats | null> {
         const { data, error } = await supabase.rpc('get_admin_stats');
         if (error) {
-            console.error('Error fetching admin stats:', error);
+            console.error('Error fetching admin stats:', error instanceof Error ? error.message : 'Unknown');
             return null;
         }
         return data as AdminStats;
@@ -43,7 +43,7 @@ export const AdminService = {
             .order('applied_at', { ascending: false });
 
         if (error) {
-            console.error('Error fetching users:', error);
+            console.error('Error fetching users:', error instanceof Error ? error.message : 'Unknown');
             return [];
         }
         return data as AdminUserView[];
@@ -93,7 +93,7 @@ export const AdminService = {
             .limit(limit);
 
         if (error) {
-            console.error('Error fetching generations:', error);
+            console.error('Error fetching generations:', error instanceof Error ? error.message : 'Unknown');
             return [];
         }
 
@@ -150,7 +150,7 @@ export const AdminService = {
         try {
             await AdminService.sendWelcomeEmail(email);
         } catch (emailErr) {
-            console.warn('Welcome email failed (user still approved):', emailErr);
+            console.warn('Welcome email failed (user still approved):', emailErr instanceof Error ? emailErr.message : 'Unknown');
             throw new Error('Approved but email failed. Use Re-send Invite.');
         }
     },
