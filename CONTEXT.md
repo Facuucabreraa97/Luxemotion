@@ -523,3 +523,33 @@ Se creó `api/lib/rateLimit.js` con rate limiter in-memory y verificador JWT. Ap
 1. `supabase/fix_uploads_storage_policies.sql` — RLS para uploads bucket
 2. `supabase/fix_uploads_bucket_config.sql` — MIME types + file size limits
 3. `supabase/create_likes_table.sql` — ⏳ Solo cuando se implemente el feature de likes
+
+---
+
+## 📅 Actualización: Auditoría Módulo 3.9 — SecOps & Performance Core (18/02/2026)
+
+### 21. Auditoría: Fuga de Secretos, Video Performance, Error States
+
+Se auditaron los logs de API, el rendimiento de video en frontend, y los estados de error UI.
+
+#### 21.1 Hallazgos y Parches
+
+| # | Severidad | Hallazgo | Patch |
+|---|-----------|----------|-------|
+| 1 | 🔴 ALTA | Raw `error` objects logueados en stdout (visibles en Vercel Logs) | `generate.js`, `fal-status.js`, `luma-status.js`, `luma-generate.js` — sanitizados |
+| 2 | 🔴 ALTA | `error.message` enviado en respuestas 500 al cliente | Reemplazado por `"Internal Server Error"` genérico en 4 endpoints |
+| 3 | 🔴 ALTA | `<video autoPlay>` en TODOS los cards de Marketplace y Profile — sin poster, sin lazy, sin preload | Nuevo componente `LazyVideo.tsx` con IntersectionObserver |
+| 4 | 🟡 MEDIA | Zero `onError` fallbacks en `<video>` o `<img>` de la galería | `LazyVideo` incluye fallback, `<img>` tags con `onError` handler |
+| 5 | 🟡 MEDIA | `console.error(error)` en 6 servicios frontend | Sanitizados a `error.message` en `user/market/payment/admin.service.ts` |
+
+#### 21.2 LazyVideo Component
+
+`src/components/LazyVideo.tsx` — Componente de video con IntersectionObserver:
+- Solo carga `<video>` cuando está a ≤200px del viewport
+- Auto-pause al hacer scroll fuera de la vista
+- Spinner de carga + fallback emoji si el video falla
+- Integrado en `Marketplace.tsx` y `Profile.tsx`
+
+**REGLA CRÍTICA:** Todo `<video>` nuevo en grids/listas debe usar `<LazyVideo>` en vez de `<video autoPlay>`. Los modals interactivos pueden usar `<video controls>` normal.
+
+**REGLA CRÍTICA:** Nunca loguear objetos `error` completos. Usar `error instanceof Error ? error.message : 'Unknown'`. Nunca enviar `error.message` en respuestas HTTP.
