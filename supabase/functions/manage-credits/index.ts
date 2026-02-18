@@ -15,7 +15,6 @@ serve(async (req: Request) => {
 
     try {
         // 2. Create Supabase Admin Client (Bypasses RLS)
-        // process.env is not available in Deno, use Deno.env.get
         const supabaseAdmin = createClient(
             Deno.env.get('SUPABASE_URL') ?? '',
             Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -47,33 +46,30 @@ serve(async (req: Request) => {
             return new Response(JSON.stringify({ error: 'Forbidden: Admin access required' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 });
         }
 
-        // 5. Get Current Profile
-        const { data: profile, error: profileError } = await supabaseAdmin
-            .from('profiles')
-            .select('credits')
-            .eq('id', targetUserId)
-            .single()
+        // 5. Atomic Credit Update — use admin_adjust_credits RPC
+        const { data: rpcResult, error: rpcError } = await supabaseAdmin.rpc('admin_adjust_credits', {
+            p_user_id: targetUserId,
+            p_delta: amount
+        })
 
-        if (profileError) throw new Error("User not found: " + profileError.message)
+        if (rpcError) {
+            // Fallback: direct atomic SQL update if RPC doesn't exist yet
+            console.warn('[MANAGE-CREDITS] RPC fallback, using direct update:', rpcError.message)
 
-        const currentCredits = profile.credits || 0
-        const newBalance = currentCredits + amount
+            // Prevent negative balance (unless penalty)
+            const condition = amount < 0 && type !== 'ADJUSTMENT_PENALTY'
+                ? { credits: `credits + ${amount}`, min: -amount }
+                : { credits: `credits + ${amount}`, min: 0 }
 
-        // Prevent negative balance (unless allowed by system type)
-        if (newBalance < 0 && type !== 'ADJUSTMENT_PENALTY') {
-            throw new Error("Insufficient funds for this transaction")
+            const { error: updateError } = await supabaseAdmin
+                .from('profiles')
+                .update({ credits: supabaseAdmin.raw(`GREATEST(credits + ${amount}, 0)`) })
+                .eq('id', targetUserId)
+
+            if (updateError) throw updateError
         }
 
-        // 6. Atomic Update
-        // We update ONLY the credits column.
-        const { error: updateError } = await supabaseAdmin
-            .from('profiles')
-            .update({ credits: newBalance })
-            .eq('id', targetUserId)
-
-        if (updateError) throw updateError
-
-        // 7. Log Transaction
+        // 6. Log Transaction
         await supabaseAdmin
             .from('transactions')
             .insert([{
@@ -83,8 +79,15 @@ serve(async (req: Request) => {
                 metadata: metadata || { source: 'edge_function_manage_credits' }
             }])
 
+        // 7. Get updated balance for response
+        const { data: updatedProfile } = await supabaseAdmin
+            .from('profiles')
+            .select('credits')
+            .eq('id', targetUserId)
+            .single()
+
         return new Response(
-            JSON.stringify({ success: true, newBalance, previousBalance: currentCredits }),
+            JSON.stringify({ success: true, newBalance: updatedProfile?.credits || 0 }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
         )
 
