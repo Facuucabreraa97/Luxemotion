@@ -2,6 +2,7 @@
 // LUMA RAY3 - Virtual Product Placement Pipeline
 // Alternative to Kling for better product identity preservation
 import { createClient } from '@supabase/supabase-js';
+import { rateLimit } from './lib/rateLimit.js';
 
 export const config = {
     maxDuration: 120,
@@ -14,6 +15,9 @@ export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
+
+    // Rate limit: 5 generation requests per minute
+    if (rateLimit(req, res, { maxRequests: 5, windowMs: 60000 })) return;
 
     // Check for Luma API key
     const LUMA_API_KEY = process.env.LUMA_API_KEY;

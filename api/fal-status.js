@@ -31,10 +31,15 @@ async function uploadToSupabase(url, filePath, supabase) {
     return publicUrl;
 }
 
+import { rateLimit, verifyAuth } from './lib/rateLimit.js';
+
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
+
+    // Rate limit: 20 requests per minute (polling endpoint)
+    if (rateLimit(req, res, { maxRequests: 20, windowMs: 60000 })) return;
 
     const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -44,6 +49,13 @@ export default async function handler(req, res) {
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // JWT Authentication
+    const { error: authError } = await verifyAuth(req, supabase);
+    if (authError) {
+        return res.status(401).json({ error: authError });
+    }
+
     const { request_id } = req.query;
 
     if (!request_id) {

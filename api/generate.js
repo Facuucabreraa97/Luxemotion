@@ -3,6 +3,7 @@
 import Replicate from 'replicate';
 import { createClient } from '@supabase/supabase-js';
 import * as fal from "@fal-ai/serverless-client";
+import { rateLimit } from './lib/rateLimit.js';
 
 export const config = {
     maxDuration: 120,
@@ -120,6 +121,9 @@ export default async function handler(req, res) {
         // req.url in Node is just the path (e.g. /api/generate?id=123)
         // We use a dummy base for parsing; query params will be preserved.
         const url = new URL(req.url, 'http://localhost');
+
+        // Rate limit: 5 generation requests per minute
+        if (rateLimit(req, res, { maxRequests: 5, windowMs: 60000 })) return;
 
         // --- AUTHENTICATION CHECK ---
         const authHeader = req.headers['authorization'];
