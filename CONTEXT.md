@@ -484,3 +484,42 @@ Se auditaron 11 archivos del marketplace, historial de prompts, y Edge Functions
 | `get-user-credits` EF | ✅ JWT auth, solo retorna créditos propios |
 
 **REGLA CRÍTICA:** Toda operación de créditos en Edge Functions debe usar RPCs atómicos (`decrease_credits`, `admin_adjust_credits`). Nunca usar el patrón read → calculate → write.
+
+---
+
+## 📅 Actualización: Auditoría Módulo 3.8 — Storage & Anti-Abuso (18/02/2026)
+
+### 19. Auditoría: Storage Buckets, Rate Limiting, Ranking
+
+Se auditaron los storage buckets, las 5 rutas API de Vercel, y la lógica de ranking de la galería. Se encontraron **4 vulnerabilidades** y se generó un schema preemptivo.
+
+#### 19.1 Hallazgos y Parches
+
+| # | Severidad | Hallazgo | Patch |
+|---|-----------|----------|-------|
+| 1 | 🔴 ALTA | `uploads` bucket sin políticas RLS — cualquier user podía leer/borrar archivos de otros | `fix_uploads_storage_policies.sql` |
+| 2 | 🔴 ALTA | `fal-status.js` y `luma-status.js` sin autenticación ni rate limiting | JWT + 20 req/min rate limit añadidos |
+| 3 | 🟡 MEDIA | Sin validación MIME/tamaño en uploads (hosting potencial de malware) | `fix_uploads_bucket_config.sql` + client-side validation en `storage.service.ts` |
+| 4 | 🟢 INFO | No existe sistema de likes — schema preemptivo creado | `create_likes_table.sql` (ejecutar cuando se implemente) |
+
+#### 19.2 Rate Limiting — Middleware Centralizado
+
+Se creó `api/lib/rateLimit.js` con rate limiter in-memory y verificador JWT. Aplicado a todas las rutas:
+
+| Route | Rate Limit | Auth |
+|-------|-----------|------|
+| `generate.js` | 5 req/min | ✅ JWT (preexistente) |
+| `luma-generate.js` | 5 req/min | ✅ JWT (preexistente) |
+| `fal-status.js` | 20 req/min | ✅ JWT (nuevo) |
+| `luma-status.js` | 20 req/min | ✅ JWT (nuevo) |
+| `get-credits.js` | — | ✅ JWT (preexistente) |
+
+**REGLA CRÍTICA:** Toda nueva ruta API en `api/` debe importar y usar `rateLimit` y `verifyAuth` de `api/lib/rateLimit.js`.
+
+### 20. SQLs Pendientes de Ejecución (Módulo 3.8)
+
+> ⚠️ **ACCIÓN REQUERIDA:** Ejecutar en Supabase SQL Editor:
+
+1. `supabase/fix_uploads_storage_policies.sql` — RLS para uploads bucket
+2. `supabase/fix_uploads_bucket_config.sql` — MIME types + file size limits
+3. `supabase/create_likes_table.sql` — ⏳ Solo cuando se implemente el feature de likes
