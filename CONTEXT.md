@@ -553,3 +553,32 @@ Se auditaron los logs de API, el rendimiento de video en frontend, y los estados
 **REGLA CRÍTICA:** Todo `<video>` nuevo en grids/listas debe usar `<LazyVideo>` en vez de `<video autoPlay>`. Los modals interactivos pueden usar `<video controls>` normal.
 
 **REGLA CRÍTICA:** Nunca loguear objetos `error` completos. Usar `error instanceof Error ? error.message : 'Unknown'`. Nunca enviar `error.message` en respuestas HTTP.
+
+---
+
+## 📅 Actualización: Auditoría Módulo 3.10 — Economía Oculta y Anti-Abuso (18/02/2026)
+
+### 22. Auditoría: Misiones, Registro, Waitlist Bypass
+
+Se auditaron las misiones/gamificación, el trigger de registro, y los controles de acceso de la waitlist.
+
+#### 22.1 Hallazgos y Parches
+
+| # | Severidad | Hallazgo | Patch |
+|---|-----------|----------|-------|
+| 1 | 🔴 CRÍTICA | Whitelist UPDATE permitía a cualquier usuario autenticado auto-aprobarse | `fix_whitelist_rls.sql` — admin-only policy |
+| 2 | 🔴 CRÍTICA | `handle_new_user()` daba 100 CR al signup sin verificación ni CAPTCHA | `fix_welcome_credits.sql` — 0 CR al signup, 100 CR al aprobarse |
+| 3 | 🔴 CRÍTICA | `claimQuest()` y `trackAction()` 100% client-side, manipulable desde consola | `fix_gamification_rls.sql` — tables read-only |
+| 4 | 🟢 INFO | `check-whitelist` leakeaba `error.message` en 400 responses | Sanitizado a `"Bad Request"` |
+
+**REGLA CRÍTICA:** Las tablas de gamificación son READ-ONLY vía RLS. Toda operación de write (track, claim) debe implementarse como RPC server-side antes de reactivar el feature.
+
+**REGLA CRÍTICA:** La tabla `whitelist` solo puede ser actualizada por admins (`is_admin = true`). Nunca crear policies de UPDATE para `authenticated` genérico.
+
+### 23. SQLs Pendientes de Ejecución (Módulo 3.10)
+
+> ⚠️ **ACCIÓN REQUERIDA:** Ejecutar en Supabase SQL Editor:
+
+1. `supabase/fix_whitelist_rls.sql` — 🔴 CRÍTICO: Cerrar vector de auto-aprobación
+2. `supabase/fix_welcome_credits.sql` — 🔴 CRÍTICO: Cerrar vector de farming de créditos
+3. `supabase/fix_gamification_rls.sql` — Lockdown de tablas de gamificación
