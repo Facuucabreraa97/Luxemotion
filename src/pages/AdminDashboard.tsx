@@ -43,11 +43,22 @@ export const AdminDashboard = () => {
     const loadData = async () => {
       setLoading(true);
       try {
-        // Check Admin Access (Frontend check only, backend is secured strictly)
         const {
           data: { user },
         } = await supabase.auth.getUser();
         if (!user) return navigate('/login');
+
+        // ── SERVER-SIDE ADMIN VERIFICATION ──
+        const { data: adminProfile, error: adminCheckError } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', user.id)
+          .single();
+
+        if (adminCheckError || !adminProfile?.is_admin) {
+          console.error('Admin verification failed — access denied');
+          return navigate('/app/studio');
+        }
 
         // Parallel Fetch
         const [statsData, usersData] = await Promise.all([

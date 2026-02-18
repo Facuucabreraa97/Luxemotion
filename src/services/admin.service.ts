@@ -50,27 +50,21 @@ export const AdminService = {
     },
 
     async updateCredits(email: string, amount: number) {
-        // DIRECT UPDATE STRATEGY (Bypassing RPC)
-        
-        // 1. Get current user ID and credits (Fetch by ID is safest for updates)
+        // ATOMIC UPDATE via RPC — prevents TOCTOU race conditions
         const { data: user, error: fetchError } = await supabase
             .from('profiles')
-            .select('id, credits')
+            .select('id')
             .eq('email', email)
             .single();
-            
+
         if (fetchError) throw new Error(`User not found: ${fetchError.message}`);
         if (!user) throw new Error('User data is null');
-        
-        const currentCredits = user.credits || 0;
-        const newBalance = Math.floor(currentCredits + amount); // Force Integer
-        
-        // 2. Update using Primary Key (ID) - The source of truth
-        const { error: updateError } = await supabase
-            .from('profiles')
-            .update({ credits: newBalance })
-            .eq('id', user.id); // <--- Crucial Change: Update by ID
-            
+
+        const { error: updateError } = await supabase.rpc('admin_adjust_credits', {
+            target_user_id: user.id,
+            delta: Math.floor(amount)
+        });
+
         if (updateError) throw updateError;
     },
 

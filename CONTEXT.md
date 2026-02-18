@@ -360,3 +360,50 @@ return <span>{t('sidebar.billing')}</span>; // → "Billing" o "Facturación"
 1. `supabase/payment_gateway_migration.sql` — Tablas, columnas, RLS, RPCs
 2. `supabase/setup_payments_bucket.sql` — Bucket de storage + políticas
 
+---
+
+## 📅 Actualización: Auditoría de Seguridad Módulo 1 — Pagos y Admin (17/02/2026)
+
+### 14. Auditoría Pre-Lanzamiento: Pasarela de Pagos, Admin Panel, Storage
+
+Se realizó una auditoría completa de seguridad sobre el sistema de pagos manuales, el panel de administración y las políticas de storage. Se identificaron **6 vulnerabilidades** (2 críticas, 2 altas, 1 media, 1 baja) y se generaron parches para todas.
+
+#### 14.1 Hallazgos y Parches
+
+| # | Severidad | Hallazgo | Parche |
+|---|-----------|----------|--------|
+| 1 | 🔴 CRÍTICA | Race condition en `review_payment`: sin `FOR UPDATE` lock, doble-review acredita créditos 2x | `fix_review_payment_race_condition.sql` |
+| 2 | 🔴 CRÍTICA | Admin panel guard solo en frontend (React state): inyectable via DevTools | `AdminDashboard.tsx` (server-side verification) |
+| 3 | 🟠 ALTA | Payment proofs globalmente legibles: cualquier usuario puede ver comprobantes de otros | `fix_payments_storage_policies.sql` |
+| 4 | 🟠 ALTA | Falta policy DELETE en storage bucket `payments` | `fix_payments_storage_policies.sql` |
+| 5 | 🟡 MEDIA | `updateCredits` en `admin.service.ts` usa patrón TOCTOU no atómico (read → calculate → write) | `fix_admin_credits_atomic.sql` + `admin.service.ts` |
+| 6 | 🟢 BAJA | Anti-fraud `checkDuplicateTxHash` solo en frontend | ✅ Backend ya protegido por `UNIQUE INDEX` |
+
+#### 14.2 Archivos Nuevos (SQL)
+
+| Archivo | Propósito |
+|---------|-----------|
+| `supabase/fix_review_payment_race_condition.sql` | `SELECT ... FOR UPDATE` en `review_payment` para prevenir doble-credit |
+| `supabase/fix_transactions_rls.sql` | RLS `SELECT` scoped: users solo ven sus propias transacciones, admins ven todo |
+| `supabase/fix_payments_storage_policies.sql` | Reads scoped por carpeta (`qr-codes/` público, `payment-proofs/` solo admin) + DELETE policies |
+| `supabase/fix_admin_credits_atomic.sql` | RPC `admin_adjust_credits`: operación atómica `credits = credits + delta` con floor en 0 |
+
+#### 14.3 Archivos Modificados (TypeScript)
+
+| Archivo | Cambio |
+|---------|--------|
+| `src/pages/AdminDashboard.tsx` | Server-side `is_admin` check al montar: query a `profiles` antes de cargar datos admin |
+| `src/services/admin.service.ts` | `updateCredits` usa `supabase.rpc('admin_adjust_credits')` en vez de read-then-write |
+
+**REGLA CRÍTICA:** El RPC `review_payment` ahora usa `FOR UPDATE` row-level lock. Esto garantiza que dos reviews concurrentes sobre la misma transacción **nunca** dupliquen créditos.
+
+### 15. SQLs Pendientes de Ejecución en Supabase (Auditoría)
+
+> ⚠️ **ACCIÓN REQUERIDA:** Ejecutar estos 4 archivos en Supabase SQL Editor **antes del lanzamiento**, en este orden:
+
+1. `supabase/fix_review_payment_race_condition.sql` — Race condition fix
+2. `supabase/fix_transactions_rls.sql` — RLS scoped para transactions
+3. `supabase/fix_payments_storage_policies.sql` — Storage reads scoped + DELETE
+4. `supabase/fix_admin_credits_atomic.sql` — RPC atómico para créditos
+
+
