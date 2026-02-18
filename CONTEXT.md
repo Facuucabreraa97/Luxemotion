@@ -396,13 +396,91 @@ Se realizó una auditoría completa de seguridad sobre el sistema de pagos manua
 
 **REGLA CRÍTICA:** El RPC `review_payment` ahora usa `FOR UPDATE` row-level lock. Esto garantiza que dos reviews concurrentes sobre la misma transacción **nunca** dupliquen créditos.
 
-### 15. SQLs Pendientes de Ejecución en Supabase (Auditoría)
+### 15. SQLs de Auditoría Módulo 1 — ✅ Ejecutados (18/02/2026)
 
-> ⚠️ **ACCIÓN REQUERIDA:** Ejecutar estos 4 archivos en Supabase SQL Editor **antes del lanzamiento**, en este orden:
+> ✅ **COMPLETADO:** Los 4 parches SQL del Módulo 1 fueron ejecutados exitosamente en Supabase SQL Editor.
 
-1. `supabase/fix_review_payment_race_condition.sql` — Race condition fix
-2. `supabase/fix_transactions_rls.sql` — RLS scoped para transactions
-3. `supabase/fix_payments_storage_policies.sql` — Storage reads scoped + DELETE
-4. `supabase/fix_admin_credits_atomic.sql` — RPC atómico para créditos
+1. ✅ `supabase/fix_review_payment_race_condition.sql` — Race condition fix
+2. ✅ `supabase/fix_transactions_rls.sql` — RLS scoped para transactions
+3. ✅ `supabase/fix_payments_storage_policies.sql` — Storage reads scoped + DELETE
+4. ✅ `supabase/fix_admin_credits_atomic.sql` — RPC atómico para créditos
 
+---
 
+## 📅 Actualización: Auditoría de Seguridad Módulo 2 — Pipeline de Generación (18/02/2026)
+
+### 16. Auditoría: Generación de Video (Fal.ai + Luma Ray3)
+
+Se auditó el pipeline completo de generación de video. Se encontraron **3 vulnerabilidades** relacionadas con pérdida de créditos en caso de fallos.
+
+| # | Archivo | Hallazgo | Fix |
+|---|---------|----------|-----|
+| 1 | `api/luma-generate.js` | Créditos se deducían DESPUÉS del API call + RPC name incorrecto | Deducción ANTES + nombre correcto `decrease_credits` + refund automático en catch |
+| 2 | `api/fal-status.js` | Sin refund cuando Fal.ai reporta estado FAILED | Refund automático usando costo almacenado en `generations` |
+| 3 | `api/luma-status.js` | Sin refund cuando Luma reporta estado failed | Refund automático usando costo almacenado en `generations` |
+
+**REGLA CRÍTICA:** Todo endpoint de generación ahora sigue el patrón: deducir créditos → llamar API → si falla en cualquier punto → refund atómico vía `decrease_credits`.
+
+---
+
+## 📅 Actualización: Cleanup Módulo 3 — Technical Debt (18/02/2026)
+
+### 17. Limpieza de Deuda Técnica
+
+Se eliminaron todas las referencias al deprecated "Modo Velvet", dependencias muertas, y scripts obsoletos. **13 archivos, -1,119 líneas.**
+
+#### 17.1 Velvet Eradication
+
+| Archivo | Cambio |
+|---------|--------|
+| `src/pages/Plans.tsx` | "Velvet Rope Priority" → "Priority Queue (Skip the Line)" |
+| `CONTEXT.md` | Eliminado Modo Velvet de módulos y reglas de desarrollo |
+| `scripts/analyze_failure.js` | "unsecured Velvet Mode" → "unsecured endpoints" |
+| `PROPOSAL.md` | Archivado a `docs/archive/PROPOSAL.md` |
+
+**Verificación:** `grep -ri velvet` en `src/` y `api/` → **0 resultados** ✅
+
+#### 17.2 Dependencias Eliminadas
+
+```
+npm uninstall sharp stripe i18next-http-backend → -36 paquetes
+```
+
+#### 17.3 Archivos Eliminados (7)
+
+- `test-lab/` (3 archivos) — Benchmarks de Sharp/SDXL
+- `scripts/singularity_*.cjs` (3 archivos) — Tools de auditoría legacy
+- `scripts/check_debug_collage.js` — Debug tool de Sharp
+
+#### 17.4 i18n
+
+Verificado: `en.ts` y `es.ts` — 30 keys cada uno, simetría perfecta.
+
+---
+
+## 📅 Actualización: Auditoría Módulo 3.5 — Marketplace & Edge Functions (18/02/2026)
+
+### 18. Auditoría: Gallery, Prompt History, Edge Functions
+
+Se auditaron 11 archivos del marketplace, historial de prompts, y Edge Functions de Supabase. Se encontraron **6 vulnerabilidades** (2 críticas).
+
+#### 18.1 Hallazgos y Parches
+
+| # | Severidad | Hallazgo | Patch |
+|---|-----------|----------|-------|
+| 1 | 🔴 CRÍTICA | `generations` RLS con `USING(true)`: cualquier usuario podía leer los prompts de todos | `fix_generations_rls.sql` ✅ Ejecutado |
+| 2 | 🔴 CRÍTICA | `execute-purchase` EF: TOCTOU + sin locks, duplicaba `buy_talent` RPC | Eliminado completamente |
+| 3 | 🟡 MEDIA | `mint-asset` EF: TOCTOU en créditos, sin refund si falla insert del asset | Reescrito con RPC atómico + refund |
+| 4 | 🟡 MEDIA | `manage-credits` EF: TOCTOU read-then-write en créditos | Reescrito con `admin_adjust_credits` RPC |
+| 5 | 🟡 MEDIA | `check-whitelist` EF: permitía lookups sin autenticación | JWT obligatorio + scope por email |
+| 6 | 🟢 BAJA | `execute-purchase` EF: código muerto, fee structure inconsistente con RPC | Eliminado |
+
+#### 18.2 Componentes Confirmados Seguros
+
+| Componente | Estado |
+|------------|--------|
+| `buy_talent` RPC (v3) | ✅ Atómico, `FOR UPDATE` locks, anti-self-dealing, royalties |
+| `send-email` EF | ✅ Verificación JWT de admin |
+| `get-user-credits` EF | ✅ JWT auth, solo retorna créditos propios |
+
+**REGLA CRÍTICA:** Toda operación de créditos en Edge Functions debe usar RPCs atómicos (`decrease_credits`, `admin_adjust_credits`). Nunca usar el patrón read → calculate → write.
