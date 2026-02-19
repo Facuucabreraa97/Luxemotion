@@ -92,25 +92,32 @@ export default async function handler(req, res) {
             });
 
             // Handle different response shapes per model
+            // Video models return result.video.url, Flux images return result.images[0].url
             const videoUrl = result?.video?.url || result?.output?.video?.url || null;
+            const imageUrl = result?.images?.[0]?.url || result?.output?.images?.[0]?.url || null;
+            const outputUrl = videoUrl || imageUrl;
+            const isImage = !videoUrl && !!imageUrl;
             
-            if (videoUrl) {
-                console.log(`[FAL-STATUS] Video ready (${qualityTier}): ${videoUrl}`);
+            if (outputUrl) {
+                console.log(`[FAL-STATUS] ${isImage ? 'Image' : 'Video'} ready (${qualityTier}): ${outputUrl}`);
                 
                 // Use generation record we already fetched
                 const generation = genRecord;
 
-                let persistedUrl = videoUrl;
+                let persistedUrl = outputUrl;
                 let persistenceSuccess = false;
                 
                 // CRITICAL: Persist to Supabase - fal.ai URLs expire in ~24h
                 if (generation?.user_id) {
                     try {
-                        const filename = `${generation.user_id}/video_${Date.now()}_kling.mp4`;
-                        console.log(`[FAL-STATUS] Attempting to persist video to: ${filename}`);
-                        persistedUrl = await uploadToSupabase(videoUrl, filename, supabase);
+                        const ext = isImage ? 'png' : 'mp4';
+                        const prefix = isImage ? 'image' : 'video';
+                        const model = isImage ? 'flux' : 'kling';
+                        const filename = `${generation.user_id}/${prefix}_${Date.now()}_${model}.${ext}`;
+                        console.log(`[FAL-STATUS] Persisting ${prefix} to: ${filename}`);
+                        persistedUrl = await uploadToSupabase(outputUrl, filename, supabase);
                         persistenceSuccess = true;
-                        console.log(`[FAL-STATUS] Video persisted successfully: ${persistedUrl}`);
+                        console.log(`[FAL-STATUS] ${prefix} persisted: ${persistedUrl}`);
                     } catch (e) {
                         console.error('[FAL-STATUS] CRITICAL: Video persistence FAILED:', e.message);
                         console.error('[FAL-STATUS] User will lose video after fal.ai expiry (~24h)');

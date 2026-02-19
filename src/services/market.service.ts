@@ -130,4 +130,15 @@ export const MarketService = {
       .order('created_at', { ascending: false });
     return data || [];
   },
+
+  // RENAME ASSET (Inline Edit — Module 3.20)
+  async renameAsset(assetId: string, newName: string) {
+    const trimmed = newName.trim();
+    if (!trimmed) throw new Error('Name cannot be empty');
+    const { error } = await supabase
+      .from('talents')
+      .update({ name: trimmed })
+      .eq('id', assetId);
+    if (error) throw error;
+  },
 };

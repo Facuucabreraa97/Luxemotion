@@ -17,18 +17,16 @@ interface LazyVideoProps {
 }
 
 /**
- * LazyVideo — Zero-download gallery component (Module 3.19)
+ * LazyVideo — Zero-download gallery component (Module 3.19/3.20)
  *
  * STRATEGY: No <video> element exists in the DOM by default.
  * This eliminates ALL network requests from the gallery grid.
  *
  * Flow:
- * 1. DEFAULT: Shows a static poster <img> (or gradient placeholder)
+ * 1. DEFAULT: Shows a polished poster or animated gradient placeholder
  * 2. ON HOVER: Mounts <video>, calls .play()
  * 3. ON LEAVE: Unmounts <video> entirely → frees the connection
  * 4. VIEWPORT CHECK: Only enables hover behavior when near viewport
- *
- * This guarantees 0 MP4 downloads on page load = instant gallery render.
  */
 export const LazyVideo: React.FC<LazyVideoProps> = ({
   src,
@@ -51,8 +49,8 @@ export const LazyVideo: React.FC<LazyVideoProps> = ({
 
   // Should we mount the <video> element?
   const shouldMountVideo = hoverToPlay
-    ? isNearViewport && isHovering   // Hover mode: only on hover + near viewport
-    : isNearViewport && autoPlay;    // Legacy mode: on viewport entry
+    ? isNearViewport && isHovering
+    : isNearViewport && autoPlay;
 
   // IntersectionObserver: track viewport proximity
   useEffect(() => {
@@ -77,9 +75,7 @@ export const LazyVideo: React.FC<LazyVideoProps> = ({
   // Auto-play when video element mounts
   useEffect(() => {
     if (videoRef.current && shouldMountVideo) {
-      videoRef.current.play().catch(() => {
-        // Autoplay blocked — silently ignore
-      });
+      videoRef.current.play().catch(() => {});
     }
   }, [shouldMountVideo]);
 
@@ -93,10 +89,6 @@ export const LazyVideo: React.FC<LazyVideoProps> = ({
       setIsPlaying(false);
     }
   }, [hoverToPlay]);
-
-  // Poster URL: use provided poster, or use #t=0.1 trick via <img> approach
-  // We DON'T use #t=0.1 on a <video> because that still buffers.
-  // Instead, we show a static poster image or a gradient placeholder.
 
   if (hasError) {
     return (
@@ -118,14 +110,27 @@ export const LazyVideo: React.FC<LazyVideoProps> = ({
     >
       {/* STATIC POSTER — always visible when video is not playing */}
       {!isPlaying && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-900 z-10">
+        <div className="absolute inset-0 z-10">
           {poster ? (
             <img src={poster} alt="" className="w-full h-full object-cover" loading="lazy" />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
-              <div className="text-center opacity-40">
-                <span className="text-2xl block">▶</span>
-                <span className="text-[8px] uppercase font-bold tracking-wider text-gray-500 mt-1 block">Hover to preview</span>
+            <div className="w-full h-full bg-gradient-to-br from-[#0d0d1a] via-[#1a1a2e] to-[#0d0d1a] flex items-center justify-center relative overflow-hidden">
+              {/* Animated shimmer line */}
+              <div
+                className="absolute inset-0 opacity-20"
+                style={{
+                  background: 'linear-gradient(105deg, transparent 40%, rgba(99,102,241,0.15) 45%, rgba(139,92,246,0.1) 50%, transparent 55%)',
+                  animation: 'shimmer 3s ease-in-out infinite',
+                }}
+              />
+              {/* Play icon */}
+              <div className="text-center z-10 opacity-50 group-hover/video:opacity-80 transition-opacity duration-300">
+                <div className="w-12 h-12 rounded-full border border-white/20 flex items-center justify-center mx-auto mb-2 group-hover/video:border-white/40 group-hover/video:scale-110 transition-all duration-300">
+                  <svg className="w-5 h-5 text-white/70 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </div>
+                <span className="text-[8px] uppercase font-bold tracking-widest text-gray-500">Hover to preview</span>
               </div>
             </div>
           )}
@@ -147,6 +152,14 @@ export const LazyVideo: React.FC<LazyVideoProps> = ({
           onError={() => setHasError(true)}
         />
       )}
+
+      {/* Inject shimmer keyframe once */}
+      <style>{`
+        @keyframes shimmer {
+          0%, 100% { transform: translateX(-100%); }
+          50% { transform: translateX(100%); }
+        }
+      `}</style>
     </div>
   );
 };

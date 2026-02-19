@@ -26,6 +26,9 @@ const Profile = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+  // Module 3.20: Inline rename
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
 
   useEffect(() => {
     loadProfileData();
@@ -260,7 +263,35 @@ const Profile = () => {
                       </div>
                     </div>
                     <div className="p-4">
-                      <h3 className="font-bold text-white truncate">{asset.name}</h3>
+                      {editingId === asset.id ? (
+                        <input
+                          autoFocus
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          onBlur={async () => {
+                            if (editName.trim() && editName.trim() !== asset.name) {
+                              try {
+                                await MarketService.renameAsset(asset.id, editName);
+                                setAssets(prev => prev.map(a => a.id === asset.id ? { ...a, name: editName.trim() } : a));
+                              } catch { /* silently fail */ }
+                            }
+                            setEditingId(null);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                            if (e.key === 'Escape') setEditingId(null);
+                          }}
+                          className="w-full bg-transparent border-b border-white/30 text-white font-bold outline-none focus:border-blue-500 transition"
+                        />
+                      ) : (
+                        <h3
+                          className="font-bold text-white truncate cursor-pointer hover:text-blue-400 transition"
+                          onDoubleClick={() => { setEditingId(asset.id); setEditName(asset.name); }}
+                          title="Double-click to rename"
+                        >
+                          {asset.name}
+                        </h3>
+                      )}
                       <div className="flex justify-between items-end mt-4">
                         <div>
                           <p className="text-[10px] text-gray-500 uppercase font-bold">Price</p>
