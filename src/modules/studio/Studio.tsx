@@ -30,7 +30,11 @@ export const Studio = () => {
   // TIER STATE
   const [selectedTier, setSelectedTier] = useState<'draft' | 'master'>('draft');
 
-  const TIER_COSTS = { draft: 20, master: 250 } as const;
+  const TIER_COSTS = {
+    draft: 50,
+    master_5s: 400,
+    master_10s: 800,
+  } as const;
 
   // Preview URLs for UI
   const [startPreview, setStartPreview] = useState<string>('');
@@ -46,8 +50,12 @@ export const Studio = () => {
   const [credits, setCredits] = useState<number | null>(null);
   const [loadingCredits, setLoadingCredits] = useState<boolean>(true);
 
-  // Cost Calculation (tier-based)
-  const cost = TIER_COSTS[selectedTier];
+  // Cost Calculation (tier + duration aware)
+  const cost = selectedTier === 'draft'
+    ? TIER_COSTS.draft
+    : duration === '10'
+      ? TIER_COSTS.master_10s
+      : TIER_COSTS.master_5s;
 
   // Auto-Update Video URL when generation finishes
   useEffect(() => {
@@ -184,7 +192,7 @@ export const Studio = () => {
         }
 
         if (response.status === 429) {
-          alert('El sistema está ocupado, por favor espera 5 segundos y reintenta');
+          alert('The system is busy, please wait 5 seconds and try again');
           setLocalStatus('IDLE');
           return;
         }
@@ -354,12 +362,12 @@ export const Studio = () => {
                 {/* MASTER */}
                 <button
                   onClick={() => {
-                    if (credits !== null && credits < TIER_COSTS.master) return;
+                    if (credits !== null && credits < TIER_COSTS.master_5s) return;
                     setSelectedTier('master');
                   }}
-                  disabled={credits !== null && credits < TIER_COSTS.master}
+                  disabled={credits !== null && credits < TIER_COSTS.master_5s}
                   className={`flex-1 py-3 rounded-xl text-xs font-bold border-2 transition-all relative overflow-hidden ${
-                    credits !== null && credits < TIER_COSTS.master
+                    credits !== null && credits < TIER_COSTS.master_5s
                       ? 'border-white/5 text-gray-700 cursor-not-allowed opacity-50'
                       : selectedTier === 'master'
                         ? 'bg-amber-500/15 text-amber-400 border-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.15)]'
@@ -371,11 +379,11 @@ export const Studio = () => {
                     <span>Master</span>
                   </div>
                   <div className={`text-[9px] mt-0.5 font-mono ${
-                    credits !== null && credits < TIER_COSTS.master
+                    credits !== null && credits < TIER_COSTS.master_5s
                       ? 'text-gray-700'
                       : selectedTier === 'master' ? 'text-amber-500/70' : 'text-gray-600'
                   }`}>
-                    {TIER_COSTS.master} CR · Kling Pro
+                    {TIER_COSTS.master_5s} CR · Kling Pro
                   </div>
                 </button>
               </div>
@@ -421,8 +429,9 @@ export const Studio = () => {
                       <div className="text-center p-4">
                         <Upload className="mx-auto text-gray-500 mb-2" size={20} />
                         <span className="text-[10px] uppercase font-bold text-gray-500">
-                          Subject
+                          Start Frame
                         </span>
+                        <span className="text-[8px] text-gray-600 block mt-0.5">Main subject</span>
                       </div>
                     )}
                     <input
@@ -452,8 +461,9 @@ export const Studio = () => {
                       <div className="text-center p-4">
                         <Film className="mx-auto text-gray-500 mb-2" size={20} />
                         <span className="text-[10px] uppercase font-bold text-gray-500">
-                          Context (End)
+                          End Frame
                         </span>
+                        <span className="text-[8px] text-gray-600 block mt-0.5">Optional transition</span>
                       </div>
                     )}
                     <input
@@ -480,7 +490,7 @@ export const Studio = () => {
                       onClick={() => setDuration(d as '5' | '10')}
                       className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${duration === d ? 'bg-white text-black border-white' : 'border-white/10 text-gray-500 hover:border-white/30'}`}
                     >
-                      {d} Segundos
+                      {d} Seconds
                     </button>
                   ))}
                 </div>
@@ -575,7 +585,7 @@ export const Studio = () => {
                     {localStatus === 'UPLOADING'
                       ? 'Uploading...'
                       : localStatus === 'PROCESSING'
-                        ? 'Procesando...'
+                        ? 'Processing...'
                         : startImage && endImage
                           ? 'Merging Assets...'
                           : 'Processing...'}

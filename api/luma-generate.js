@@ -36,7 +36,7 @@ export default async function handler(req, res) {
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const LUMA_COST = 250; // Same as master tier
+    const LUMA_COST = 400; // Aligned with master 5s tier
     let creditsDeducted = false;
     let user = null;
 

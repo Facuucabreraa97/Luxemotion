@@ -623,3 +623,24 @@ Se auditó el bucket de uploads del Studio, la validación frontend de archivos,
 | ✅ | OK | Precios server-side (`TIER_CONFIG`), zombie gen recovery, JWT en todos los API routes | N/A |
 
 **REGLA CRÍTICA:** Toda operación de créditos DEBE usar RPCs atómicos (`decrease_credits`, `increase_credits`). Queda PROHIBIDO hacer `UPDATE profiles SET credits=...` directo en cualquier API route.
+
+### 27. Módulo 3.13-3.15: Rescate Financiero & UX Polish
+
+**Matriz de Costos Rígida (server-side):**
+
+| Tier | Créditos | Modelo |
+|------|----------|--------|
+| Draft | 50 CR | Wan-2.1 (480p) |
+| Master 5s | 400 CR | Kling v2.5 Pro |
+| Master 10s | 800 CR | Kling v2.5 Pro |
+| Luma Ray | 400 CR | Luma |
+
+**Cambios aplicados:**
+- `generate.js`: TIER_CONFIG refactorizado, cost calc duration-aware para master
+- `luma-generate.js`: LUMA_COST = 400
+- `Plans.tsx`: Bullets corregidos (~24 Drafts / 3 Masters, ~80/10, ~240/30)
+- `Studio.tsx`: TIER_COSTS dinámicos, botón Generate muestra CR según tier+duration
+- `Studio.tsx`: "Subject" → "Start Frame", "Context (End)" → "End Frame"
+- `Studio.tsx`: i18n fix — "Segundos" → "Seconds", "Procesando" → "Processing"
+
+**REGLA:** El frontend NUNCA dicta precios. `TIER_CONFIG` en `generate.js` es la única fuente de verdad.

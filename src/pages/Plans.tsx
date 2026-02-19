@@ -33,7 +33,7 @@ export const Plans = () => {
       icon: <Star className="text-gray-400" />,
       features: [
         '1,200 Credits / month ($0.012/cr)',
-        '~17 HQ Videos (5s)',
+        '~24 Draft Videos or 3 Cinematic Masters',
         'Standard Velocity',
         'Private Gallery',
         'Personal Brand License',
@@ -49,7 +49,7 @@ export const Plans = () => {
       icon: <Zap className="text-amber-400" />,
       features: [
         '3,500 Credits / month ($0.011/cr)',
-        '~50 HQ Videos (5s)',
+        '~80 Draft Videos or 10 Cinematic Masters',
         'Priority Queue (Skip the Line)',
         'Watermark Removal',
         'Rollover Credits (2 months)',
@@ -67,7 +67,7 @@ export const Plans = () => {
       icon: <Crown className="text-purple-400" />,
       features: [
         '10,000 Credits / month ($0.010/cr)',
-        '~145 HQ Videos (5s)',
+        '~240 Draft Videos or 30 Cinematic Masters',
         'Concierge Support',
         'Early Access (Kling 3.0)',
         'API Access Keys',

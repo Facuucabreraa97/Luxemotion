@@ -11,15 +11,18 @@ export const config = {
 export const dynamic = 'force-dynamic';
 
 // ── TIER CONFIGURATION ──────────────────────────────────────
+// COST MATRIX (server-side source of truth — never trust frontend)
+// Real API costs: Kling Master $1.40/5s, $2.80/10s
 const TIER_CONFIG = {
     draft: {
-        credits: 20,
+        credits: 50,
         fal_model_id: 'fal-ai/wan-i2v',
         label: 'Draft (Wan-2.1)',
         params: { resolution: '480p', num_frames: 81 }
     },
     master: {
-        credits: 250,
+        credits_5s: 400,
+        credits_10s: 800,
         fal_model_id: 'fal-ai/kling-video/v2/master/image-to-video',
         label: 'Master (Kling v2.5 Pro)',
         params: {}
@@ -205,10 +208,14 @@ export default async function handler(req, res) {
 
         const durationStr = String(duration);
         
-        // TIER-BASED COST (replaces old duration-based cost)
+        // TIER-BASED COST (server-side rigid matrix — duration-aware for master)
         const tierConfig = TIER_CONFIG[tier] || TIER_CONFIG.master;
-        cost = tierConfig.credits;
-        console.log(`[TIER] ${tierConfig.label} — Cost: ${cost} CR`);
+        if (tier === 'draft') {
+            cost = tierConfig.credits;
+        } else {
+            cost = durationStr === '10' ? tierConfig.credits_10s : tierConfig.credits_5s;
+        }
+        console.log(`[TIER] ${tierConfig.label} ${durationStr}s — Cost: ${cost} CR`);
 
         // Balance Check
         const { data: profile } = await supabase.from('profiles').select('credits').eq('id', user.id).single();
