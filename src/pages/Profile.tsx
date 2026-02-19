@@ -205,24 +205,11 @@ const Profile = () => {
                       onClick={() => (asset.video_url || asset.image_url) && setSelectedAsset(asset)}
                     >
                       {asset.video_url ? (
-                        <>
-                          <LazyVideo
-                            src={asset.video_url}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          />
-                          {/* Play icon overlay */}
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
-                              <svg
-                                className="w-8 h-8 text-white ml-1"
-                                fill="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path d="M8 5v14l11-7z" />
-                              </svg>
-                            </div>
-                          </div>
-                        </>
+                        <LazyVideo
+                          src={asset.video_url}
+                          poster={asset.image_url || undefined}
+                          className="w-full h-full object-cover"
+                        />
                       ) : asset.image_url ? (
                         <>
                           <img
@@ -230,8 +217,21 @@ const Profile = () => {
                             alt={asset.name}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                             loading="lazy"
-                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                            onError={(e) => {
+                              const el = e.target as HTMLImageElement;
+                              el.style.display = 'none';
+                              // Show fallback sibling
+                              const fallback = el.nextElementSibling as HTMLElement;
+                              if (fallback) fallback.style.display = 'flex';
+                            }}
                           />
+                          {/* Image error fallback */}
+                          <div className="absolute inset-0 items-center justify-center bg-gradient-to-br from-[#0d0d1a] via-[#1a1a2e] to-[#0d0d1a]" style={{ display: 'none' }}>
+                            <div className="text-center">
+                              <span className="text-3xl block mb-1">🖼️</span>
+                              <span className="text-[10px] text-gray-500 uppercase font-bold">Preview expired</span>
+                            </div>
+                          </div>
                           {/* Expand icon overlay */}
                           <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
                             <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
@@ -247,8 +247,11 @@ const Profile = () => {
                           </div>
                         </>
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-4xl">
-                          🎬
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#0d0d1a] via-[#1a1a2e] to-[#0d0d1a]">
+                          <div className="text-center">
+                            <span className="text-3xl block mb-1">🎬</span>
+                            <span className="text-[10px] text-gray-500 uppercase font-bold">No preview</span>
+                          </div>
                         </div>
                       )}
 
