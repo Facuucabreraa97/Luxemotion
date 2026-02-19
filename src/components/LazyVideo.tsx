@@ -8,23 +8,21 @@ interface LazyVideoProps {
   loop?: boolean;
   playsInline?: boolean;
   controls?: boolean;
-  /** Thumbnail URL shown as poster */
   poster?: string;
-  /** Root margin for IntersectionObserver (default: '200px') */
   rootMargin?: string;
-  /** If true, video plays on hover instead of auto-playing (default: true) */
   hoverToPlay?: boolean;
 }
 
 /**
- * LazyVideo — Reliable gallery component (Module 3.19 fix)
+ * LazyVideo — Reliable gallery video component
  *
- * STRATEGY: <video> exists in DOM with preload="metadata" to show the
- * first frame as a natural poster. On hover → .play(). On leave → .pause().
- * IntersectionObserver gates the `src` attribute to prevent off-screen downloads.
- *
- * This is the middle-ground approach: first-frame visible instantly,
- * no full MP4 download until hover, reliable across all browsers.
+ * APPROACH:
+ * - <video> is ALWAYS in the DOM with preload="metadata"
+ * - IntersectionObserver gates the `src` so only viewport-near cards load
+ * - The browser renders the first frame natively as the video poster
+ * - On hover → .play(), on leave → .pause() + seek to 0
+ * - If a poster prop is provided, it's shown as an <img> overlay until
+ *   the video gets a frame loaded (covers the black-before-load flash)
  */
 export const LazyVideo: React.FC<LazyVideoProps> = ({
   src,
@@ -42,22 +40,20 @@ export const LazyVideo: React.FC<LazyVideoProps> = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isNearViewport, setIsNearViewport] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [hasLoadedFrame, setHasLoadedFrame] = useState(false);
 
-  // The src we actually pass to <video> — only set when near viewport
-  // Append #t=0.1 to trigger first-frame render with preload="metadata"
-  const activeSrc = isNearViewport ? `${src}#t=0.1` : undefined;
+  // Only assign src when near viewport
+  const activeSrc = isNearViewport ? src : undefined;
 
-  // IntersectionObserver: gate src assignment
+  // IntersectionObserver
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsNearViewport(true);
-          // Once near viewport, no need to unset — keep the metadata loaded
-        }
+        if (entry.isIntersecting) setIsNearViewport(true);
       },
       { rootMargin, threshold: 0.01 }
     );
@@ -66,12 +62,13 @@ export const LazyVideo: React.FC<LazyVideoProps> = ({
     return () => observer.disconnect();
   }, [rootMargin]);
 
-  // Auto-play mode (non-hover): play when visible
-  useEffect(() => {
-    if (!hoverToPlay && autoPlay && isNearViewport && videoRef.current) {
-      videoRef.current.play().catch(() => {});
+  // Seek to 0.1s once metadata loads to show first frame
+  const handleLoadedData = useCallback(() => {
+    if (videoRef.current && !isPlaying) {
+      videoRef.current.currentTime = 0.1;
     }
-  }, [hoverToPlay, autoPlay, isNearViewport]);
+    setHasLoadedFrame(true);
+  }, [isPlaying]);
 
   const handleMouseEnter = useCallback(() => {
     if (!hoverToPlay || !videoRef.current) return;
@@ -81,8 +78,16 @@ export const LazyVideo: React.FC<LazyVideoProps> = ({
   const handleMouseLeave = useCallback(() => {
     if (!hoverToPlay || !videoRef.current) return;
     videoRef.current.pause();
-    videoRef.current.currentTime = 0;
+    videoRef.current.currentTime = 0.1;
+    setIsPlaying(false);
   }, [hoverToPlay]);
+
+  // Auto-play mode
+  useEffect(() => {
+    if (!hoverToPlay && autoPlay && isNearViewport && videoRef.current) {
+      videoRef.current.play().catch(() => {});
+    }
+  }, [hoverToPlay, autoPlay, isNearViewport]);
 
   if (hasError) {
     return (
@@ -102,28 +107,51 @@ export const LazyVideo: React.FC<LazyVideoProps> = ({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
+      {/* THE VIDEO — always in DOM, shows first frame natively */}
       <video
         ref={videoRef}
         src={activeSrc}
-        poster={poster || undefined}
         className="w-full h-full object-cover"
         muted={muted}
         loop={loop}
         playsInline={playsInline}
         controls={controls}
         preload="metadata"
-        onError={() => {
-          // Only set error if we actually had a src (not just missing viewport)
-          if (activeSrc) setHasError(true);
-        }}
+        onLoadedData={handleLoadedData}
+        onPlaying={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+        onError={() => { if (activeSrc) setHasError(true); }}
       />
 
-      {/* Subtle play indicator (no hover) */}
-      <div className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center opacity-70 group-hover:opacity-0 transition-opacity pointer-events-none">
-        <svg className="w-3.5 h-3.5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M8 5v14l11-7z" />
-        </svg>
-      </div>
+      {/* POSTER OVERLAY — covers the black flash while video metadata loads */}
+      {!hasLoadedFrame && !isPlaying && poster && (
+        <div className="absolute inset-0 z-10">
+          <img src={poster} alt="" className="w-full h-full object-cover" loading="lazy" />
+        </div>
+      )}
+
+      {/* FALLBACK PLACEHOLDER — shown when no poster and no video frame yet */}
+      {!hasLoadedFrame && !isPlaying && !poster && (
+        <div className="absolute inset-0 z-10 bg-gradient-to-br from-[#0d0d1a] via-[#1a1a2e] to-[#0d0d1a] flex items-center justify-center">
+          <div className="text-center opacity-50">
+            <div className="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center mx-auto mb-2">
+              <svg className="w-4 h-4 text-white/70 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </div>
+            <span className="text-[8px] uppercase font-bold tracking-widest text-gray-500">Hover to play</span>
+          </div>
+        </div>
+      )}
+
+      {/* Small play badge — visible when poster/frame is shown */}
+      {hasLoadedFrame && !isPlaying && (
+        <div className="absolute bottom-2 right-2 z-20 w-7 h-7 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center pointer-events-none">
+          <svg className="w-3 h-3 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+        </div>
+      )}
     </div>
   );
 };
