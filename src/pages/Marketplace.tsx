@@ -74,6 +74,7 @@ export const Marketplace = () => {
                                 {asset.video_url ? (
                                     <LazyVideo
                                         src={asset.video_url}
+                                        poster={asset.image_url || undefined}
                                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                                     />
                                 ) : asset.image_url && !asset.image_url.includes('placeholder') ? (
