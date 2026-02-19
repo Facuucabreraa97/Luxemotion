@@ -8,22 +8,27 @@ interface LazyVideoProps {
   loop?: boolean;
   playsInline?: boolean;
   controls?: boolean;
-  /** Thumbnail URL — shown before video loads */
+  /** Thumbnail URL — shown instead of video by default */
   poster?: string;
   /** Root margin for IntersectionObserver (default: '200px') */
   rootMargin?: string;
-  /** If true, video only plays on hover (default: true for gallery perf) */
+  /** If true, <video> is only injected into DOM on hover (default: true) */
   hoverToPlay?: boolean;
 }
 
 /**
- * LazyVideo — Hover-to-Play video component.
- * 
- * Performance strategy (Module 3.18):
- * 1. Shows first frame via #t=0.1 trick (no full buffer)
- * 2. Only loads video src when near viewport (IntersectionObserver)
- * 3. Only plays on mouseEnter, pauses on mouseLeave
- * 4. Pauses when scrolled out of viewport
+ * LazyVideo — Zero-download gallery component (Module 3.19)
+ *
+ * STRATEGY: No <video> element exists in the DOM by default.
+ * This eliminates ALL network requests from the gallery grid.
+ *
+ * Flow:
+ * 1. DEFAULT: Shows a static poster <img> (or gradient placeholder)
+ * 2. ON HOVER: Mounts <video>, calls .play()
+ * 3. ON LEAVE: Unmounts <video> entirely → frees the connection
+ * 4. VIEWPORT CHECK: Only enables hover behavior when near viewport
+ *
+ * This guarantees 0 MP4 downloads on page load = instant gallery render.
  */
 export const LazyVideo: React.FC<LazyVideoProps> = ({
   src,
@@ -39,27 +44,27 @@ export const LazyVideo: React.FC<LazyVideoProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
-  const [hasError, setHasError] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [isNearViewport, setIsNearViewport] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
 
-  // IntersectionObserver: only render <video> when near viewport
+  // Should we mount the <video> element?
+  const shouldMountVideo = hoverToPlay
+    ? isNearViewport && isHovering   // Hover mode: only on hover + near viewport
+    : isNearViewport && autoPlay;    // Legacy mode: on viewport entry
+
+  // IntersectionObserver: track viewport proximity
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-        } else {
-          // Pause video when scrolled away to save resources
-          if (videoRef.current && !videoRef.current.paused) {
-            videoRef.current.pause();
-          }
-          setIsVisible(false);
+        setIsNearViewport(entry.isIntersecting);
+        if (!entry.isIntersecting) {
           setIsHovering(false);
+          setIsPlaying(false);
         }
       },
       { rootMargin, threshold: 0.1 }
@@ -69,38 +74,29 @@ export const LazyVideo: React.FC<LazyVideoProps> = ({
     return () => observer.disconnect();
   }, [rootMargin]);
 
-  // Play/pause based on hover state (or autoPlay for non-hover mode)
+  // Auto-play when video element mounts
   useEffect(() => {
-    if (!videoRef.current || !isVisible || !isLoaded) return;
-
-    const shouldPlay = hoverToPlay ? isHovering : autoPlay;
-
-    if (shouldPlay) {
+    if (videoRef.current && shouldMountVideo) {
       videoRef.current.play().catch(() => {
         // Autoplay blocked — silently ignore
       });
-    } else {
-      videoRef.current.pause();
     }
-  }, [isVisible, isLoaded, isHovering, hoverToPlay, autoPlay]);
+  }, [shouldMountVideo]);
 
   const handleMouseEnter = useCallback(() => {
-    if (hoverToPlay) setIsHovering(true);
-  }, [hoverToPlay]);
+    if (hoverToPlay && isNearViewport) setIsHovering(true);
+  }, [hoverToPlay, isNearViewport]);
 
   const handleMouseLeave = useCallback(() => {
     if (hoverToPlay) {
       setIsHovering(false);
-      // Reset to first frame for clean poster-like appearance
-      if (videoRef.current) {
-        videoRef.current.pause();
-        videoRef.current.currentTime = 0;
-      }
+      setIsPlaying(false);
     }
   }, [hoverToPlay]);
 
-  // Build video src: append #t=0.1 for first-frame poster trick
-  const videoSrc = src && !src.includes('#t=') ? `${src}#t=0.1` : src;
+  // Poster URL: use provided poster, or use #t=0.1 trick via <img> approach
+  // We DON'T use #t=0.1 on a <video> because that still buffers.
+  // Instead, we show a static poster image or a gradient placeholder.
 
   if (hasError) {
     return (
@@ -116,33 +112,38 @@ export const LazyVideo: React.FC<LazyVideoProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`${className} relative bg-black`}
+      className={`${className} relative bg-black group/video`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      {/* Poster / loading state — only show spinner if no poster and not loaded */}
-      {!isLoaded && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
+      {/* STATIC POSTER — always visible when video is not playing */}
+      {!isPlaying && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-900 z-10">
           {poster ? (
-            <img src={poster} alt="" className="w-full h-full object-cover opacity-60" />
+            <img src={poster} alt="" className="w-full h-full object-cover" loading="lazy" />
           ) : (
-            <div className="w-8 h-8 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
+            <div className="w-full h-full bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
+              <div className="text-center opacity-40">
+                <span className="text-2xl block">▶</span>
+                <span className="text-[8px] uppercase font-bold tracking-wider text-gray-500 mt-1 block">Hover to preview</span>
+              </div>
+            </div>
           )}
         </div>
       )}
 
-      {/* Only render <video> when near viewport */}
-      {isVisible && (
+      {/* VIDEO — only exists in DOM when hovering (or autoPlay+viewport) */}
+      {shouldMountVideo && (
         <video
           ref={videoRef}
-          src={videoSrc}
+          src={src}
           className="w-full h-full object-cover"
           muted={muted}
           loop={loop}
           playsInline={playsInline}
           controls={controls}
-          preload="metadata"
-          onLoadedData={() => setIsLoaded(true)}
+          preload="auto"
+          onPlaying={() => setIsPlaying(true)}
           onError={() => setHasError(true)}
         />
       )}

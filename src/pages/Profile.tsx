@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { MarketService } from '@/services/market.service';
 import { Asset } from '@/types';
@@ -282,12 +283,12 @@ const Profile = () => {
               ) : (
                 <div className="col-span-full py-20 text-center border-2 border-dashed border-white/10 rounded-3xl bg-white/5">
                   <p className="text-gray-400 mb-4">No assets found in {activeTab}.</p>
-                  <a
-                    href="/app/studio"
-                    className="bg-white text-black px-6 py-2 rounded-full font-bold hover:bg-gray-200 transition"
+                  <Link
+                    to="/app/studio"
+                    className="bg-white text-black px-6 py-2 rounded-full font-bold hover:bg-gray-200 transition inline-block"
                   >
                     Go to Studio
-                  </a>
+                  </Link>
                 </div>
               )}
             </div>
