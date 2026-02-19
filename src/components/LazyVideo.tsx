@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 
 interface LazyVideoProps {
   src: string;
@@ -12,31 +12,39 @@ interface LazyVideoProps {
   poster?: string;
   /** Root margin for IntersectionObserver (default: '200px') */
   rootMargin?: string;
+  /** If true, video only plays on hover (default: true for gallery perf) */
+  hoverToPlay?: boolean;
 }
 
 /**
- * LazyVideo — Only loads and plays video when visible in viewport.
- * Prevents mobile browser crashes from simultaneous video decoding.
- * Shows fallback placeholder on load error.
+ * LazyVideo — Hover-to-Play video component.
+ * 
+ * Performance strategy (Module 3.18):
+ * 1. Shows first frame via #t=0.1 trick (no full buffer)
+ * 2. Only loads video src when near viewport (IntersectionObserver)
+ * 3. Only plays on mouseEnter, pauses on mouseLeave
+ * 4. Pauses when scrolled out of viewport
  */
 export const LazyVideo: React.FC<LazyVideoProps> = ({
   src,
   className = '',
-  autoPlay = true,
+  autoPlay = false,
   muted = true,
   loop = true,
   playsInline = true,
   controls = false,
   poster,
   rootMargin = '200px',
+  hoverToPlay = true,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
 
-  // IntersectionObserver: only load video when near viewport
+  // IntersectionObserver: only render <video> when near viewport
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -51,6 +59,7 @@ export const LazyVideo: React.FC<LazyVideoProps> = ({
             videoRef.current.pause();
           }
           setIsVisible(false);
+          setIsHovering(false);
         }
       },
       { rootMargin, threshold: 0.1 }
@@ -60,15 +69,38 @@ export const LazyVideo: React.FC<LazyVideoProps> = ({
     return () => observer.disconnect();
   }, [rootMargin]);
 
-  // Play/pause based on visibility
+  // Play/pause based on hover state (or autoPlay for non-hover mode)
   useEffect(() => {
-    if (!videoRef.current || !autoPlay) return;
-    if (isVisible && isLoaded) {
+    if (!videoRef.current || !isVisible || !isLoaded) return;
+
+    const shouldPlay = hoverToPlay ? isHovering : autoPlay;
+
+    if (shouldPlay) {
       videoRef.current.play().catch(() => {
         // Autoplay blocked — silently ignore
       });
+    } else {
+      videoRef.current.pause();
     }
-  }, [isVisible, isLoaded, autoPlay]);
+  }, [isVisible, isLoaded, isHovering, hoverToPlay, autoPlay]);
+
+  const handleMouseEnter = useCallback(() => {
+    if (hoverToPlay) setIsHovering(true);
+  }, [hoverToPlay]);
+
+  const handleMouseLeave = useCallback(() => {
+    if (hoverToPlay) {
+      setIsHovering(false);
+      // Reset to first frame for clean poster-like appearance
+      if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.currentTime = 0;
+      }
+    }
+  }, [hoverToPlay]);
+
+  // Build video src: append #t=0.1 for first-frame poster trick
+  const videoSrc = src && !src.includes('#t=') ? `${src}#t=0.1` : src;
 
   if (hasError) {
     return (
@@ -82,8 +114,13 @@ export const LazyVideo: React.FC<LazyVideoProps> = ({
   }
 
   return (
-    <div ref={containerRef} className={`${className} relative bg-black`}>
-      {/* Poster / loading state */}
+    <div
+      ref={containerRef}
+      className={`${className} relative bg-black`}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      {/* Poster / loading state — only show spinner if no poster and not loaded */}
       {!isLoaded && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
           {poster ? (
@@ -98,13 +135,13 @@ export const LazyVideo: React.FC<LazyVideoProps> = ({
       {isVisible && (
         <video
           ref={videoRef}
-          src={src}
+          src={videoSrc}
           className="w-full h-full object-cover"
           muted={muted}
           loop={loop}
           playsInline={playsInline}
           controls={controls}
-          preload="none"
+          preload="metadata"
           onLoadedData={() => setIsLoaded(true)}
           onError={() => setHasError(true)}
         />

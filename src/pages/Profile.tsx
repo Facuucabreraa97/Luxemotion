@@ -250,7 +250,7 @@ const Profile = () => {
 
                       {asset.is_draft && (
                         <div className="absolute top-2 left-2 bg-yellow-500/80 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-black border border-white/10 uppercase tracking-wider">
-                          Draft
+                          Unminted
                         </div>
                       )}
 
