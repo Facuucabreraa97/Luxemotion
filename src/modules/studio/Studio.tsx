@@ -91,6 +91,17 @@ export const Studio = () => {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'start' | 'end') => {
     const file = e.target.files?.[0];
     if (file) {
+      const ALLOWED = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'];
+      if (!ALLOWED.includes(file.type)) {
+        alert(`Unsupported format: ${file.type}. Use PNG, JPG, or WEBP.`);
+        e.target.value = '';
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        alert(`File too large: ${(file.size / 1024 / 1024).toFixed(1)}MB. Max: 10MB`);
+        e.target.value = '';
+        return;
+      }
       const url = URL.createObjectURL(file);
       if (type === 'start') {
         setStartImage(file);
@@ -418,7 +429,7 @@ export const Studio = () => {
                       type="file"
                       onChange={(e) => handleImageUpload(e, 'start')}
                       className="absolute inset-0 opacity-0 cursor-pointer"
-                      accept="image/*"
+                      accept=".png,.jpg,.jpeg,.webp,.gif"
                     />
                   </div>
 
@@ -449,7 +460,7 @@ export const Studio = () => {
                       type="file"
                       onChange={(e) => handleImageUpload(e, 'end')}
                       className="absolute inset-0 opacity-0 cursor-pointer"
-                      accept="image/*"
+                      accept=".png,.jpg,.jpeg,.webp,.gif"
                     />
                   </div>
                 </div>

@@ -582,3 +582,32 @@ Se auditaron las misiones/gamificación, el trigger de registro, y los controles
 1. `supabase/fix_whitelist_rls.sql` — 🔴 CRÍTICO: Cerrar vector de auto-aprobación
 2. `supabase/fix_welcome_credits.sql` — 🔴 CRÍTICO: Cerrar vector de farming de créditos
 3. `supabase/fix_gamification_rls.sql` — Lockdown de tablas de gamificación
+
+---
+
+## 📅 Actualización: Auditoría Módulo 3.11 — Sanitización de Uploads y DB Constraints (18/02/2026)
+
+### 24. Auditoría: Upload Bucket, Frontend Validation, Credits Constraint
+
+Se auditó el bucket de uploads del Studio, la validación frontend de archivos, y la integridad de créditos a nivel de base de datos.
+
+#### 24.1 Hallazgos y Parches
+
+| # | Severidad | Hallazgo | Patch |
+|---|-----------|----------|-------|
+| 1 | 🔴 CRÍTICA | No existía `CHECK (credits >= 0)` en `profiles` — créditos podían ir a negativo | `fix_credits_constraint.sql` |
+| 2 | 🟠 ALTA | `decrease_credits()` tenía TOCTOU: SELECT + UPDATE separados | `fix_decrease_credits_v2.sql` — single atomic UPDATE |
+| 3 | 🟡 MEDIA | Studio `handleImageUpload` no validaba tipo ni tamaño antes del preview | Validación temprana en `Studio.tsx` |
+| 4 | 🟢 INFO | `accept="image/*"` permitía SVG, TIFF, BMP | Cambiado a `.png,.jpg,.jpeg,.webp,.gif` |
+| ✅ | OK | Bucket config, storage RLS, y `storage.service.ts` ya estaban correctos | N/A |
+
+**REGLA CRÍTICA:** Todo nuevo `handleImageUpload` o similar debe validar MIME y tamaño ANTES de crear el preview. Los formatos permitidos son: `image/png`, `image/jpeg`, `image/webp`, `image/gif`. Máximo 10MB.
+
+**REGLA CRÍTICA:** Nunca hacer `SELECT credits ... IF credits >= amount ... UPDATE credits` en pasos separados. Usar `UPDATE ... WHERE credits >= amount` en un solo statement atómico.
+
+### 25. SQLs Pendientes de Ejecución (Módulo 3.11)
+
+> ⚠️ **ACCIÓN REQUERIDA:** Ejecutar en Supabase SQL Editor:
+
+1. `supabase/fix_credits_constraint.sql` — 🔴 CRÍTICO: Hard constraint `credits >= 0`
+2. `supabase/fix_decrease_credits_v2.sql` — 🔴 CRÍTICO: Fix TOCTOU race condition
