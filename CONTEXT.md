@@ -611,3 +611,15 @@ Se auditó el bucket de uploads del Studio, la validación frontend de archivos,
 
 1. `supabase/fix_credits_constraint.sql` — 🔴 CRÍTICO: Hard constraint `credits >= 0`
 2. `supabase/fix_decrease_credits_v2.sql` — 🔴 CRÍTICO: Fix TOCTOU race condition
+
+### 26. Módulo 3.12: Business Killers & Lógica Final
+
+| # | Sev | Hallazgo | Patch |
+|---|-----|----------|-------|
+| 1 | 🔴 CRÍTICA | RPC `decrease_credits` llamada con params viejos (`user_id`, `amount`) — roto tras Patch 3.11-B | Renombrado a `p_user_id`, `p_amount` en `generate.js`, `luma-generate.js` |
+| 2 | 🟠 ALTA | Fallback `UPDATE profiles SET credits=...` en `generate.js` y `luma-generate.js` — bypass del RPC atómico | Eliminado — si RPC falla, aborta con 402 |
+| 3 | 🟡 MEDIA | `cost_in_credits \|\| 250` hardcodeado en refunds de `fal-status.js` y `luma-status.js` | Eliminado — si es null, log CRITICAL y skip |
+| 4 | 🟡 MEDIA | Sin enforcement server-side de expiración de planes (`current_period_end`) | Documentado — bajo impacto (credit-based) |
+| ✅ | OK | Precios server-side (`TIER_CONFIG`), zombie gen recovery, JWT en todos los API routes | N/A |
+
+**REGLA CRÍTICA:** Toda operación de créditos DEBE usar RPCs atómicos (`decrease_credits`, `increase_credits`). Queda PROHIBIDO hacer `UPDATE profiles SET credits=...` directo en cualquier API route.

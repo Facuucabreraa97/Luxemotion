@@ -158,15 +158,19 @@ export default async function handler(req, res) {
                 .single();
 
             if (genRefund?.user_id) {
-                const refundAmount = genRefund.cost_in_credits || 250;
-                const { error: refundErr } = await supabase.rpc('increase_credits', {
-                    user_id: genRefund.user_id,
-                    amount: refundAmount
-                });
-                if (refundErr) {
-                    console.error('[LUMA-STATUS] REFUND FAILED - CRITICAL:', refundErr);
+                const refundAmount = genRefund.cost_in_credits;
+                if (!refundAmount) {
+                    console.error('[LUMA-STATUS] CRITICAL: cost_in_credits is null — cannot determine refund amount for', generation_id);
                 } else {
-                    console.log(`[LUMA-STATUS] Refund ${refundAmount} CR to ${genRefund.user_id}`);
+                    const { error: refundErr } = await supabase.rpc('increase_credits', {
+                        user_id: genRefund.user_id,
+                        amount: refundAmount
+                    });
+                    if (refundErr) {
+                        console.error('[LUMA-STATUS] REFUND FAILED - CRITICAL:', refundErr);
+                    } else {
+                        console.log(`[LUMA-STATUS] Refund ${refundAmount} CR to ${genRefund.user_id}`);
+                    }
                 }
             }
             

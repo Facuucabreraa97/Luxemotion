@@ -64,15 +64,13 @@ export default async function handler(req, res) {
             return res.status(402).json({ error: `Insufficient credits. Luma costs ${LUMA_COST} CR.` });
         }
 
-        // DEDUCT BEFORE API CALL (mirrors generate.js pattern)
+        // DEDUCT BEFORE API CALL (atomic RPC — no fallback)
         const { error: deductError } = await supabase.rpc('decrease_credits', {
-            user_id: user.id, amount: LUMA_COST
+            p_user_id: user.id, p_amount: LUMA_COST
         });
         if (deductError) {
-            // Fallback direct update
-            await supabase.from('profiles').update({
-                credits: profile.credits - LUMA_COST
-            }).eq('id', user.id);
+            console.error('Credit deduction RPC failed:', deductError.message);
+            return res.status(402).json({ error: 'Credit deduction failed. Please try again.' });
         }
         creditsDeducted = true;
 

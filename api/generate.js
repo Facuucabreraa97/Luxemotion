@@ -216,10 +216,11 @@ export default async function handler(req, res) {
             return res.status(402).json({ error: `Insufficient Credits. ${tierConfig.label} costs ${cost} CR.` });
         }
 
-        // Deduct Credits
-        const { error: deductError } = await supabase.rpc('decrease_credits', { user_id: user.id, amount: cost });
+        // Deduct Credits (atomic RPC — no fallback to direct UPDATE)
+        const { error: deductError } = await supabase.rpc('decrease_credits', { p_user_id: user.id, p_amount: cost });
         if (deductError) {
-             await supabase.from('profiles').update({ credits: profile.credits - cost }).eq('id', user.id);
+            console.error('Credit deduction RPC failed:', deductError.message);
+            return res.status(402).json({ error: 'Credit deduction failed. Please try again.' });
         }
         creditsDeducted = true;
 
@@ -440,34 +441,14 @@ export default async function handler(req, res) {
     } catch (error) {
         console.error("API Error:", error instanceof Error ? error.message : 'Unknown');
 
-        // --- ATOMIC REFUND LOGIC (FIXED) ---
+        // --- ATOMIC REFUND LOGIC ---
         if (creditsDeducted) {
             console.log(`ATTEMPTING REFUND FOR USER: ${user.id} (${cost} credits)...`);
             
-            // 1. Try RPC (Atomic)
             const { error: refundError } = await supabase.rpc('increase_credits', { user_id: user.id, amount: cost });
             
             if (refundError) {
-                console.error("REFUND FAILED - CRITICAL (RPC Error):", refundError?.message || refundError);
-                
-                // 2. Fallback: Manual Update (Non-atomic but necessary emergency fix)
-                try {
-                    console.log("Attempting MANUAL FALLBACK refund...");
-                    // Re-fetch latest credits to be as safe as possible
-                    const { data: profile } = await supabase.from('profiles').select('credits').eq('id', user.id).single();
-                    if (profile) {
-                         const newAmount = profile.credits + cost;
-                         const { error: manualError } = await supabase
-                            .from('profiles')
-                            .update({ credits: newAmount })
-                            .eq('id', user.id);
-                            
-                         if (manualError) throw manualError;
-                         console.log("MANUAL FALLBACK REFUND SUCCESSFUL.");
-                    }
-                } catch (fallbackErr) {
-                     console.error("CRITICAL: MANUAL FALLBACK ALSO FAILED.", fallbackErr instanceof Error ? fallbackErr.message : 'Unknown');
-                }
+                console.error("REFUND FAILED - CRITICAL:", refundError?.message || refundError);
             } else {
                 console.log("Refund successful (RPC).");
             }

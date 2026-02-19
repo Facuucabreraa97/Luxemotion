@@ -151,15 +151,19 @@ export default async function handler(req, res) {
             console.error('[FAL-STATUS] Generation FAILED for:', request_id);
 
             if (genRecord?.user_id) {
-                const refundAmount = genRecord.cost_in_credits || 250;
-                const { error: refundErr } = await supabase.rpc('increase_credits', {
-                    user_id: genRecord.user_id,
-                    amount: refundAmount
-                });
-                if (refundErr) {
-                    console.error('[FAL-STATUS] REFUND FAILED - CRITICAL:', refundErr instanceof Error ? refundErr.message : 'Unknown');
+                const refundAmount = genRecord.cost_in_credits;
+                if (!refundAmount) {
+                    console.error('[FAL-STATUS] CRITICAL: cost_in_credits is null — cannot determine refund amount for', request_id);
                 } else {
-                    console.log(`[FAL-STATUS] Refund ${refundAmount} CR to ${genRecord.user_id}`);
+                    const { error: refundErr } = await supabase.rpc('increase_credits', {
+                        user_id: genRecord.user_id,
+                        amount: refundAmount
+                    });
+                    if (refundErr) {
+                        console.error('[FAL-STATUS] REFUND FAILED - CRITICAL:', refundErr instanceof Error ? refundErr.message : 'Unknown');
+                    } else {
+                        console.log(`[FAL-STATUS] Refund ${refundAmount} CR to ${genRecord.user_id}`);
+                    }
                 }
 
                 await supabase.from('generations')
