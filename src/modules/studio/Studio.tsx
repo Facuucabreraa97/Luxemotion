@@ -15,15 +15,15 @@ export const Studio = () => {
     'IDLE'
   );
 
-  const [mode, setMode] = useState<'text' | 'image'>('text');
-  const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16' | '1:1'>('16:9'); // NEW STATE
-  const [styleMode, setStyleMode] = useState<'cinematic' | 'organic'>('organic'); // NEW STYLE STATE
+  const [mode, setMode] = useState<'text' | 'image' | 'image_gen'>('text');
+  const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16' | '1:1'>('16:9');
+  const [styleMode, setStyleMode] = useState<'cinematic' | 'organic'>('organic');
   const [prompt, setPrompt] = useState('');
   const [startImage, setStartImage] = useState<File | null>(null);
   const [endImage, setEndImage] = useState<File | null>(null);
 
   // REMIX STATE
-  const [duration, setDuration] = useState<'5' | '10'>('5'); // NEW DURATION STATE
+  const [duration, setDuration] = useState<'5' | '10'>('5');
   const [seed, setSeed] = useState<string>('');
   const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
 
@@ -31,6 +31,7 @@ export const Studio = () => {
   const [selectedTier, setSelectedTier] = useState<'draft' | 'master'>('draft');
 
   const TIER_COSTS = {
+    image: 15,
     draft: 50,
     master_5s: 400,
     master_10s: 800,
@@ -44,18 +45,52 @@ export const Studio = () => {
   const [lastMetadata, setLastMetadata] = useState<Pick<
     Asset,
     'seed' | 'generation_config' | 'prompt_structure'
-  > | null>(null); // Store metadata for saving
+  > | null>(null);
 
   // WALLET STATE
   const [credits, setCredits] = useState<number | null>(null);
   const [loadingCredits, setLoadingCredits] = useState<boolean>(true);
 
-  // Cost Calculation (tier + duration aware)
-  const cost = selectedTier === 'draft'
-    ? TIER_COSTS.draft
-    : duration === '10'
-      ? TIER_COSTS.master_10s
-      : TIER_COSTS.master_5s;
+  // Cost Calculation (mode + tier + duration aware)
+  const cost = mode === 'image_gen'
+    ? TIER_COSTS.image
+    : selectedTier === 'draft'
+      ? TIER_COSTS.draft
+      : duration === '10'
+        ? TIER_COSTS.master_10s
+        : TIER_COSTS.master_5s;
+
+  // ── SESSION PERSISTENCE ──────────────────────────────────
+  const SESSION_KEY = 'luxemotion_studio_state';
+
+  // Restore from sessionStorage on mount
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(SESSION_KEY);
+      if (saved) {
+        const s = JSON.parse(saved);
+        if (s.prompt) setPrompt(s.prompt);
+        if (s.duration) setDuration(s.duration);
+        if (s.selectedTier) setSelectedTier(s.selectedTier);
+        if (s.styleMode) setStyleMode(s.styleMode);
+        if (s.aspectRatio) setAspectRatio(s.aspectRatio);
+        if (s.mode) setMode(s.mode);
+        if (s.seed) setSeed(s.seed);
+      }
+    } catch { /* ignore parse errors */ }
+  }, []);
+
+  // Persist to sessionStorage on changes (debounced)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify({
+          prompt, duration, selectedTier, styleMode, aspectRatio, mode, seed
+        }));
+      } catch { /* ignore quota errors */ }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [prompt, duration, selectedTier, styleMode, aspectRatio, mode, seed]);
 
   // Auto-Update Video URL when generation finishes
   useEffect(() => {
@@ -169,7 +204,8 @@ export const Studio = () => {
           aspect_ratio: aspectRatio,
           duration: duration,
           seed: seed ? seed : undefined,
-          tier: selectedTier,
+          tier: mode === 'image_gen' ? 'image' : selectedTier,
+          type: mode === 'image_gen' ? 'image' : 'video',
           prompt_structure: {
             user_prompt: prompt,
             style_preset: styleMode,
@@ -285,13 +321,17 @@ export const Studio = () => {
           <div className="bg-[#111] border border-white/5 rounded-3xl p-6 flex flex-col gap-6 shadow-2xl">
             {/* MODE TABS */}
             <div className="flex bg-black/50 p-1 rounded-xl">
-              {['text', 'image'].map((m) => (
+              {[
+                { key: 'text', label: 'Text to Video' },
+                { key: 'image', label: 'Image to Video' },
+                { key: 'image_gen', label: 'Image Gen (15 CR)' },
+              ].map((m) => (
                 <button
-                  key={m}
-                  onClick={() => setMode(m as 'text' | 'image')}
-                  className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${mode === m ? 'bg-white text-black' : 'text-gray-500 hover:text-white'}`}
+                  key={m.key}
+                  onClick={() => setMode(m.key as 'text' | 'image' | 'image_gen')}
+                  className={`flex-1 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${mode === m.key ? 'bg-white text-black' : 'text-gray-500 hover:text-white'}`}
                 >
-                  {m} to Video
+                  {m.label}
                 </button>
               ))}
             </div>
@@ -324,18 +364,21 @@ export const Studio = () => {
                   onClick={() => setStyleMode('cinematic')}
                   className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${styleMode === 'cinematic' ? 'bg-white text-black border-white' : 'border-white/10 text-gray-500 hover:border-white/30'}`}
                 >
-                  Cinematic
+                  🎬 Cinematic
+                  <span className="block text-[8px] font-normal mt-0.5 opacity-60">8K, dramatic lighting, film grade</span>
                 </button>
                 <button
                   onClick={() => setStyleMode('organic')}
                   className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${styleMode === 'organic' ? 'bg-gradient-to-r from-pink-500/20 to-purple-500/20 text-white border-purple-500/50' : 'border-white/10 text-gray-500 hover:border-white/30'}`}
                 >
-                  Influencer (Organic)
+                  📱 Influencer (Organic)
+                  <span className="block text-[8px] font-normal mt-0.5 opacity-60">UGC, smartphone, TikTok style</span>
                 </button>
               </div>
             </div>
 
-            {/* ══════ QUALITY TIER SELECTOR ══════ */}
+            {/* ══════ QUALITY TIER SELECTOR (hidden in image_gen mode) ══════ */}
+            {mode !== 'image_gen' && (
             <div>
               <label className="text-[10px] font-bold text-gray-500 uppercase block mb-3">
                 Quality Tier
@@ -398,6 +441,7 @@ export const Studio = () => {
                 </p>
               )}
             </div>
+            )}
 
             {/* PROMPT / IMAGE INPUT */}
             <div className="flex-1">
@@ -476,6 +520,8 @@ export const Studio = () => {
                 </div>
               )}
 
+              {/* Duration (hidden in image_gen mode) */}
+              {mode !== 'image_gen' && (
               <div className="mb-6 animate-fade-in bg-white/5 p-4 rounded-xl border border-white/5">
                 <div className="flex justify-between items-center mb-3">
                   <span className="text-[10px] uppercase font-bold text-gray-400">Duration</span>
@@ -495,6 +541,7 @@ export const Studio = () => {
                   ))}
                 </div>
               </div>
+              )}
 
               <textarea
                 value={prompt}

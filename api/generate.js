@@ -14,6 +14,12 @@ export const dynamic = 'force-dynamic';
 // COST MATRIX (server-side source of truth — never trust frontend)
 // Real API costs: Kling Master $1.40/5s, $2.80/10s
 const TIER_CONFIG = {
+    image: {
+        credits: 15,
+        fal_model_id: 'fal-ai/flux/dev/image-to-image',
+        fal_model_t2i: 'fal-ai/flux/dev',
+        label: 'Image (Flux)'
+    },
     draft: {
         credits: 50,
         fal_model_id: 'fal-ai/wan-i2v',
@@ -200,7 +206,8 @@ export default async function handler(req, res) {
             end_image_url, context_image_url,
             aspect_ratio = '16:9', prompt_structure, prompt,
             duration = "5", seed: userSeed,
-            tier = 'master' // NEW: 'draft' or 'master'
+            tier = 'master', // 'draft', 'master', or 'image'
+            type = 'video'   // 'video' or 'image'
         } = body;
 
         const finalStartImage = start_image_url || subject_image_url;
@@ -208,14 +215,18 @@ export default async function handler(req, res) {
 
         const durationStr = String(duration);
         
-        // TIER-BASED COST (server-side rigid matrix — duration-aware for master)
-        const tierConfig = TIER_CONFIG[tier] || TIER_CONFIG.master;
-        if (tier === 'draft') {
+        // COST CALCULATION (server-side rigid matrix)
+        const tierConfig = type === 'image' ? TIER_CONFIG.image : (TIER_CONFIG[tier] || TIER_CONFIG.master);
+        if (type === 'image') {
             cost = tierConfig.credits;
+            console.log(`[IMAGE] Flux generation — Cost: ${cost} CR`);
+        } else if (tier === 'draft') {
+            cost = tierConfig.credits;
+            console.log(`[TIER] ${tierConfig.label} ${durationStr}s — Cost: ${cost} CR`);
         } else {
             cost = durationStr === '10' ? tierConfig.credits_10s : tierConfig.credits_5s;
+            console.log(`[TIER] ${tierConfig.label} ${durationStr}s — Cost: ${cost} CR`);
         }
-        console.log(`[TIER] ${tierConfig.label} ${durationStr}s — Cost: ${cost} CR`);
 
         // Balance Check
         const { data: profile } = await supabase.from('profiles').select('credits').eq('id', user.id).single();
@@ -252,7 +263,65 @@ export default async function handler(req, res) {
             finalPrompt = prompt || "Cinematic shot";
         }
 
-        let generationConfig = { model: tierConfig.label, duration: durationStr, aspect_ratio, seed, tier };
+        let generationConfig = { model: tierConfig.label, duration: type === 'image' ? 'N/A' : durationStr, aspect_ratio, seed, tier: type === 'image' ? 'image' : tier };
+
+        // ═══════════════════════════════════════════════════════
+        // IMAGE GENERATION: Flux via fal.ai (15 CR)
+        // ═══════════════════════════════════════════════════════
+        if (type === 'image') {
+            console.log(`[IMAGE] Flux generation starting...`);
+            const fluxModel = finalStartImage ? TIER_CONFIG.image.fal_model_id : TIER_CONFIG.image.fal_model_t2i;
+            const fluxInput = finalStartImage
+                ? { prompt: finalPrompt, image_url: finalStartImage, strength: 0.75, image_size: aspect_ratio === '9:16' ? { width: 768, height: 1344 } : aspect_ratio === '1:1' ? { width: 1024, height: 1024 } : { width: 1344, height: 768 }, num_inference_steps: 28, guidance_scale: 3.5, enable_safety_checker: false }
+                : { prompt: finalPrompt, image_size: aspect_ratio === '9:16' ? { width: 768, height: 1344 } : aspect_ratio === '1:1' ? { width: 1024, height: 1024 } : { width: 1344, height: 768 }, num_inference_steps: 28, guidance_scale: 3.5, enable_safety_checker: false };
+
+            try {
+                const { request_id } = await fal.queue.submit(fluxModel, { input: fluxInput });
+                console.log(`[IMAGE] Job submitted: ${request_id}`);
+
+                prediction = {
+                    id: request_id,
+                    status: 'processing',
+                    output: null,
+                    urls: { get: null },
+                    provider: 'fal-flux-image'
+                };
+
+                await supabase.from('generations').insert({
+                    user_id: user.id,
+                    replicate_id: request_id,
+                    status: 'processing',
+                    prompt: finalPrompt,
+                    input_params: {
+                        mode: 'image',
+                        image: finalStartImage || null,
+                        provider: 'fal'
+                    },
+                    progress: 0,
+                    quality_tier: 'image',
+                    cost_in_credits: cost,
+                    fal_model_id: fluxModel
+                });
+
+                return res.status(201).json({
+                    ...prediction,
+                    lux_metadata: {
+                        seed,
+                        generation_config: generationConfig,
+                        mode: 'flux-image',
+                        fal_request_id: request_id,
+                        tier: 'image',
+                        prompt_structure: {
+                            ...(prompt_structure || { user_prompt: prompt }),
+                            system_prompt: systemPrompt
+                        }
+                    }
+                });
+            } catch (imageError) {
+                console.error('[IMAGE] Error:', imageError);
+                throw new Error(`Image generation failed: ${imageError.message}`);
+            }
+        }
         
         // ═══════════════════════════════════════════════════════
         // DRAFT TIER: Wan-2.1 via fal.ai (fast, cheap)

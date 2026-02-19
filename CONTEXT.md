@@ -644,3 +644,22 @@ Se auditó el bucket de uploads del Studio, la validación frontend de archivos,
 - `Studio.tsx`: i18n fix — "Segundos" → "Seconds", "Procesando" → "Processing"
 
 **REGLA:** El frontend NUNCA dicta precios. `TIER_CONFIG` en `generate.js` es la única fuente de verdad.
+
+### 28. Módulo 3.16: UX Persistence, Model Routing & Style Vibes
+
+**Nuevas capacidades:**
+
+- **Image Generation Route**: `type=image` → Flux via fal.ai (15 CR). `generate.js` ahora rutea a `fal-ai/flux/dev/image-to-image` o `fal-ai/flux/dev` según si hay imagen de entrada.
+- **Studio Tabs**: 3 modos — "Text to Video" | "Image to Video" | "Image Gen (15 CR)". En modo Image Gen, se ocultan Duration y Quality Tier.
+- **Session Persistence**: `sessionStorage` guarda prompt, duration, tier, styleMode, aspectRatio, mode y seed. Se restaura al montar el componente.
+- **Style Vibes**: Ya funcionaban server-side (L253-256 de generate.js). Se agregaron subtítulos UX: "8K, dramatic lighting, film grade" (Cinematic) y "UGC, smartphone, TikTok style" (Organic).
+
+**Matriz final completa:**
+
+| Tipo | CR | Modelo | Endpoint |
+|------|-----|--------|----------|
+| Image | 15 | Flux | fal-ai/flux/dev |
+| Draft Video | 50 | Wan-2.1 | fal-ai/wan-i2v |
+| Master 5s | 400 | Kling v2.5 Pro | fal-ai/kling-video/v2/master |
+| Master 10s | 800 | Kling v2.5 Pro | fal-ai/kling-video/v2/master |
+| Luma Ray | 400 | Luma | api/luma-generate |
