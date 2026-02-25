@@ -96,8 +96,8 @@ export const MarketService = {
 
     // 3. Deduct fee via RPC (atomic, no admin required)
     const { error: deductError } = await supabase.rpc('decrease_credits', {
-      user_id: user.id,
-      amount: MINT_FEE,
+      p_user_id: user.id,
+      p_amount: MINT_FEE,
     });
     if (deductError) throw new Error('Failed to deduct mint fee: ' + deductError.message);
 
