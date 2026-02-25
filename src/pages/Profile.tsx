@@ -139,7 +139,7 @@ const Profile = () => {
                   : 'border-transparent text-gray-500 hover:text-gray-300'
               } `}
             >
-              {tab}{' '}
+              {tab === 'drafts' ? 'Vault' : tab}{' '}
               {tab === 'drafts' && assets.filter((a) => a.is_draft).length > 0 && (
                 <span className="ml-1 bg-white text-black px-1.5 rounded text-[10px]">
                   {assets.filter((a) => a.is_draft).length}
@@ -287,13 +287,22 @@ const Profile = () => {
                           className="w-full bg-transparent border-b border-white/30 text-white font-bold outline-none focus:border-blue-500 transition"
                         />
                       ) : (
-                        <h3
-                          className="font-bold text-white truncate cursor-pointer hover:text-blue-400 transition"
-                          onDoubleClick={() => { setEditingId(asset.id); setEditName(asset.name); }}
-                          title="Double-click to rename"
-                        >
-                          {asset.name}
-                        </h3>
+                        <div className="flex items-center gap-1.5 group/name">
+                          <h3 className="font-bold text-white truncate flex-1">
+                            {asset.name}
+                          </h3>
+                          {!asset.for_sale && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setEditingId(asset.id); setEditName(asset.name); }}
+                              className="opacity-0 group-hover/name:opacity-100 transition-opacity p-1 hover:bg-white/10 rounded"
+                              title="Rename"
+                            >
+                              <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
                       )}
                       <div className="flex justify-between items-end mt-4">
                         <div>
