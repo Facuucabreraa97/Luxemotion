@@ -132,7 +132,7 @@ export default async function handler(req, res) {
         const url = new URL(req.url, 'http://localhost');
 
         // Rate limit: 5 generation requests per minute
-        if (rateLimit(req, res, { maxRequests: 5, windowMs: 60000 })) return;
+        if (await rateLimit(req, res, { maxRequests: 5, windowMs: 60000 })) return;
 
         // --- AUTHENTICATION CHECK ---
         const authHeader = req.headers['authorization'];
@@ -272,8 +272,8 @@ export default async function handler(req, res) {
             console.log(`[IMAGE] Flux generation starting...`);
             const fluxModel = finalStartImage ? TIER_CONFIG.image.fal_model_id : TIER_CONFIG.image.fal_model_t2i;
             const fluxInput = finalStartImage
-                ? { prompt: finalPrompt, image_url: finalStartImage, strength: 0.75, image_size: aspect_ratio === '9:16' ? { width: 768, height: 1344 } : aspect_ratio === '1:1' ? { width: 1024, height: 1024 } : { width: 1344, height: 768 }, num_inference_steps: 28, guidance_scale: 3.5, enable_safety_checker: false }
-                : { prompt: finalPrompt, image_size: aspect_ratio === '9:16' ? { width: 768, height: 1344 } : aspect_ratio === '1:1' ? { width: 1024, height: 1024 } : { width: 1344, height: 768 }, num_inference_steps: 28, guidance_scale: 3.5, enable_safety_checker: false };
+                ? { prompt: finalPrompt, image_url: finalStartImage, strength: 0.75, image_size: aspect_ratio === '9:16' ? { width: 768, height: 1344 } : aspect_ratio === '1:1' ? { width: 1024, height: 1024 } : { width: 1344, height: 768 }, num_inference_steps: 28, guidance_scale: 3.5, enable_safety_checker: true }
+                : { prompt: finalPrompt, image_size: aspect_ratio === '9:16' ? { width: 768, height: 1344 } : aspect_ratio === '1:1' ? { width: 1024, height: 1024 } : { width: 1344, height: 768 }, num_inference_steps: 28, guidance_scale: 3.5, enable_safety_checker: true };
 
             try {
                 const { request_id } = await fal.queue.submit(fluxModel, { input: fluxInput });
@@ -336,7 +336,7 @@ export default async function handler(req, res) {
                         image_url: finalStartImage,
                         image_size: { width: 854, height: 480 },
                         num_frames: 81,
-                        enable_safety_checker: false
+                        enable_safety_checker: true
                     }
                 });
                 

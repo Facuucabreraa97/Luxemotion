@@ -2,8 +2,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
+const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') || 'https://www.mivideoai.com'
+
 const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
@@ -53,20 +55,8 @@ serve(async (req: Request) => {
         })
 
         if (rpcError) {
-            // Fallback: direct atomic SQL update if RPC doesn't exist yet
-            console.warn('[MANAGE-CREDITS] RPC fallback, using direct update:', rpcError.message)
-
-            // Prevent negative balance (unless penalty)
-            const condition = amount < 0 && type !== 'ADJUSTMENT_PENALTY'
-                ? { credits: `credits + ${amount}`, min: -amount }
-                : { credits: `credits + ${amount}`, min: 0 }
-
-            const { error: updateError } = await supabaseAdmin
-                .from('profiles')
-                .update({ credits: supabaseAdmin.raw(`GREATEST(credits + ${amount}, 0)`) })
-                .eq('id', targetUserId)
-
-            if (updateError) throw updateError
+            // RPC failed — do NOT silently continue, propagate error
+            throw new Error(`Credit adjustment failed: ${rpcError.message}`)
         }
 
         // 6. Log Transaction

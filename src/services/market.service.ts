@@ -12,13 +12,20 @@ export const MarketService = {
     return data.asset;
   },
 
-  // LISTAR (Actualización de metadatos segura si RLS permite al dueño)
+  // LISTAR — ownership verified
   async listAsset(assetId: string, price: number) {
-    const { error } = await supabase
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Authentication required');
+
+    const { data, error } = await supabase
       .from('talents')
       .update({ for_sale: true, price: price })
-      .eq('id', assetId);
+      .eq('id', assetId)
+      .eq('owner_id', user.id)
+      .select()
+      .single();
     if (error) throw error;
+    if (!data) throw new Error('Asset not found or you are not the owner');
   },
 
   // [SECURE] COMPRAR ACTIVO via ACID RPC (atomic transaction)
@@ -83,18 +90,7 @@ export const MarketService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Authentication required');
 
-    // 2. Check balance
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('credits')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile || (profile.credits || 0) < MINT_FEE) {
-      throw new Error(`Insufficient credits. Minting costs ${MINT_FEE} CR.`);
-    }
-
-    // 3. Deduct fee via RPC (atomic, no admin required)
+    // 2. Deduct fee via RPC (atomic — handles balance check internally, no TOCTOU)
     const { error: deductError } = await supabase.rpc('decrease_credits', {
       p_user_id: user.id,
       p_amount: MINT_FEE,
@@ -131,14 +127,23 @@ export const MarketService = {
     return data || [];
   },
 
-  // RENAME ASSET (Inline Edit — Module 3.20)
+  // RENAME ASSET — ownership verified, blocked if listed
   async renameAsset(assetId: string, newName: string) {
     const trimmed = newName.trim();
     if (!trimmed) throw new Error('Name cannot be empty');
-    const { error } = await supabase
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Authentication required');
+
+    const { data, error } = await supabase
       .from('talents')
       .update({ name: trimmed })
-      .eq('id', assetId);
+      .eq('id', assetId)
+      .eq('owner_id', user.id)
+      .eq('for_sale', false)
+      .select()
+      .single();
     if (error) throw error;
+    if (!data) throw new Error('Asset not found, not owned by you, or currently listed');
   },
 };

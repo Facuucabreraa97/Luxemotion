@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     }
 
     // Rate limit: 5 generation requests per minute
-    if (rateLimit(req, res, { maxRequests: 5, windowMs: 60000 })) return;
+    if (await rateLimit(req, res, { maxRequests: 5, windowMs: 60000 })) return;
 
     // Check for Luma API key
     const LUMA_API_KEY = process.env.LUMA_API_KEY;
@@ -38,7 +38,7 @@ export default async function handler(req, res) {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const LUMA_COST = 400; // Aligned with master 5s tier
     let creditsDeducted = false;
-    let user = null;
+    let authenticatedUser = null; // §2.6 FIX: renamed to avoid shadowing
 
     try {
         // Auth check
@@ -52,25 +52,15 @@ export default async function handler(req, res) {
         if (authError || !user) {
             return res.status(401).json({ error: 'Invalid token' });
         }
+        authenticatedUser = user; // §2.6 FIX: assign to outer scope variable
 
-        // Check credits
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('credits')
-            .eq('id', user.id)
-            .single();
-
-        if (!profile || profile.credits < LUMA_COST) {
-            return res.status(402).json({ error: `Insufficient credits. Luma costs ${LUMA_COST} CR.` });
-        }
-
-        // DEDUCT BEFORE API CALL (atomic RPC — no fallback)
+        // Deduct credits (atomic RPC — handles balance check internally)
         const { error: deductError } = await supabase.rpc('decrease_credits', {
-            p_user_id: user.id, p_amount: LUMA_COST
+            p_user_id: authenticatedUser.id, p_amount: LUMA_COST
         });
         if (deductError) {
             console.error('Credit deduction RPC failed:', deductError.message);
-            return res.status(402).json({ error: 'Credit deduction failed. Please try again.' });
+            return res.status(402).json({ error: 'Insufficient credits or deduction failed. Please try again.' });
         }
         creditsDeducted = true;
 
@@ -148,11 +138,9 @@ export default async function handler(req, res) {
         const lumaResult = await lumaResponse.json();
         console.log('[LUMA] Generation started:', lumaResult.id);
 
-        // Credits already deducted before API call
-
         // Store generation record
         await supabase.from('generations').insert({
-            user_id: user.id,
+            user_id: authenticatedUser.id,
             replicate_id: lumaResult.id,  // Store Luma ID
             status: 'processing',
             prompt: prompt,
@@ -184,10 +172,10 @@ export default async function handler(req, res) {
     } catch (error) {
         console.error('[LUMA] Error:', error);
 
-        // ATOMIC REFUND on failure
-        if (creditsDeducted && user) {
+        // ATOMIC REFUND on failure — §2.6 FIX: uses authenticatedUser (not shadowed)
+        if (creditsDeducted && authenticatedUser) {
             const { error: refundError } = await supabase.rpc('increase_credits', {
-                user_id: user.id, amount: LUMA_COST
+                user_id: authenticatedUser.id, amount: LUMA_COST
             });
             if (refundError) {
                 console.error('[LUMA] REFUND FAILED - CRITICAL:', refundError instanceof Error ? refundError.message : 'Unknown');

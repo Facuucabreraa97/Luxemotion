@@ -40,7 +40,7 @@ export default async function handler(req, res) {
     }
 
     // Rate limit: 20 requests per minute (polling endpoint)
-    if (rateLimit(req, res, { maxRequests: 20, windowMs: 60000 })) return;
+    if (await rateLimit(req, res, { maxRequests: 20, windowMs: 60000 })) return;
 
     const LUMA_API_KEY = process.env.LUMA_API_KEY;
     if (!LUMA_API_KEY) {

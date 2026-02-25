@@ -2,8 +2,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
+const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') || 'https://www.mivideoai.com'
+
 const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
@@ -81,15 +83,11 @@ serve(async (req: Request) => {
         if (createError) {
             // REFUND — asset insert failed, return credits
             console.error('[MINT-ASSET] Asset insert failed, refunding credits:', createError.message)
-            await supabaseAdmin.rpc('decrease_credits', {
-                p_user_id: userId,
-                p_amount: -MINT_FEE  // negative = add credits back
-            }).catch(() => {
-                // Fallback: direct update
-                supabaseAdmin
-                    .from('profiles')
-                    .update({ credits: supabaseAdmin.raw(`credits + ${MINT_FEE}`) })
-                    .eq('id', userId)
+            await supabaseAdmin.rpc('increase_credits', {
+                user_id: userId,
+                amount: MINT_FEE
+            }).catch((refundErr) => {
+                console.error('[MINT-ASSET] REFUND FAILED - CRITICAL:', refundErr)
             })
             throw createError
         }

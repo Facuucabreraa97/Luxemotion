@@ -39,7 +39,7 @@ export default async function handler(req, res) {
     }
 
     // Rate limit: 20 requests per minute (polling endpoint)
-    if (rateLimit(req, res, { maxRequests: 20, windowMs: 60000 })) return;
+    if (await rateLimit(req, res, { maxRequests: 20, windowMs: 60000 })) return;
 
     const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
