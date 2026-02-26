@@ -663,3 +663,107 @@ Se auditó el bucket de uploads del Studio, la validación frontend de archivos,
 | Master 5s | 400 | Kling v2.5 Pro | fal-ai/kling-video/v2/master |
 | Master 10s | 800 | Kling v2.5 Pro | fal-ai/kling-video/v2/master |
 | Luma Ray | 400 | Luma | api/luma-generate |
+
+---
+
+## 📅 Actualización: Módulo 3.19-3.21 — Gallery UX & Video Previews (25/02/2026)
+
+### 29. Video Previews (Definitive Approach)
+
+Se reescribió `LazyVideo.tsx` para resolver el bug de previews en blanco en la galería y marketplace.
+
+**Estrategia:**
+- `<video>` siempre en el DOM con `preload="metadata"`
+- Seek programático a `0.1s` en `loadeddata` para renderizar el primer frame nativamente
+- Overlay `<img>` con poster cubre el flash negro inicial
+- Hover → `.play()`, mouse leave → `.pause()` + seek a frame 0
+- IntersectionObserver controla solo el atributo `src`
+
+**Archivos modificados:**
+
+| Archivo | Cambio |
+|---------|--------|
+| `src/components/LazyVideo.tsx` | Reescritura completa — estrategia definitiva |
+| `src/pages/Profile.tsx` | Poster prop, fallback para imágenes expiradas, play overlay limpio |
+| `src/pages/Marketplace.tsx` | Agregado `poster={asset.image_url}` a `LazyVideo` |
+
+### 30. Gallery UX: Naming & Tabs
+
+| Feature | Implementación |
+|---------|---------------|
+| **Tab "Vault"** | "Drafts" → "Vault" para evitar confusión con Draft de Wan |
+| **Rename visible** | Ícono ✏️ aparece en hover (reemplaza double-click) |
+| **Rename lock** | Si `for_sale === true` → ícono no aparece (nombre bloqueado) |
+| **SPA Navigation** | `<a>` → `<Link>` de react-router-dom para ir al Studio |
+
+### 31. Storage Persistence (Flux Images)
+
+**Bug:** Las imágenes generadas con Flux solo tenían URL temporal de fal.ai (~24h).
+
+**Fix en `api/fal-status.js`:**
+- Detecta si el resultado es imagen (`images[0].url`) o video (`video.url`)
+- Upload a Supabase `videos` bucket con extensión correcta (`.png` / `.mp4`)
+- `renameAsset()` agregado a `MarketService`
+
+### 32. Commits
+
+| Commit | Descripción |
+|--------|-------------|
+| `c19e4c8` | LazyVideo rewrite + gallery fixes |
+| `bab8f02` | Definitive video preview approach |
+| `ab594da` | Vault tab + discoverable edit icon |
+| `f6ab582` | Fix duplicate tab label |
+| `d42e9d2` | Fix decrease_credits RPC params for minting |
+
+---
+
+## 📅 Actualización: Auditoría de Seguridad Global (25/02/2026)
+
+### 33. Auditoría Comprehensiva — 11 Vulnerabilidades Corregidas
+
+Se ejecutó un audit de seguridad completo sobre toda la plataforma. Se encontraron y corrigieron **6 vulnerabilidades de seguridad**, **5 bugs de lógica de negocio**, y se eliminaron **26 scripts legacy**.
+
+#### 33.1 Seguridad
+
+| # | Sev | Hallazgo | Fix |
+|---|-----|----------|-----|
+| §1.1 | 🔴 CRÍTICA | `approve-user.ts` sin autenticación ni verificación admin | JWT + `is_admin` check + `VITE_SUPABASE_URL` → `SUPABASE_URL` |
+| §1.2 | 🔴 CRÍTICA | `server.js` con mock endpoints sin auth (`/api/market/buy`) | Archivo eliminado (no usado por Vercel) |
+| §1.3 | 🟠 ALTA | CORS `*` en Edge Functions | Restringido a `mivideoai.com` vía env var |
+| §1.4 | 🟠 ALTA | `enable_safety_checker: false` en 3 llamadas de Fal.ai | Cambiado a `true` |
+| §1.5 | 🟡 MEDIA | Rate limiter in-memory (inefectivo en Vercel serverless) | Upstash Redis + fallback in-memory |
+
+#### 33.2 Lógica de Negocio
+
+| # | Sev | Hallazgo | Fix |
+|---|-----|----------|-----|
+| §2.1 | 🔴 CRÍTICA | `listAsset()` y `renameAsset()` sin filtro `owner_id` | Verificación de ownership + `for_sale` check en rename |
+| §2.2 | 🟠 ALTA | TOCTOU en `finalizeMint()` — SELECT+check antes del RPC atómico | Pre-check eliminado — RPC maneja todo |
+| §2.3 | 🟠 ALTA | Refund en `mint-asset` usaba `decrease_credits` con monto negativo | Cambiado a `increase_credits` con monto positivo |
+| §2.4 | 🟡 MEDIA | `manage-credits` fallback con `.raw()` inexistente | Fallback eliminado — error propagado |
+| §2.6 | 🟠 ALTA | Variable shadowing `user` en `luma-generate.js` — refunds nunca se ejecutaban | `let user` → `let authenticatedUser` |
+
+#### 33.3 Cleanup
+
+- **26 scripts legacy eliminados:** `FixDeps.js`, `Phoenix_Cleanup.js`, `VoidStrategy.js`, `RebornApp.js`, `RestoreMonolith.js`, etc.
+- **`server.js` eliminado** (mock ExpressJS local, no usado en producción)
+
+#### 33.4 Rate Limiter: Upstash Redis
+
+`api/lib/rateLimit.js` ahora usa sliding window via `@upstash/ratelimit`:
+- Si `UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN` están configurados → Redis persistente
+- Si no → fallback in-memory (protección parcial)
+- Todos los callers ahora usan `await rateLimit()`
+
+**REGLA CRÍTICA:** `rateLimit()` es ahora `async`. Todo nuevo endpoint DEBE usar `if (await rateLimit(req, res, opts)) return;`.
+
+#### 33.5 Commit
+
+| Commit | Descripción |
+|--------|-------------|
+| `d2ed7e4` | security: AUDIT FIX — auth, CORS, safety checker, ownership, user shadowing, refund logic, rate limiter, 26 scripts purged |
+
+#### 33.6 Infraestructura: Upstash
+
+- Integración Vercel ↔ Upstash Redis configurada (proyecto "luxemotion", db "mivideoai")
+- Env vars `UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN` inyectadas automáticamente por la integración
