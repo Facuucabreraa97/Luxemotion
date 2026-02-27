@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Star, Zap, Crown, Info } from 'lucide-react';
+import { Star, Zap, Crown, Info, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { CheckoutModal } from '@/components/CheckoutModal';
+import { PaymentService, PendingPayment } from '@/services/payment.service';
+import { supabase } from '@/lib/supabase';
 
 export const Plans = () => {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('yearly');
@@ -8,9 +10,13 @@ export const Plans = () => {
   const [dolarBlue, setDolarBlue] = useState<number>(1200);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<{ name: string; price: number; credits: number; tier: string; cycle: 'monthly' | 'yearly' } | null>(null);
+  const [paymentHistory, setPaymentHistory] = useState<PendingPayment[]>([]);
+  const [pendingCredits, setPendingCredits] = useState(0);
+  const [historyLoading, setHistoryLoading] = useState(true);
 
   useEffect(() => {
     fetchDolarBlue();
+    loadPaymentHistory();
   }, []);
 
   const fetchDolarBlue = async () => {
@@ -113,6 +119,25 @@ export const Plans = () => {
       cycle: billingCycle
     });
     setCheckoutOpen(true);
+  };
+
+  const loadPaymentHistory = async () => {
+    setHistoryLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.id) {
+        const [history, pending] = await Promise.all([
+          PaymentService.getUserPaymentHistory(session.user.id),
+          PaymentService.getPendingCredits(session.user.id)
+        ]);
+        setPaymentHistory(history);
+        setPendingCredits(pending);
+      }
+    } catch (e) {
+      console.error('Error loading payment history:', e instanceof Error ? e.message : 'Unknown');
+    } finally {
+      setHistoryLoading(false);
+    }
   };
 
   return (
@@ -267,11 +292,76 @@ export const Plans = () => {
         </p>
       </div>
 
+      {/* Payment History */}
+      <div className="max-w-4xl mx-auto mt-16">
+        {/* Pending Credits Banner */}
+        {pendingCredits > 0 && (
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 mb-6 flex items-center gap-3">
+            <Clock size={20} className="text-amber-400 shrink-0" />
+            <div>
+              <span className="text-amber-400 font-bold">{pendingCredits.toLocaleString()} CR</span>
+              <span className="text-gray-400 text-sm"> pending approval</span>
+            </div>
+          </div>
+        )}
+
+        {!historyLoading && paymentHistory.length > 0 && (
+          <>
+            <h2 className="text-xl font-bold mb-4 tracking-tight">My Payments</h2>
+            <div className="bg-[#0a0a0a] border border-white/10 rounded-xl overflow-hidden">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-[#0f0f0f] text-gray-500 text-xs uppercase font-bold">
+                  <tr>
+                    <th className="p-4">Description</th>
+                    <th className="p-4">Credits</th>
+                    <th className="p-4">Status</th>
+                    <th className="p-4">Date</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {paymentHistory.map(tx => (
+                    <tr key={tx.id} className="hover:bg-white/5 transition">
+                      <td className="p-4 text-white text-xs">{tx.description}</td>
+                      <td className="p-4 font-mono font-bold text-emerald-400">
+                        +{tx.amount.toLocaleString()}
+                      </td>
+                      <td className="p-4">
+                        {tx.review_status === 'pending_review' && (
+                          <span className="flex items-center gap-1 text-amber-400 text-xs font-bold">
+                            <Clock size={12} /> Pending
+                          </span>
+                        )}
+                        {tx.review_status === 'approved' && (
+                          <span className="flex items-center gap-1 text-emerald-400 text-xs font-bold">
+                            <CheckCircle size={12} /> Approved
+                          </span>
+                        )}
+                        {tx.review_status === 'rejected' && (
+                          <span className="flex items-center gap-1 text-red-400 text-xs font-bold">
+                            <XCircle size={12} /> Rejected
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-4 text-gray-500 text-xs">
+                        {new Date(tx.created_at).toLocaleDateString('es-AR')}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </div>
+
       {/* Checkout Modal */}
       {selectedPlan && (
         <CheckoutModal
           isOpen={checkoutOpen}
-          onClose={() => setCheckoutOpen(false)}
+          onClose={() => {
+            setCheckoutOpen(false);
+            loadPaymentHistory(); // Refresh history after checkout
+          }}
           planName={selectedPlan.name}
           creditAmount={selectedPlan.credits}
           priceUSD={selectedPlan.price}

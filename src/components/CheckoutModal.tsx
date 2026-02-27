@@ -193,6 +193,45 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           </button>
         </div>
 
+        {/* Step Progress Indicator */}
+        {step !== 'confirmation' && (
+          <div className="px-6 pt-4">
+            <div className="flex items-center justify-between">
+              {['select_method', 'payment_details', 'upload_proof'].map((s, i) => {
+                const stepLabels = ['Method', 'Details', 'Proof'];
+                const stepNum = i + 1;
+                const steps: Step[] = ['select_method', 'payment_details', 'upload_proof'];
+                const currentIdx = steps.indexOf(step);
+                const isActive = i === currentIdx;
+                const isDone = i < currentIdx;
+                return (
+                  <React.Fragment key={s}>
+                    <div className="flex flex-col items-center gap-1">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
+                        isDone ? 'bg-emerald-500 text-black scale-90' :
+                        isActive ? 'bg-white text-black scale-110 shadow-[0_0_12px_rgba(255,255,255,0.3)]' :
+                        'bg-white/10 text-gray-600'
+                      }`}>
+                        {isDone ? '✓' : stepNum}
+                      </div>
+                      <span className={`text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                        isActive ? 'text-white' : isDone ? 'text-emerald-400' : 'text-gray-600'
+                      }`}>
+                        {stepLabels[i]}
+                      </span>
+                    </div>
+                    {i < 2 && (
+                      <div className={`flex-1 h-[2px] mx-2 rounded transition-colors duration-300 ${
+                        i < currentIdx ? 'bg-emerald-500' : 'bg-white/10'
+                      }`} />
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Amount Badge */}
         {step !== 'confirmation' && (
           <div className="px-6 pt-4">
