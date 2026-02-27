@@ -239,6 +239,7 @@ export const PaymentApprovalsTab = () => {
                 <tr>
                   <th className="p-4">User</th>
                   <th className="p-4">Amount</th>
+                  <th className="p-4">Description</th>
                   <th className="p-4">Method</th>
                   <th className="p-4">Status</th>
                   <th className="p-4">Date</th>
@@ -250,6 +251,9 @@ export const PaymentApprovalsTab = () => {
                     <td className="p-4 text-white">{tx.user_email}</td>
                     <td className="p-4 font-mono font-bold text-emerald-400">
                       +{tx.amount.toLocaleString()}
+                    </td>
+                    <td className="p-4 text-gray-400 text-xs truncate max-w-[200px]" title={tx.description}>
+                      {tx.description}
                     </td>
                     <td className="p-4 text-gray-400">{methodLabel(tx.payment_method)}</td>
                     <td className="p-4">

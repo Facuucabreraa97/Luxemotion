@@ -133,7 +133,7 @@ export const PaymentService = {
 
         if (error) {
             console.error('Error submitting payment:', error instanceof Error ? error.message : 'Unknown');
-            return { success: false, message: error.message };
+            return { success: false, message: 'Payment submission failed. Please try again.' };
         }
 
         return data as { success: boolean; message: string };
@@ -261,9 +261,26 @@ export const PaymentService = {
 
         if (error) {
             console.error('Error reviewing payment:', error instanceof Error ? error.message : 'Unknown');
-            return { success: false, message: error.message };
+            return { success: false, message: 'Review failed. Please try again.' };
         }
 
         return data as { success: boolean; message: string };
+    },
+
+    // ── User: Get own payment history ──
+    async getUserPaymentHistory(userId: string): Promise<PendingPayment[]> {
+        const { data, error } = await supabase
+            .from('transactions')
+            .select('id, user_id, amount, description, payment_method, proof_url, tx_hash, review_status, created_at, plan_tier, billing_cycle')
+            .eq('user_id', userId)
+            .in('review_status', ['pending_review', 'approved', 'rejected'])
+            .order('created_at', { ascending: false })
+            .limit(20);
+
+        if (error) {
+            console.error('Error fetching user payment history:', error instanceof Error ? error.message : 'Unknown');
+            return [];
+        }
+        return (data || []) as PendingPayment[];
     }
 };

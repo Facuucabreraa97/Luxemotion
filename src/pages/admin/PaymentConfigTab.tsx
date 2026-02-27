@@ -299,7 +299,18 @@ export const PaymentConfigTab = () => {
                     className="hidden"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
-                      if (file) handleQrUpload(method.id, file);
+                      if (file) {
+                      const allowed = ['image/png', 'image/jpeg', 'image/webp'];
+                      if (!allowed.includes(file.type)) {
+                        showToast('Only PNG, JPG, or WebP allowed');
+                        return;
+                      }
+                      if (file.size > 5 * 1024 * 1024) {
+                        showToast('Max file size: 5MB');
+                        return;
+                      }
+                      handleQrUpload(method.id, file);
+                    }
                     }}
                   />
                   <button

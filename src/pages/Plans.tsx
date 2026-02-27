@@ -103,11 +103,12 @@ export const Plans = () => {
 
     // For yearly, show total for 12 months
     const checkoutPrice = billingCycle === 'yearly' ? price * 12 : price;
+    const monthlyCredits = creditAmounts[planName] || 1200;
 
     setSelectedPlan({
       name: planName,
       price: checkoutPrice,
-      credits: creditAmounts[planName] || 1200,
+      credits: billingCycle === 'yearly' ? monthlyCredits * 12 : monthlyCredits,
       tier: planName.toLowerCase(),
       cycle: billingCycle
     });

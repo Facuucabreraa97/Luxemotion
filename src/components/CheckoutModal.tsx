@@ -35,6 +35,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [loading, setLoading] = useState(true);
   const [lastTxId, setLastTxId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const submittingRef = useRef(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -57,23 +58,53 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   };
 
   const handleCopy = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
+    try {
+      navigator.clipboard.writeText(text);
+    } catch {
+      // Fallback for HTTP or unsupported browsers
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
     setCopied(label);
     setTimeout(() => setCopied(null), 2000);
   };
 
+  // F-1: Strict file validation
+  const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+  const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setProofFile(file);
-      const reader = new FileReader();
-      reader.onload = () => setProofPreview(reader.result as string);
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setSubmitError('Only PNG, JPG, or WebP images allowed');
+      e.target.value = '';
+      return;
     }
+    if (file.size > MAX_FILE_SIZE) {
+      setSubmitError('File too large. Max 5MB.');
+      e.target.value = '';
+      return;
+    }
+
+    setSubmitError(null);
+    setProofFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setProofPreview(reader.result as string);
+    reader.readAsDataURL(file);
   };
 
   const handleSubmit = async () => {
     if (!selectedMethod) return;
+    // F-8: Guard against double submit on slow networks
+    if (submittingRef.current) return;
 
     const isCrypto = selectedMethod.id.includes('crypto');
     if (isCrypto && !txHash.trim()) {
@@ -86,6 +117,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     }
 
     setSubmitting(true);
+    submittingRef.current = true;
     setSubmitError(null);
     try {
       // Anti-fraud: check for duplicate tx_hash
@@ -118,6 +150,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       setSubmitError('Error submitting payment. Please try again.');
     } finally {
       setSubmitting(false);
+      submittingRef.current = false;
     }
   };
 
@@ -271,6 +304,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 </div>
               )}
 
+              {/* F-6: Show exact amount to pay */}
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 mb-4 text-center">
+                <span className="text-xs text-amber-400 uppercase font-bold">Amount to transfer</span>
+                <div className="text-2xl font-bold text-white mt-1">
+                  ${priceUSD.toFixed(2)} <span className="text-sm text-gray-400">USD</span>
+                </div>
+              </div>
+
               <button
                 onClick={() => setStep('upload_proof')}
                 className="w-full py-3 bg-white text-black font-bold rounded-xl hover:bg-gray-200 transition text-sm"
@@ -317,7 +358,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept=".png,.jpg,.jpeg,.webp"
                   onChange={handleFileSelect}
                   className="hidden"
                 />
