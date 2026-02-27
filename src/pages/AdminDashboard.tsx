@@ -17,6 +17,7 @@ import {
   CreditCard as CreditCardIcon,
   Settings,
   Mail,
+  Languages,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { AdminService, AdminStats, AdminUserView } from '@/services/admin.service';
@@ -25,11 +26,12 @@ import { useToast } from '@/modules/core/ui/Toast';
 import { PromptHistoryTab } from './admin/PromptHistoryTab';
 import { PaymentConfigTab } from './admin/PaymentConfigTab';
 import { PaymentApprovalsTab } from './admin/PaymentApprovalsTab';
+import { TranslationsTab } from './admin/TranslationsTab';
 
 export const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'whitelist' | 'prompts' | 'pay_config' | 'pay_approvals'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'whitelist' | 'prompts' | 'pay_config' | 'pay_approvals' | 'translations'>('overview');
   const [pendingPaymentsCount, setPendingPaymentsCount] = useState(0);
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [users, setUsers] = useState<AdminUserView[]>([]);
@@ -157,6 +159,15 @@ export const AdminDashboard = () => {
             count={pendingPaymentsCount}
             active={activeTab === 'pay_approvals'}
             onClick={() => setActiveTab('pay_approvals')}
+          />
+
+          <div className="border-t border-white/10 my-3" />
+
+          <SidebarItem
+            icon={<Languages size={18} />}
+            label="Translations"
+            active={activeTab === 'translations'}
+            onClick={() => setActiveTab('translations')}
           />
         </nav>
 
@@ -415,6 +426,11 @@ export const AdminDashboard = () => {
             {/* PAYMENT APPROVALS TAB */}
             {activeTab === 'pay_approvals' && (
               <PaymentApprovalsTab />
+            )}
+
+            {/* TRANSLATIONS CMS TAB */}
+            {activeTab === 'translations' && (
+              <TranslationsTab />
             )}
           </>
         )}
