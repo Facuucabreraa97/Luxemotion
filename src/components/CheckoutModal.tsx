@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Upload, Copy, CheckCircle, Loader2, ArrowLeft } from 'lucide-react';
 import { PaymentService, PaymentMethodConfig } from '@/services/payment.service';
+import { useTranslation } from '@/context/LanguageContext';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [methods, setMethods] = useState<PaymentMethodConfig[]>([]);
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethodConfig | null>(null);
   const [step, setStep] = useState<Step>('select_method');
+  const { t } = useTranslation();
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [proofPreview, setProofPreview] = useState<string | null>(null);
   const [txHash, setTxHash] = useState('');
@@ -181,7 +183,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             )}
             <div>
               <h2 className="text-lg font-bold">
-                {step === 'confirmation' ? 'Payment Submitted' : 'Buy Credits'}
+                {step === 'confirmation' ? t('checkout.successTitle') : t('checkout.title')}
               </h2>
               {planName && step !== 'confirmation' && (
                 <p className="text-xs text-gray-500">{planName} Plan</p>
@@ -243,7 +245,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 </div>
               </div>
               <div className="text-right">
-                <span className="text-xs text-gray-500 uppercase font-bold">Price</span>
+                <span className="text-xs text-gray-500 uppercase font-bold">{t('checkout.price')}</span>
                 <div className="text-2xl font-bold text-white">
                   ${priceUSD.toFixed(2)}
                 </div>
@@ -257,7 +259,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           {/* STEP 1: Select Method */}
           {step === 'select_method' && (
             <div>
-              <p className="text-sm text-gray-400 mb-4">Select a payment method:</p>
+              <p className="text-sm text-gray-400 mb-4">{t('checkout.selectMethod')}</p>
               {loading ? (
                 <div className="text-center py-8 text-gray-500 animate-pulse">Loading methods...</div>
               ) : methods.length === 0 ? (
@@ -355,7 +357,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 onClick={() => setStep('upload_proof')}
                 className="w-full py-3 bg-white text-black font-bold rounded-xl hover:bg-gray-200 transition text-sm"
               >
-                I've made the payment →
+                {t('checkout.imadePay')}
               </button>
             </div>
           )}
@@ -373,7 +375,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               {isCrypto && (
                 <div className="mb-4">
                   <label className="block text-xs text-gray-500 uppercase font-bold mb-1">
-                    Transaction Hash *
+                    {t('checkout.txHash')} *
                   </label>
                   <input
                     type="text"
@@ -416,10 +418,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   <div>
                     <Upload size={32} className="mx-auto text-gray-600 mb-2" />
                     <p className="text-sm text-gray-400">
-                      Click to upload receipt
+                      {t('checkout.uploadReceipt')}
                     </p>
                     <p className="text-xs text-gray-600 mt-1">
-                      PNG, JPG up to 10MB
+                      {t('checkout.uploadHint')}
                     </p>
                   </div>
                 )}
@@ -433,10 +435,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               >
                 {submitting ? (
                   <>
-                    <Loader2 size={16} className="animate-spin" /> Submitting...
+                    <Loader2 size={16} className="animate-spin" /> {t('checkout.submitting')}
                   </>
                 ) : (
-                  'Submit Payment'
+                  t('checkout.submit')
                 )}
               </button>
               {submitError && (
@@ -453,10 +455,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle size={32} className="text-emerald-400" />
               </div>
-              <h3 className="text-xl font-bold mb-2">Payment Submitted!</h3>
+              <h3 className="text-xl font-bold mb-2">{t('checkout.successTitle')}</h3>
               <p className="text-gray-400 text-sm mb-6">
-                Your payment is being reviewed by our team.<br />
-                Credits will be added once approved.
+                {t('checkout.successMsg').split('\n').map((line, i) => (
+                  <React.Fragment key={i}>{line}{i === 0 && <br />}</React.Fragment>
+                ))}
               </p>
 
               {/* WhatsApp Concierge */}
@@ -478,7 +481,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   onClick={onClose}
                   className="px-6 py-3 bg-white text-black font-bold rounded-xl hover:bg-gray-200 transition text-sm"
                 >
-                  Close
+                  {t('checkout.close')}
                 </button>
               </div>
             </div>

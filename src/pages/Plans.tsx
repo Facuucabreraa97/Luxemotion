@@ -3,6 +3,7 @@ import { Star, Zap, Crown, Info, Clock, CheckCircle, XCircle } from 'lucide-reac
 import { CheckoutModal } from '@/components/CheckoutModal';
 import { PaymentService, PendingPayment } from '@/services/payment.service';
 import { supabase } from '@/lib/supabase';
+import { useTranslation } from '@/context/LanguageContext';
 
 export const Plans = () => {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('yearly');
@@ -13,6 +14,7 @@ export const Plans = () => {
   const [paymentHistory, setPaymentHistory] = useState<PendingPayment[]>([]);
   const [pendingCredits, setPendingCredits] = useState(0);
   const [historyLoading, setHistoryLoading] = useState(true);
+  const { t } = useTranslation();
 
   useEffect(() => {
     fetchDolarBlue();
@@ -145,9 +147,9 @@ export const Plans = () => {
       <header className="text-center mb-16 relative">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-indigo-900/20 blur-[100px] rounded-full -z-10" />
 
-        <h1 className="text-5xl md:text-7xl font-bold mb-4 tracking-tighter">MEMBERSHIP</h1>
+        <h1 className="text-5xl md:text-7xl font-bold mb-4 tracking-tighter">{t('plans.title')}</h1>
         <p className="text-gray-400 text-lg md:text-xl font-light tracking-wide">
-          Invest in your assets. Monetize your imagination.
+          {t('plans.subtitle')}
         </p>
 
         {/* Billing Toggle */}
@@ -156,7 +158,7 @@ export const Plans = () => {
             onClick={() => setBillingCycle('monthly')}
             className={`text-sm font-bold tracking-widest uppercase transition-colors ${billingCycle === 'monthly' ? 'text-white' : 'text-gray-500'}`}
           >
-            Monthly
+            {t('plans.monthly')}
           </button>
 
           <button
@@ -172,7 +174,7 @@ export const Plans = () => {
             onClick={() => setBillingCycle('yearly')}
             className={`text-sm font-bold tracking-widest uppercase transition-colors ${billingCycle === 'yearly' ? 'text-white' : 'text-gray-500'}`}
           >
-            Yearly <span className="text-emerald-400 text-[10px] ml-1 align-top">-20%</span>
+            {t('plans.yearly')} <span className="text-emerald-400 text-[10px] ml-1 align-top">-20%</span>
           </button>
         </div>
 
@@ -203,7 +205,7 @@ export const Plans = () => {
           >
             {plan.highlight && (
               <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-amber-500 text-black px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-[0_0_20px_rgba(245,158,11,0.4)]">
-                Most Popular
+                {t('plans.mostPopular')}
               </div>
             )}
 
@@ -232,7 +234,7 @@ export const Plans = () => {
               </div>
               {billingCycle === 'yearly' && (
                 <p className="text-xs text-gray-500 mt-2">
-                  Billed {getPrice(plan.price * 12)} yearly
+                  {t('plans.billedYearly').replace('{price}', getPrice(plan.price * 12))}
                 </p>
               )}
             </div>
@@ -240,7 +242,7 @@ export const Plans = () => {
             {/* Credits Block */}
             <div className="bg-white/5 rounded-xl p-4 mb-8 border border-white/5 group-hover:border-white/10 transition-colors">
               <div className="text-xs text-gray-400 uppercase font-bold tracking-wider mb-1">
-                Monthly Allowance
+                {t('plans.monthlyAllowance')}
               </div>
               <div className="text-2xl font-bold text-white flex items-center gap-2">
                 {plan.credits}
@@ -272,7 +274,7 @@ export const Plans = () => {
                   : 'bg-white text-black hover:bg-gray-200'
               }`}
             >
-              Select {plan.name}
+              {t('plans.select')} {plan.name}
             </button>
           </div>
         ))}
