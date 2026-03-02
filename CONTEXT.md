@@ -767,3 +767,139 @@ Se ejecutó un audit de seguridad completo sobre toda la plataforma. Se encontra
 
 - Integración Vercel ↔ Upstash Redis configurada (proyecto "luxemotion", db "mivideoai")
 - Env vars `UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN` inyectadas automáticamente por la integración
+
+---
+
+## 📅 Actualización: Pasarela de Pagos Perfeccionada (27/02/2026)
+
+### 34. Auditoría Exhaustiva — Pasarela de Pagos (12 Hallazgos)
+
+Se realizó una auditoría completa del sistema de pagos manuales, identificando **12 issues** en seguridad, lógica de negocio y UX.
+
+#### 34.1 Seguridad (Críticos)
+
+| # | Fix |
+|---|-----|
+| F-1 | Upload de comprobantes: validación real de MIME (PNG/JPG/WebP) + máx 5MB |
+| F-2 | Error messages de Supabase sanitizados — no más leaks de internals |
+| F-3 | Anti-flood: máx 3 pagos pending por usuario (SQL RPC) |
+| F-5 | `anon` SELECT revocado de `payment_methods_config` |
+
+#### 34.2 Lógica de Negocio
+
+| # | Fix |
+|---|-----|
+| F-4 | Yearly billing: créditos ahora muestran total anual (× 12), no solo mensual |
+| F-7 | QR upload en admin validado (tipo + tamaño) |
+| F-8 | Doble submit bloqueado con `useRef` guard |
+| F-12 | Clipboard con fallback `execCommand` para HTTP |
+
+#### 34.3 Nuevos Métodos
+
+- `PaymentService.getUserPaymentHistory(userId)` — historial de pagos del usuario
+- `PaymentService.checkDuplicateTxHash()` — anti-fraude por hash duplicado
+
+#### 34.4 SQL
+
+| Archivo | Propósito |
+|---------|-----------|
+| `supabase/fix_payment_flood.sql` | Límite 3 pending + revoke anon en payment config |
+
+#### 34.5 Commits
+
+| Commit | Descripción |
+|--------|-------------|
+| `e431e51` | security: payment gateway audit — 12 fixes |
+
+---
+
+### 35. UX Checkout — Mejoras de Experiencia
+
+#### 35.1 Step Progress Indicator
+
+`CheckoutModal.tsx` ahora muestra barra visual `①Method → ②Details → ③Proof` con transiciones CSS. Pasos completados en verde ✓, paso activo con glow blanco.
+
+#### 35.2 "My Payments" en Plans
+
+`Plans.tsx` muestra tabla de historial de pagos del usuario con badges de estado:
+- 🟡 Pending — esperando revisión
+- 🟢 Approved — créditos acreditados
+- 🔴 Rejected — pago rechazado
+
+Se auto-refresca al cerrar el checkout modal.
+
+#### 35.3 Pending Credits Banner
+
+Banner amber en Plans: "X,XXX CR pending approval" — solo visible si hay pagos pendientes.
+
+#### 35.4 Commits
+
+| Commit | Descripción |
+|--------|-------------|
+| `1d6bd4d` | ux: step progress indicator, payment history, pending credits banner |
+
+---
+
+### 36. Dynamic i18n CMS — Arquitectura SWR
+
+Se migró el sistema de i18n estático a un CMS dinámico manejable desde el Admin Panel.
+
+#### 36.1 Arquitectura
+
+```
+Static en.ts/es.ts ──┬──> LanguageContext (TTI=0)
+localStorage cache ──┘        │
+                          useEffect async
+                               │
+                    Check i18n_version (singleton)
+                        │              │
+                    version > local    up-to-date → skip
+                        │
+                 Fetch site_translations
+                        │
+                 Merge DB → dict → persist
+```
+
+#### 36.2 SQL: `supabase/i18n_cms_migration.sql`
+
+- `site_translations(translation_key PK, value_en, value_es, updated_at)`
+- `i18n_version(id=1, version)` — singleton para SWR cache control
+- RLS: SELECT para authenticated, INSERT/UPDATE/DELETE solo admins
+- Trigger `trg_bump_i18n_version`: auto-incrementa versión en cada cambio
+- Seeds: 31 keys iniciales desde `en.ts`/`es.ts`
+
+#### 36.3 LanguageContext Refactorizado
+
+`src/context/LanguageContext.tsx`:
+- Boot con **latencia cero** desde estáticos o localStorage
+- `useEffect` async verifica `i18n_version` → si es mayor, fetchea todo y merge
+- Fallback siempre funcional si la DB no responde
+
+#### 36.4 TranslationsTab Admin UI
+
+`src/pages/admin/TranslationsTab.tsx`:
+- Tabla buscable agrupada por prefijo (`sidebar.`, `checkout.`, `plans.`)
+- Textareas EN 🇺🇸 / ES 🇦🇷 lado a lado (simetría forzada)
+- Dirty tracking visual (●amber en keys modificadas)
+- Guardado atómico con `upsert` + contador de changes pendientes
+- Agregar / eliminar keys desde la UI
+
+#### 36.5 Sidebar integrado con i18n
+
+`Layout.tsx` ya usa `t()` para todos los labels del menú: `t('sidebar.studio')`, `t('sidebar.gallery')`, etc. Los cambios en el CMS se reflejan automáticamente.
+
+#### 36.6 Fix GRANT (02/03/2026)
+
+`supabase/fix_i18n_grants.sql`:
+- `GRANT ALL` sobre `site_translations` (antes solo SELECT bloqueaba saves)
+- Políticas RLS explícitas por operación (INSERT con WITH CHECK, UPDATE/DELETE con USING)
+- Trigger ahora incluye DELETE para bump de versión
+
+#### 36.7 Commits
+
+| Commit | Descripción |
+|--------|-------------|
+| `3942c00` | feat: dynamic i18n CMS — tables, SWR context, admin tab |
+
+**REGLA CRÍTICA:** `site_translations` es la fuente de verdad una vez que el SQL se ejecuta. Los estáticos `en.ts`/`es.ts` son solo fallback para TTI=0 y para keys no presentes en la DB.
+
