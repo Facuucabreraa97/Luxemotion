@@ -35,54 +35,57 @@ export const Plans = () => {
 
   const plans = [
     {
-      name: 'TALENT',
-      descriptor: 'The Rising Star',
+      name: t('plans.talentName'),
+      key: 'TALENT',
+      descriptor: t('plans.talentDescriptor'),
       price: 15,
       icon: <Star className="text-gray-400" />,
       features: [
-        '1,200 Credits / month ($0.012/cr)',
-        '~24 Draft Videos or 3 Cinematic Masters',
-        'Standard Velocity',
-        'Private Gallery',
-        'Personal Brand License',
+        t('plans.talentFeature1'),
+        t('plans.talentFeature2'),
+        t('plans.talentFeature3'),
+        t('plans.talentFeature4'),
+        t('plans.talentFeature5'),
       ],
-      credits: '1,200 CR',
+      credits: t('plans.talentCredits'),
       highlight: false,
       color: 'border-gray-500',
     },
     {
-      name: 'PRODUCER',
-      descriptor: 'The Professional',
+      name: t('plans.producerName'),
+      key: 'PRODUCER',
+      descriptor: t('plans.producerDescriptor'),
       price: 40,
       icon: <Zap className="text-amber-400" />,
       features: [
-        '3,500 Credits / month ($0.011/cr)',
-        '~80 Draft Videos or 10 Cinematic Masters',
-        'Priority Queue (Skip the Line)',
-        'Watermark Removal',
-        'Rollover Credits (2 months)',
-        'Commercial License',
+        t('plans.producerFeature1'),
+        t('plans.producerFeature2'),
+        t('plans.producerFeature3'),
+        t('plans.producerFeature4'),
+        t('plans.producerFeature5'),
+        t('plans.producerFeature6'),
       ],
-      credits: '4,000 CR', // Includes bonus visualization if we want
-      notes: '+500 Bonus Credits',
+      credits: t('plans.producerCredits'),
+      notes: t('plans.producerNotes'),
       highlight: true,
       color: 'border-amber-500/50',
     },
     {
-      name: 'MOGUL',
-      descriptor: 'The Industry Titan',
+      name: t('plans.mogulName'),
+      key: 'MOGUL',
+      descriptor: t('plans.mogulDescriptor'),
       price: 100,
       icon: <Crown className="text-purple-400" />,
       features: [
-        '10,000 Credits / month ($0.010/cr)',
-        '~240 Draft Videos or 30 Cinematic Masters',
-        'Concierge Support',
-        'Early Access (Kling 3.0)',
-        'API Access Keys',
-        'Unlimited Rollover',
+        t('plans.mogulFeature1'),
+        t('plans.mogulFeature2'),
+        t('plans.mogulFeature3'),
+        t('plans.mogulFeature4'),
+        t('plans.mogulFeature5'),
+        t('plans.mogulFeature6'),
       ],
-      credits: '12,000 CR',
-      notes: '+2,000 Bonus Credits',
+      credits: t('plans.mogulCredits'),
+      notes: t('plans.mogulNotes'),
       highlight: false,
       color: 'border-purple-500/50',
     },
@@ -105,19 +108,19 @@ export const Plans = () => {
     MOGUL: 12000
   };
 
-  const handleSubscribe = (planName: string, basePrice: number) => {
+  const handleSubscribe = (planKey: string, basePrice: number) => {
     let price = basePrice;
     if (billingCycle === 'yearly') price = price * 0.8;
 
     // For yearly, show total for 12 months
     const checkoutPrice = billingCycle === 'yearly' ? price * 12 : price;
-    const monthlyCredits = creditAmounts[planName] || 1200;
+    const monthlyCredits = creditAmounts[planKey] || 1200;
 
     setSelectedPlan({
-      name: planName,
+      name: planKey,
       price: checkoutPrice,
       credits: billingCycle === 'yearly' ? monthlyCredits * 12 : monthlyCredits,
-      tier: planName.toLowerCase(),
+      tier: planKey.toLowerCase(),
       cycle: billingCycle
     });
     setCheckoutOpen(true);
@@ -196,7 +199,7 @@ export const Plans = () => {
         {plans.map((plan) => (
           <div
             key={plan.name}
-            onClick={() => handleSubscribe(plan.name, plan.price)}
+            onClick={() => handleSubscribe(plan.key || plan.name, plan.price)}
             className={`relative p-8 rounded-3xl border flex flex-col group cursor-pointer transition-all duration-500 ${
               plan.highlight
                 ? 'bg-[#0f0f0f] border-amber-500/30 md:-translate-y-4 shadow-2xl shadow-amber-900/10'
@@ -230,7 +233,7 @@ export const Plans = () => {
                 <span className="text-5xl font-bold tracking-tighter text-white">
                   {getPrice(plan.price)}
                 </span>
-                <span className="text-gray-600 text-sm font-medium">/mo</span>
+                <span className="text-gray-600 text-sm font-medium">{t('plans.perMonth')}</span>
               </div>
               {billingCycle === 'yearly' && (
                 <p className="text-xs text-gray-500 mt-2">
@@ -282,13 +285,12 @@ export const Plans = () => {
 
       <div className="mt-24 text-center">
         <p className="text-gray-600 text-sm max-w-2xl mx-auto">
-          MivideoAI uses a specialized credit system standardized to the cost of Hyper-Realistic
-          Video Generation. Unused credits in Producer and Mogul tiers roll over for up to 60 days.
+          {t('plans.footer')}
           <br />
           <br />
           {currency === 'ARS' && (
             <span className="text-emerald-600/50 block mt-2 text-xs font-mono">
-              * Exchange Rate: 1 USD = {dolarBlue} ARS
+              {t('plans.exchangeRate').replace('{rate}', String(dolarBlue))}
             </span>
           )}
         </p>
@@ -302,22 +304,22 @@ export const Plans = () => {
             <Clock size={20} className="text-amber-400 shrink-0" />
             <div>
               <span className="text-amber-400 font-bold">{pendingCredits.toLocaleString()} CR</span>
-              <span className="text-gray-400 text-sm"> pending approval</span>
+              <span className="text-gray-400 text-sm"> {t('plans.pendingApproval')}</span>
             </div>
           </div>
         )}
 
         {!historyLoading && paymentHistory.length > 0 && (
           <>
-            <h2 className="text-xl font-bold mb-4 tracking-tight">My Payments</h2>
+            <h2 className="text-xl font-bold mb-4 tracking-tight">{t('plans.myPayments')}</h2>
             <div className="bg-[#0a0a0a] border border-white/10 rounded-xl overflow-hidden">
               <table className="w-full text-left text-sm">
                 <thead className="bg-[#0f0f0f] text-gray-500 text-xs uppercase font-bold">
                   <tr>
-                    <th className="p-4">Description</th>
-                    <th className="p-4">Credits</th>
-                    <th className="p-4">Status</th>
-                    <th className="p-4">Date</th>
+                    <th className="p-4">{t('plans.payDescription')}</th>
+                    <th className="p-4">{t('plans.payCredits')}</th>
+                    <th className="p-4">{t('plans.payStatus')}</th>
+                    <th className="p-4">{t('plans.payDate')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
@@ -330,17 +332,17 @@ export const Plans = () => {
                       <td className="p-4">
                         {tx.review_status === 'pending_review' && (
                           <span className="flex items-center gap-1 text-amber-400 text-xs font-bold">
-                            <Clock size={12} /> Pending
+                            <Clock size={12} /> {t('plans.payPending')}
                           </span>
                         )}
                         {tx.review_status === 'approved' && (
                           <span className="flex items-center gap-1 text-emerald-400 text-xs font-bold">
-                            <CheckCircle size={12} /> Approved
+                            <CheckCircle size={12} /> {t('plans.payApproved')}
                           </span>
                         )}
                         {tx.review_status === 'rejected' && (
                           <span className="flex items-center gap-1 text-red-400 text-xs font-bold">
-                            <XCircle size={12} /> Rejected
+                            <XCircle size={12} /> {t('plans.payRejected')}
                           </span>
                         )}
                       </td>

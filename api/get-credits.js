@@ -37,14 +37,14 @@ export default async function handler(req, res) {
       .single();
 
     if (profileError) {
-      console.error('Profile Fetch Error:', profileError);
+      console.error('Profile Fetch Error:', profileError instanceof Error ? profileError.message : 'Unknown');
       return res.status(500).json({ error: 'Failed to fetch profile' });
     }
 
     return res.status(200).json({ credits: profile?.credits || 0 });
 
   } catch (error) {
-    console.error('System Error:', error);
+    console.error('System Error:', error instanceof Error ? error.message : 'Unknown');
     return res.status(500).json({ error: 'Internal Server Error' });
   }
 }

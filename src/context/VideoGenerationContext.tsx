@@ -60,9 +60,12 @@ export const VideoGenerationProvider = ({ children }: { children: ReactNode }) =
             : {};
 
           // Use different endpoint based on provider
-          const endpoint = isFalProvider
-            ? `/api/fal-status?request_id=${id}`
-            : `/api/generate?id=${id}`;
+          const isLumaProvider = provider === 'luma' || provider === 'luma-ray' || localStorage.getItem('active_provider') === 'luma' || localStorage.getItem('active_provider') === 'luma-ray';
+          const endpoint = isLumaProvider
+            ? `/api/luma-status?generation_id=${id}`
+            : isFalProvider
+              ? `/api/fal-status?request_id=${id}`
+              : `/api/generate?id=${id}`;
 
           const res = await fetch(endpoint, { headers });
           if (!res.ok) throw new Error('Network error');

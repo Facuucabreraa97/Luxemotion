@@ -1,11 +1,11 @@
 
-import { createClient } from '@supabase/supabase-js';
+import { describe, test, vi } from 'vitest';
 
 // MOCK: Setup Supabase Client (Simulated for this test environment)
 // In real usage, use: const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 const supabase = {
-    rpc: jest.fn(),
-    from: jest.fn()
+    rpc: vi.fn(),
+    from: vi.fn()
 };
 
 describe('THE SENTINEL: Financial Security Audit', () => {

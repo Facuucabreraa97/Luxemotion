@@ -57,9 +57,9 @@ export default async function handler(req, res) {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // JWT Authentication
-    const { error: authError } = await verifyAuth(req, supabase);
-    if (authError) {
-        return res.status(401).json({ error: authError });
+    const { user: authUser, error: authError } = await verifyAuth(req, supabase);
+    if (authError || !authUser) {
+        return res.status(401).json({ error: authError || 'Unauthorized' });
     }
 
     const { generation_id } = req.query;
@@ -99,12 +99,16 @@ export default async function handler(req, res) {
             if (videoUrl) {
                 console.log(`[LUMA-STATUS] Video ready: ${videoUrl}`);
                 
-                // Get generation record
                 const { data: generation } = await supabase
                     .from('generations')
                     .select('user_id, prompt, input_params')
                     .eq('replicate_id', generation_id)
                     .single();
+
+                // Ownership check — prevent IDOR
+                if (generation && generation.user_id !== authUser.id) {
+                    return res.status(403).json({ error: 'Forbidden' });
+                }
 
                 let persistedUrl = videoUrl;
                 let persistenceSuccess = false;
@@ -167,7 +171,7 @@ export default async function handler(req, res) {
                         amount: refundAmount
                     });
                     if (refundErr) {
-                        console.error('[LUMA-STATUS] REFUND FAILED - CRITICAL:', refundErr);
+                        console.error('[LUMA-STATUS] REFUND FAILED - CRITICAL:', refundErr instanceof Error ? refundErr.message : 'Unknown');
                     } else {
                         console.log(`[LUMA-STATUS] Refund ${refundAmount} CR to ${genRefund.user_id}`);
                     }
@@ -183,7 +187,7 @@ export default async function handler(req, res) {
             return res.status(200).json({
                 status: 'failed',
                 refunded: true,
-                error: lumaResult.failure_reason || 'Generation failed'
+                error: 'Generation failed'
             });
         }
 

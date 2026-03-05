@@ -170,7 +170,7 @@ export default async function handler(req, res) {
         });
 
     } catch (error) {
-        console.error('[LUMA] Error:', error);
+        console.error('[LUMA] Error:', error instanceof Error ? error.message : 'Unknown');
 
         // ATOMIC REFUND on failure — §2.6 FIX: uses authenticatedUser (not shadowed)
         if (creditsDeducted && authenticatedUser) {

@@ -18,6 +18,7 @@ import {
   Settings,
   Mail,
   Languages,
+  Cpu,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { AdminService, AdminStats, AdminUserView } from '@/services/admin.service';
@@ -27,11 +28,12 @@ import { PromptHistoryTab } from './admin/PromptHistoryTab';
 import { PaymentConfigTab } from './admin/PaymentConfigTab';
 import { PaymentApprovalsTab } from './admin/PaymentApprovalsTab';
 import { TranslationsTab } from './admin/TranslationsTab';
+import { ModelsTab } from './admin/ModelsTab';
 
 export const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'whitelist' | 'prompts' | 'pay_config' | 'pay_approvals' | 'translations'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'whitelist' | 'prompts' | 'pay_config' | 'pay_approvals' | 'translations' | 'models'>('overview');
   const [pendingPaymentsCount, setPendingPaymentsCount] = useState(0);
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [users, setUsers] = useState<AdminUserView[]>([]);
@@ -168,6 +170,12 @@ export const AdminDashboard = () => {
             label="Translations"
             active={activeTab === 'translations'}
             onClick={() => setActiveTab('translations')}
+          />
+          <SidebarItem
+            icon={<Cpu size={18} />}
+            label="Models"
+            active={activeTab === 'models'}
+            onClick={() => setActiveTab('models')}
           />
         </nav>
 
@@ -431,6 +439,11 @@ export const AdminDashboard = () => {
             {/* TRANSLATIONS CMS TAB */}
             {activeTab === 'translations' && (
               <TranslationsTab />
+            )}
+
+            {/* MODELS CONFIG TAB */}
+            {activeTab === 'models' && (
+              <ModelsTab />
             )}
           </>
         )}

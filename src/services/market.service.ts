@@ -97,7 +97,7 @@ export const MarketService = {
     });
     if (deductError) throw new Error('Failed to deduct mint fee: ' + deductError.message);
 
-    // 4. Activate Asset
+    // 4. Activate Asset (with ownership check)
     const { data, error } = await supabase
       .from('talents')
       .update({
@@ -106,6 +106,7 @@ export const MarketService = {
         price: price,
       })
       .eq('id', assetId)
+      .eq('owner_id', user.id)
       .select()
       .single();
 

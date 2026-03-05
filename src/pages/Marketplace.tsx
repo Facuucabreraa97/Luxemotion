@@ -5,11 +5,13 @@ import { supabase } from '@/lib/supabase';
 import { Asset } from '@/types';
 import { Search, Filter, ShoppingBag, Sparkles } from 'lucide-react';
 import { LazyVideo } from '@/components/LazyVideo';
+import { useTranslation } from '@/context/LanguageContext';
 
 export const Marketplace = () => {
     const [assets, setAssets] = useState<Asset[]>([]);
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState<any>(null);
+    const { t } = useTranslation();
 
     useEffect(() => {
         loadData();
@@ -30,15 +32,15 @@ export const Marketplace = () => {
     };
 
     const handleBuy = async (asset: Asset) => {
-        if (!user) return alert("Please Login to Buy");
-        if (!confirm(`Buy "${asset.name}" for ${asset.price} CR?`)) return;
+        if (!user) return alert(t('marketplace.loginRequired'));
+        if (!confirm(t('marketplace.confirmBuy').replace('{name}', asset.name).replace('{price}', String(asset.price)))) return;
 
         try {
             await MarketService.buyAsset(asset.id, user.id);
-            alert("Purchase Successful! Asset transferred to your Vault.");
+            alert(t('marketplace.purchaseSuccess'));
             loadData(); // Refresh grid
         } catch (e: any) {
-            alert("Transaction Failed: " + e.message);
+            alert(t('marketplace.transactionFailed') + ': ' + e.message);
         }
     };
 
@@ -47,14 +49,14 @@ export const Marketplace = () => {
             {/* HEADER */}
             <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
                 <div>
-                    <h2 className="text-5xl font-display font-medium tracking-tight text-white mb-2">Marketplace</h2>
-                    <p className="text-gray-400 font-light">Discover and collect cinematic AI assets.</p>
+                    <h2 className="text-5xl font-display font-medium tracking-tight text-white mb-2">{t('marketplace.title')}</h2>
+                    <p className="text-gray-400 font-light">{t('marketplace.subtitle')}</p>
                 </div>
 
                 <div className="flex gap-4 w-full md:w-auto">
                     <div className="glass-panel px-4 py-2 rounded-xl flex items-center gap-2 text-gray-400 focus-within:text-white transition-colors flex-1 md:w-64">
                         <Search size={18} />
-                        <input type="text" placeholder="Search assets..." className="bg-transparent outline-none text-sm w-full" />
+                        <input type="text" placeholder={t('marketplace.searchPlaceholder')} className="bg-transparent outline-none text-sm w-full" />
                     </div>
                     <button className="glass-panel p-2 rounded-xl text-gray-400 hover:text-white transition-colors">
                         <Filter size={20} />
@@ -93,7 +95,7 @@ export const Marketplace = () => {
 
                                 {/* Top Badge */}
                                 <div className="absolute top-3 right-3 glass-panel px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider backdrop-blur-md">
-                                    Series 1
+                                    {t('marketplace.seriesBadge')}
                                 </div>
                             </div>
 
@@ -101,12 +103,12 @@ export const Marketplace = () => {
                             <div className="p-4 flex-1 flex flex-col justify-between">
                                 <div>
                                     <h3 className="font-display font-bold text-lg text-white truncate leading-tight">{asset.name}</h3>
-                                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">{asset.description || 'No description provided.'}</p>
+                                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">{asset.description || t('marketplace.noDescription')}</p>
                                 </div>
 
                                 <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between">
                                     <div>
-                                        <p className="text-[10px] uppercase font-bold text-gray-500">Price</p>
+                                        <p className="text-[10px] uppercase font-bold text-gray-500">{t('marketplace.price')}</p>
                                         <div className="text-white font-medium flex items-center gap-1">
                                             <span className="text-lg">{asset.price}</span>
                                             <span className="text-xs text-gray-400">CR</span>
@@ -117,7 +119,7 @@ export const Marketplace = () => {
                                         onClick={() => handleBuy(asset)}
                                         className="bg-white text-black px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-200 transition-colors flex items-center gap-2"
                                     >
-                                        <ShoppingBag size={14} /> Buy
+                                        <ShoppingBag size={14} /> {t('marketplace.buy')}
                                     </button>
                                 </div>
                             </div>
@@ -126,8 +128,8 @@ export const Marketplace = () => {
                 ) : (
                     <div className="col-span-full py-20 text-center flex flex-col items-center justify-center text-gray-500">
                         <Sparkles size={48} className="mb-4 opacity-50" />
-                        <p className="text-lg font-light">The market is empty.</p>
-                        <p className="text-sm">Be the first to list a creation.</p>
+                        <p className="text-lg font-light">{t('marketplace.emptyTitle')}</p>
+                        <p className="text-sm">{t('marketplace.emptySubtitle')}</p>
                     </div>
                 )}
             </div>

@@ -51,6 +51,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         return res.status(200).json({ success: true, message: 'Invite sent & Profile Approved' });
     } catch (err: any) {
-        return res.status(500).json({ error: err.message });
+        console.error('[APPROVE-USER] Error:', err.message);
+        return res.status(500).json({ error: 'Internal Server Error' });
     }
 }

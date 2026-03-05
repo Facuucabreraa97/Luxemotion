@@ -51,9 +51,9 @@ export default async function handler(req, res) {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // JWT Authentication
-    const { error: authError } = await verifyAuth(req, supabase);
-    if (authError) {
-        return res.status(401).json({ error: authError });
+    const { user: authUser, error: authError } = await verifyAuth(req, supabase);
+    if (authError || !authUser) {
+        return res.status(401).json({ error: authError || 'Unauthorized' });
     }
 
     const { request_id } = req.query;
@@ -68,10 +68,15 @@ export default async function handler(req, res) {
         // Look up the model ID from the generation record
         const { data: genRecord } = await supabase
             .from('generations')
-            .select('fal_model_id, quality_tier, user_id, prompt, input_params')
+            .select('fal_model_id, quality_tier, user_id, prompt, input_params, cost_in_credits')
             .eq('replicate_id', request_id)
             .single();
         
+        // Ownership check — prevent IDOR
+        if (genRecord && genRecord.user_id !== authUser.id) {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
+
         // Use stored model ID, fallback to kling master
         const falModelId = genRecord?.fal_model_id || 'fal-ai/kling-video/v2/master/image-to-video';
         const qualityTier = genRecord?.quality_tier || 'master';
@@ -157,7 +162,7 @@ export default async function handler(req, res) {
         if (status.status === 'FAILED') {
             console.error('[FAL-STATUS] Generation FAILED for:', request_id);
 
-            if (genRecord?.user_id) {
+            if (genRecord?.user_id && genRecord.user_id === authUser.id) {
                 const refundAmount = genRecord.cost_in_credits;
                 if (!refundAmount) {
                     console.error('[FAL-STATUS] CRITICAL: cost_in_credits is null — cannot determine refund amount for', request_id);

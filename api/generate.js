@@ -10,9 +10,8 @@ export const config = {
 };
 export const dynamic = 'force-dynamic';
 
-// ── TIER CONFIGURATION ──────────────────────────────────────
+// ── TIER CONFIGURATION (FALLBACK — used if ai_models table unavailable) ──
 // COST MATRIX (server-side source of truth — never trust frontend)
-// Real API costs: Kling Master $1.40/5s, $2.80/10s
 const TIER_CONFIG = {
     image: {
         credits: 15,
@@ -34,6 +33,49 @@ const TIER_CONFIG = {
         params: {}
     }
 };
+
+/**
+ * Dynamic model lookup from ai_models table.
+ * Falls back to TIER_CONFIG if DB unavailable.
+ */
+async function getActiveModel(supabase, tier, hasStartImage) {
+    try {
+        // For image tier, pick i2i or t2i variant based on whether user provided an image
+        let query = supabase
+            .from('ai_models')
+            .select('*')
+            .eq('tier', tier)
+            .eq('is_active', true)
+            .order('sort_order', { ascending: true })
+            .limit(1);
+
+        // For image models, prefer i2i if user has an image, t2i otherwise
+        if (tier === 'image') {
+            const preferredId = hasStartImage ? 'flux-dev-i2i' : 'flux-dev-t2i';
+            const { data: preferred } = await supabase
+                .from('ai_models')
+                .select('*')
+                .eq('id', preferredId)
+                .eq('is_active', true)
+                .single();
+            
+            if (preferred) return preferred;
+            // Fallback: get any active image model
+        }
+
+        const { data, error } = await query;
+        if (error || !data || data.length === 0) {
+            console.log(`[MODEL] No active DB model for tier=${tier}, using fallback`);
+            return null; // Will use TIER_CONFIG fallback
+        }
+
+        console.log(`[MODEL] Using DB model: ${data[0].display_name} (${data[0].fal_model_id})`);
+        return data[0];
+    } catch (err) {
+        console.warn('[MODEL] DB lookup failed, using fallback:', err instanceof Error ? err.message : 'Unknown');
+        return null;
+    }
+}
 
 /**
  * Helper: Download and Upload to Supabase Storage
@@ -63,7 +105,7 @@ async function uploadToSupabase(url, filePath, supabase) {
         console.log(`Asset persisted at: ${publicUrl}`);
         return publicUrl;
     } catch (error) {
-        console.error("Storage Persistence Error:", error);
+        console.error("Storage Persistence Error:", error instanceof Error ? error.message : 'Unknown');
         if (error.message && error.message.includes('Bucket not found')) {
             throw new Error(`Storage Bucket 'videos' missing or not public.`);
         }
@@ -191,7 +233,7 @@ export default async function handler(req, res) {
                         }
                     }
                 } catch (persistErr) {
-                    console.error("Failed to persist completion asset:", persistErr);
+                    console.error("Failed to persist completion asset:", persistErr instanceof Error ? persistErr.message : 'Unknown');
                     // Non-blocking error, user gets original Replicate URL (temporary)
                 }
             }
@@ -215,23 +257,58 @@ export default async function handler(req, res) {
 
         const durationStr = String(duration);
         
-        // COST CALCULATION (server-side rigid matrix)
-        const tierConfig = type === 'image' ? TIER_CONFIG.image : (TIER_CONFIG[tier] || TIER_CONFIG.master);
+        // DYNAMIC MODEL LOOKUP (with fallback to hardcoded TIER_CONFIG)
+        const activeTier = type === 'image' ? 'image' : tier;
+        const dbModel = await getActiveModel(supabase, activeTier, !!finalStartImage);
+
+        // Build effective config from DB model or fallback
+        let effectiveModel, effectiveLabel;
         if (type === 'image') {
-            cost = tierConfig.credits;
-            console.log(`[IMAGE] Flux generation — Cost: ${cost} CR`);
+            if (dbModel) {
+                cost = dbModel.credits_cost;
+                effectiveModel = dbModel.fal_model_id;
+                effectiveLabel = dbModel.display_name;
+            } else {
+                const fallback = TIER_CONFIG.image;
+                cost = fallback.credits;
+                effectiveModel = finalStartImage ? fallback.fal_model_id : fallback.fal_model_t2i;
+                effectiveLabel = fallback.label;
+            }
+            console.log(`[IMAGE] ${effectiveLabel} — Cost: ${cost} CR`);
         } else if (tier === 'draft') {
-            cost = tierConfig.credits;
-            console.log(`[TIER] ${tierConfig.label} ${durationStr}s — Cost: ${cost} CR`);
+            if (dbModel) {
+                cost = dbModel.credits_cost;
+                effectiveModel = dbModel.fal_model_id;
+                effectiveLabel = dbModel.display_name;
+            } else {
+                const fallback = TIER_CONFIG.draft;
+                cost = fallback.credits;
+                effectiveModel = fallback.fal_model_id;
+                effectiveLabel = fallback.label;
+            }
+            console.log(`[TIER] ${effectiveLabel} ${durationStr}s — Cost: ${cost} CR`);
         } else {
-            cost = durationStr === '10' ? tierConfig.credits_10s : tierConfig.credits_5s;
-            console.log(`[TIER] ${tierConfig.label} ${durationStr}s — Cost: ${cost} CR`);
+            // Master tier
+            if (dbModel) {
+                cost = durationStr === '10' ? (dbModel.credits_cost_10s || dbModel.credits_cost * 2) : dbModel.credits_cost;
+                effectiveModel = dbModel.fal_model_id;
+                effectiveLabel = dbModel.display_name;
+            } else {
+                const fallback = TIER_CONFIG.master;
+                cost = durationStr === '10' ? fallback.credits_10s : fallback.credits_5s;
+                effectiveModel = fallback.fal_model_id;
+                effectiveLabel = fallback.label;
+            }
+            console.log(`[TIER] ${effectiveLabel} ${durationStr}s — Cost: ${cost} CR`);
         }
+
+        // Parse model-specific input overrides from DB
+        const modelInputSchema = dbModel?.input_schema || {};
 
         // Balance Check
         const { data: profile } = await supabase.from('profiles').select('credits').eq('id', user.id).single();
         if (!profile || profile.credits < cost) {
-            return res.status(402).json({ error: `Insufficient Credits. ${tierConfig.label} costs ${cost} CR.` });
+            return res.status(402).json({ error: `Insufficient Credits. ${effectiveLabel} costs ${cost} CR.` });
         }
 
         // Deduct Credits (atomic RPC — no fallback to direct UPDATE)
@@ -263,14 +340,14 @@ export default async function handler(req, res) {
             finalPrompt = prompt || "Cinematic shot";
         }
 
-        let generationConfig = { model: tierConfig.label, duration: type === 'image' ? 'N/A' : durationStr, aspect_ratio, seed, tier: type === 'image' ? 'image' : tier };
+        let generationConfig = { model: effectiveLabel, duration: type === 'image' ? 'N/A' : durationStr, aspect_ratio, seed, tier: type === 'image' ? 'image' : tier };
 
         // ═══════════════════════════════════════════════════════
         // IMAGE GENERATION: Flux via fal.ai (15 CR)
         // ═══════════════════════════════════════════════════════
         if (type === 'image') {
-            console.log(`[IMAGE] Flux generation starting...`);
-            const fluxModel = finalStartImage ? TIER_CONFIG.image.fal_model_id : TIER_CONFIG.image.fal_model_t2i;
+            console.log(`[IMAGE] ${effectiveLabel} generation starting...`);
+            const fluxModel = effectiveModel;
             const fluxInput = finalStartImage
                 ? { prompt: finalPrompt, image_url: finalStartImage, strength: 0.75, image_size: aspect_ratio === '9:16' ? { width: 768, height: 1344 } : aspect_ratio === '1:1' ? { width: 1024, height: 1024 } : { width: 1344, height: 768 }, num_inference_steps: 28, guidance_scale: 3.5, enable_safety_checker: true }
                 : { prompt: finalPrompt, image_size: aspect_ratio === '9:16' ? { width: 768, height: 1344 } : aspect_ratio === '1:1' ? { width: 1024, height: 1024 } : { width: 1344, height: 768 }, num_inference_steps: 28, guidance_scale: 3.5, enable_safety_checker: true };
@@ -318,7 +395,7 @@ export default async function handler(req, res) {
                     }
                 });
             } catch (imageError) {
-                console.error('[IMAGE] Error:', imageError);
+                console.error('[IMAGE] Error:', imageError instanceof Error ? imageError.message : 'Unknown');
                 throw new Error(`Image generation failed: ${imageError.message}`);
             }
         }
@@ -330,12 +407,12 @@ export default async function handler(req, res) {
             console.log(`[DRAFT] Wan-2.1 generation starting...`);
             
             try {
-                const { request_id } = await fal.queue.submit(tierConfig.fal_model_id, {
+                const { request_id } = await fal.queue.submit(effectiveModel, {
                     input: {
                         prompt: finalPrompt,
                         image_url: finalStartImage,
-                        image_size: { width: 854, height: 480 },
-                        num_frames: 81,
+                        ...(modelInputSchema.image_size ? { image_size: modelInputSchema.image_size } : { image_size: { width: 854, height: 480 } }),
+                        ...(modelInputSchema.num_frames ? { num_frames: modelInputSchema.num_frames } : { num_frames: 81 }),
                         enable_safety_checker: true
                     }
                 });
@@ -363,7 +440,7 @@ export default async function handler(req, res) {
                     progress: 0,
                     quality_tier: 'draft',
                     cost_in_credits: cost,
-                    fal_model_id: tierConfig.fal_model_id
+                    fal_model_id: effectiveModel
                 });
                 
                 return res.status(201).json({ 
@@ -381,7 +458,7 @@ export default async function handler(req, res) {
                     }
                 });
             } catch (draftError) {
-                console.error("[DRAFT] Error:", draftError);
+                console.error("[DRAFT] Error:", draftError instanceof Error ? draftError.message : 'Unknown');
                 throw new Error(`Draft generation failed: ${draftError.message}`);
             }
         }
@@ -402,15 +479,15 @@ export default async function handler(req, res) {
             console.log(`[MASTER] Enhanced Prompt: "${klingPrompt.substring(0, 150)}..."`);
             
             try {
-                const { request_id } = await fal.queue.submit(tierConfig.fal_model_id, {
+                const { request_id } = await fal.queue.submit(effectiveModel, {
                     input: {
                         prompt: klingPrompt,
                         image_url: finalStartImage,
                         input_image_urls: [finalStartImage, finalEndImage],
                         duration: durationStr === "10" ? "10" : "5",
                         aspect_ratio: aspect_ratio,
-                        cfg_scale: 0.5,
-                        negative_prompt: "blur, distort, low quality, wrong product, different person"
+                        cfg_scale: modelInputSchema.cfg_scale || 0.5,
+                        negative_prompt: modelInputSchema.negative_prompt || "blur, distort, low quality, wrong product, different person"
                     }
                 });
                 
@@ -438,7 +515,7 @@ export default async function handler(req, res) {
                     progress: 0,
                     quality_tier: 'master',
                     cost_in_credits: cost,
-                    fal_model_id: tierConfig.fal_model_id
+                    fal_model_id: effectiveModel
                 });
                 
                 return res.status(201).json({ 
@@ -457,7 +534,7 @@ export default async function handler(req, res) {
                 });
                 
             } catch (klingError) {
-                console.error("[MASTER] Queue Submit Error:", klingError);
+                console.error("[MASTER] Queue Submit Error:", klingError instanceof Error ? klingError.message : 'Unknown');
                 throw new Error(`Kling Elements failed: ${klingError.message}`);
             }
         }

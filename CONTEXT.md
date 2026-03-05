@@ -903,3 +903,98 @@ localStorage cache ──┘        │
 
 **REGLA CRÍTICA:** `site_translations` es la fuente de verdad una vez que el SQL se ejecuta. Los estáticos `en.ts`/`es.ts` son solo fallback para TTI=0 y para keys no presentes en la DB.
 
+---
+
+## 📅 Actualización: Auditoría de Seguridad Pre-Launch (03/03/2026)
+
+### 37. Auditoría Comprehensiva — 14 Fixes de Seguridad y Bugs
+
+Se ejecutó una auditoría exhaustiva de toda la plataforma enfocada en preparar la primera release. Se identificaron y corrigieron **14 issues** clasificados en seguridad, lógica de negocio, y limpieza técnica.
+
+#### 37.1 Seguridad — IDOR y Sanitización
+
+| # | Sev | Hallazgo | Fix |
+|---|-----|----------|-----|
+| §1 | 🔴 CRÍTICA | IDOR en `fal-status.js`: cualquier usuario podía leer/refundar generaciones de otro | Ownership check (`user_id === authUser.id`) + 403 + fix `cost_in_credits` missing en SELECT |
+| §1b | 🔴 CRÍTICA | IDOR en `luma-status.js`: mismo vector que §1 | Ownership check + sanitized `failure_reason` leak |
+| §2 | 🔴 ALTA | `send-email` EF: CORS `*`, XSS en templates, doble `serve()` (solo último ejecuta) | CORS restringido, HTML escaping, primer `serve()` removido |
+| §3 | 🟠 ALTA | CORS `*` en `check-whitelist` y `get-user-credits` | ALLOWED_ORIGIN env var |
+| §5 | 🟡 MEDIA | `approve-user.ts` leakeaba `err.message` en 500 | Generic "Internal Server Error" + server-side log |
+| §7 | 🟡 MEDIA | `get-credits.js` logueaba objetos error completos | Sanitizado a `error.message` |
+| §9 | 🟡 MEDIA | `generate.js` — 5 `console.error(error)` con objetos completos | Todos sanitizados |
+
+#### 37.2 Lógica de Negocio
+
+| # | Sev | Hallazgo | Fix |
+|---|-----|----------|-----|
+| §4 | 🟠 ALTA | `mint-asset` EF fallback con `.raw()` inexistente en supabase-js v2 | Fallback eliminado, error propagado |
+| §6 | 🟡 MEDIA | Gamification writes (`addXP`, `trackAction`, `claimQuest`) client-side contra tablas RLS-locked | Deshabilitados con early returns + comments |
+| §10 | 🟠 ALTA | Luma provider no ruteaba a `/api/luma-status` → videos nunca se resolvían | Provider detection en `VideoGenerationContext.tsx` |
+| §11 | 🟠 ALTA | `finalizeMint()` sin ownership check — cualquier user podía activar draft de otro | `.eq('owner_id', user.id)` agregado |
+| §12 | 🟡 MEDIA | `cost_in_credits` faltaba en SELECT de `fal-status.js` → refunds silently skipped | Agregado al SELECT |
+
+#### 37.3 Limpieza
+
+| # | Hallazgo | Fix |
+|---|----------|-----|
+| §8/§14 | Dead dependencies (i18next, express, cors, dotenv) + scripts muertos | `package.json` limpiado |
+| §13 | Test file usaba `jest.fn()` en proyecto vitest | Migrado a `vi.fn()` |
+
+**Build verificado:** `✓ built in 2.13s` — zero errors.
+
+---
+
+## 📅 Actualización: i18n Completo para Todas las Secciones (03/03/2026)
+
+### 38. i18n CMS — Cobertura Total (Planes, Marketplace, Studio, Profile)
+
+Se extendió el sistema de traducciones para cubrir **toda la aplicación**. Todo el texto visible al usuario es ahora editable desde el Admin → Translations CMS.
+
+#### 38.1 Expansión de Diccionarios
+
+`src/locales/en.ts` y `src/locales/es.ts`: **44 → ~130 keys** (+86 keys nuevas).
+
+| Prefijo | Keys Nuevas | Contenido |
+|---------|-------------|-----------|
+| `plans.talent*` | 7 | Nombre, descriptor, 5 features, créditos |
+| `plans.producer*` | 9 | Nombre, descriptor, 6 features, créditos, notes |
+| `plans.mogul*` | 9 | Nombre, descriptor, 6 features, créditos, notes |
+| `plans.pay*` | 9 | Headers tabla pagos, estados (Pending/Approved/Rejected), footer |
+| `marketplace.*` | 13 | Título, subtítulo, search, buy, empty state, confirm dialogs |
+| `studio.*` | 17 | Título, prompt, tiers (Draft/Master/Image), generate, processing |
+| `profile.*` | 15 | Título, tabs (Vault/Transactions), mint, rename, empty states |
+
+#### 38.2 Archivos Modificados
+
+| Archivo | Cambio |
+|---------|--------|
+| `src/locales/en.ts` | +86 keys (marketplace, studio, profile, plan details) |
+| `src/locales/es.ts` | +86 keys (traducciones argentinas completas) |
+| `src/pages/Plans.tsx` | Plan data array usa `t()`, footer, payment history headers, status labels |
+| `src/pages/Marketplace.tsx` | +`useTranslation`, todos los strings: title, buy, empty, search, confirm |
+| `src/modules/studio/Studio.tsx` | +`useTranslation`, header, tier labels, prompt placeholder, generate button |
+| `src/pages/Profile.tsx` | +`useTranslation`, tab labels (Vault/Transactions), mint, price, loading |
+| `src/pages/admin/TranslationsTab.tsx` | `handleSaveAll` ahora bumps `i18n_version` automáticamente |
+
+#### 38.3 Flujo Admin → Usuario
+
+```
+Admin edita key en TranslationsTab → Save
+    → upsert site_translations
+    → UPDATE i18n_version = Date.now()
+    → Próximo load del usuario compara version
+    → version > local → fetch all → merge → cache
+    → UI actualizado instantáneamente
+```
+
+#### 38.4 Ejemplo: Cambiar feature de un plan
+
+1. Admin abre Translations → group `plans`
+2. Edita `plans.producerFeature3` de "Priority Queue (Skip the Line)" a "VIP Express Queue"
+3. Guarda → versión bumped
+4. Usuario recarga → ve "VIP Express Queue" en el plan PRODUCER
+
+**REGLA CRÍTICA:** Toda nueva string visible al usuario DEBE: (1) tener key en `en.ts` y `es.ts`, (2) usar `t('key')` en el componente. Las keys deben seguir el patrón `section.itemName` o `section.itemNameN` para features indexadas.
+
+**Build verificado:** `✓ built in 2.13s` — zero errors.
+

@@ -44,18 +44,7 @@ serve(async (req: Request) => {
         })
 
         if (deductError) {
-            // If RPC doesn't exist, fall back to atomic SQL update
-            const { data: updated, error: updateError } = await supabaseAdmin
-                .from('profiles')
-                .update({ credits: supabaseAdmin.raw(`credits - ${MINT_FEE}`) })
-                .eq('id', userId)
-                .gte('credits', MINT_FEE)
-                .select('credits')
-                .single()
-
-            if (updateError || !updated) {
-                throw new Error(`Insufficient funds. Minting costs ${MINT_FEE} credits.`)
-            }
+            throw new Error(`Insufficient funds. Minting costs ${MINT_FEE} credits.`)
         }
 
         // 3. Log Fee
@@ -99,7 +88,7 @@ serve(async (req: Request) => {
 
     } catch (error: any) {
         return new Response(
-            JSON.stringify({ error: error.message }),
+            JSON.stringify({ error: 'Minting failed. Please try again.' }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
         )
     }

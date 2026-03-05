@@ -8,9 +8,11 @@ import { useVideoGeneration } from '@/context/VideoGenerationContext';
 import { WalletDisplay } from './WalletDisplay';
 import { GenerationProgress } from '@/features/creation/components/GenerationProgress';
 import { PromptHistory } from './PromptHistory';
+import { useTranslation } from '@/context/LanguageContext';
 
 export const Studio = () => {
   const { isGenerating, startGeneration, status, lastGeneratedUrl } = useVideoGeneration();
+  const { t } = useTranslation();
   const [localStatus, setLocalStatus] = useState<'IDLE' | 'UPLOADING' | 'SAVING' | 'PROCESSING'>(
     'IDLE'
   );
@@ -30,12 +32,51 @@ export const Studio = () => {
   // TIER STATE
   const [selectedTier, setSelectedTier] = useState<'draft' | 'master'>('draft');
 
-  const TIER_COSTS = {
+  // Dynamic model costs (fetched from /api/get-models, fallback to defaults)
+  const [tierCosts, setTierCosts] = useState({
     image: 15,
     draft: 50,
     master_5s: 400,
     master_10s: 800,
-  } as const;
+  });
+  const [modelNames, setModelNames] = useState({
+    image: 'Flux Dev',
+    draft: 'Wan 2.1',
+    master: 'Kling v2.5 Pro',
+  });
+
+  // Fetch active models on mount
+  useEffect(() => {
+    fetch('/api/get-models')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data) return;
+        const img = data.image?.[0];
+        const dft = data.draft?.[0];
+        const mst = data.master?.[0];
+        setTierCosts({
+          image: img?.cost ?? 15,
+          draft: dft?.cost ?? 50,
+          master_5s: mst?.cost ?? 400,
+          master_10s: mst?.cost_10s ?? 800,
+        });
+        setModelNames({
+          image: img?.name ?? 'Flux Dev',
+          draft: dft?.name ?? 'Wan 2.1',
+          master: mst?.name ?? 'Kling v2.5 Pro',
+        });
+      })
+      .catch(() => { /* keep defaults */ });
+  }, []);
+
+  // Cost Calculation (mode + tier + duration aware)
+  const cost = mode === 'image_gen'
+    ? tierCosts.image
+    : selectedTier === 'draft'
+      ? tierCosts.draft
+      : duration === '10'
+        ? tierCosts.master_10s
+        : tierCosts.master_5s;
 
   // Preview URLs for UI
   const [startPreview, setStartPreview] = useState<string>('');
@@ -50,15 +91,6 @@ export const Studio = () => {
   // WALLET STATE
   const [credits, setCredits] = useState<number | null>(null);
   const [loadingCredits, setLoadingCredits] = useState<boolean>(true);
-
-  // Cost Calculation (mode + tier + duration aware)
-  const cost = mode === 'image_gen'
-    ? TIER_COSTS.image
-    : selectedTier === 'draft'
-      ? TIER_COSTS.draft
-      : duration === '10'
-        ? TIER_COSTS.master_10s
-        : TIER_COSTS.master_5s;
 
   // ── SESSION PERSISTENCE ──────────────────────────────────
   const SESSION_KEY = 'luxemotion_studio_state';
@@ -308,7 +340,7 @@ export const Studio = () => {
   return (
     <div className="max-w-7xl mx-auto h-full flex flex-col gap-6 animate-fade-in text-white p-6 md:p-8">
       <header className="mb-4">
-        <h2 className="text-4xl font-display font-semibold tracking-tight text-white">Studio</h2>
+        <h2 className="text-4xl font-display font-semibold tracking-tight text-white">{t('studio.title')}</h2>
       </header>
 
       <div className="grid lg:grid-cols-12 gap-8 h-full min-h-[400px] md:min-h-[600px]">
@@ -339,7 +371,7 @@ export const Studio = () => {
             {/* ASPECT RATIO */}
             <div>
               <label className="text-[10px] font-bold text-gray-500 uppercase block mb-3">
-                Format
+                {t('studio.tier')}
               </label>
               <div className="flex gap-2">
                 {['16:9', '9:16', '1:1'].map((ratio) => (
@@ -381,7 +413,7 @@ export const Studio = () => {
             {mode !== 'image_gen' && (
             <div>
               <label className="text-[10px] font-bold text-gray-500 uppercase block mb-3">
-                Quality Tier
+                {t('studio.tier')}
               </label>
               <div className="flex gap-2">
                 {/* DRAFT */}
@@ -395,22 +427,22 @@ export const Studio = () => {
                 >
                   <div className="flex items-center justify-center gap-1.5">
                     <Zap size={13} />
-                    <span>Draft</span>
+                    <span>{t('studio.tierDraft')}</span>
                   </div>
                   <div className={`text-[9px] mt-0.5 font-mono ${selectedTier === 'draft' ? 'text-blue-500/70' : 'text-gray-600'}`}>
-                    {TIER_COSTS.draft} CR · Wan-2.1
+                    {tierCosts.draft} CR · {modelNames.draft}
                   </div>
                 </button>
 
                 {/* MASTER */}
                 <button
                   onClick={() => {
-                    if (credits !== null && credits < TIER_COSTS.master_5s) return;
+                    if (credits !== null && credits < tierCosts.master_5s) return;
                     setSelectedTier('master');
                   }}
-                  disabled={credits !== null && credits < TIER_COSTS.master_5s}
+                  disabled={credits !== null && credits < tierCosts.master_5s}
                   className={`flex-1 py-3 rounded-xl text-xs font-bold border-2 transition-all relative overflow-hidden ${
-                    credits !== null && credits < TIER_COSTS.master_5s
+                    credits !== null && credits < tierCosts.master_5s
                       ? 'border-white/5 text-gray-700 cursor-not-allowed opacity-50'
                       : selectedTier === 'master'
                         ? 'bg-amber-500/15 text-amber-400 border-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.15)]'
@@ -419,14 +451,14 @@ export const Studio = () => {
                 >
                   <div className="flex items-center justify-center gap-1.5">
                     <Clapperboard size={13} />
-                    <span>Master</span>
+                    <span>{t('studio.tierMaster')}</span>
                   </div>
                   <div className={`text-[9px] mt-0.5 font-mono ${
-                    credits !== null && credits < TIER_COSTS.master_5s
+                    credits !== null && credits < tierCosts.master_5s
                       ? 'text-gray-700'
                       : selectedTier === 'master' ? 'text-amber-500/70' : 'text-gray-600'
                   }`}>
-                    {TIER_COSTS.master_5s} CR · Kling Pro
+                    {tierCosts.master_5s} CR · {modelNames.master}
                   </div>
                 </button>
               </div>
@@ -549,8 +581,8 @@ export const Studio = () => {
                 className="w-full h-32 bg-transparent border-0 outline-none text-white placeholder-gray-700 text-sm leading-relaxed resize-none font-medium"
                 placeholder={
                   mode === 'text'
-                    ? 'Describe your vision in detail...'
-                    : 'Describe the motion for this image...'
+                    ? t('studio.promptPlaceholder')
+                    : t('studio.promptPlaceholder')
                 }
               />
             </div>
@@ -624,8 +656,8 @@ export const Studio = () => {
                   <>
                     <Sparkles size={16} />
                     {credits !== null && credits < cost
-                      ? 'Insufficient Credits'
-                      : `Generate (${cost} CR)`}
+                      ? t('studio.generating')
+                      : `${t('studio.generate')} (${cost} CR)`}
                   </>
                 ) : (
                   <span className="animate-pulse">

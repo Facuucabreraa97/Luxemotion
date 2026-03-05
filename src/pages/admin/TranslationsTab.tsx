@@ -83,6 +83,16 @@ export const TranslationsTab = () => {
 
       if (error) throw error;
 
+      // Bump i18n_version so client caches invalidate
+      const { error: versionErr } = await supabase
+        .from('i18n_version')
+        .update({ version: Date.now() })
+        .eq('id', 1);
+
+      if (versionErr) {
+        console.warn('[TranslationsTab] Failed to bump i18n_version:', versionErr.message);
+      }
+
       setDirty(new Set());
       showToast(`✓ Saved ${toUpsert.length} translation(s)`);
     } catch (e) {

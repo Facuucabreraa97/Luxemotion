@@ -8,6 +8,7 @@ import { Asset } from '@/types';
 // import { AchievementsGrid } from '@/modules/gamification/AchievementsGrid';
 import { User } from '@supabase/supabase-js';
 import { LazyVideo } from '@/components/LazyVideo';
+import { useTranslation } from '@/context/LanguageContext';
 
 interface Transaction {
   id: string;
@@ -26,6 +27,7 @@ const Profile = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+  const { t } = useTranslation();
   // Module 3.20: Inline rename
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
@@ -139,7 +141,7 @@ const Profile = () => {
                   : 'border-transparent text-gray-500 hover:text-gray-300'
               } `}
             >
-              {tab === 'drafts' ? 'Vault' : tab}{' '}
+              {tab === 'drafts' ? t('profile.myVault') : tab === 'wallet' ? t('profile.transactions') : tab}{' '}
               {tab === 'drafts' && assets.filter((a) => a.is_draft).length > 0 && (
                 <span className="ml-1 bg-white text-black px-1.5 rounded text-[10px]">
                   {assets.filter((a) => a.is_draft).length}
@@ -152,12 +154,12 @@ const Profile = () => {
         <div className="mt-8">
           {loading ? (
             <div className="text-gray-500 col-span-full py-20 text-center animate-pulse">
-              Checking Vault...
+              {t('common.loading')}
             </div>
           ) : activeTab === 'wallet' ? (
             <div className="glass-panel rounded-2xl overflow-hidden p-6 border border-white/10">
               <h3 className="text-xl font-display font-medium mb-6 text-white">
-                Transaction History
+                {t('profile.transactions')}
               </h3>
               <div className="space-y-4">
                 {transactions.length > 0 ? (
@@ -306,7 +308,7 @@ const Profile = () => {
                       )}
                       <div className="flex justify-between items-end mt-4">
                         <div>
-                          <p className="text-[10px] text-gray-500 uppercase font-bold">Price</p>
+                          <p className="text-[10px] text-gray-500 uppercase font-bold">{t('marketplace.price')}</p>
                           <p className="text-sm font-bold text-white">
                             {asset.price > 0 ? `${asset.price} CR` : 'Not Listed'}
                           </p>
@@ -316,7 +318,7 @@ const Profile = () => {
                             onClick={() => handleMint(asset)}
                             className="bg-white text-black px-3 py-1 rounded-full text-xs font-bold hover:bg-emerald-400 transition"
                           >
-                            Mint Now
+                            {t('profile.mint')}
                           </button>
                         )}
                       </div>
@@ -330,7 +332,7 @@ const Profile = () => {
                     to="/app/studio"
                     className="bg-white text-black px-6 py-2 rounded-full font-bold hover:bg-gray-200 transition inline-block"
                   >
-                    Go to Studio
+                    Go to {t('sidebar.studio')}
                   </Link>
                 </div>
               )}
