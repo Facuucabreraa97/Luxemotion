@@ -290,9 +290,9 @@ VALUES (
         true,
         20,
         '{"cfg_scale": 0.5, "negative_prompt": "blur, distort, low quality, wrong product, different person"}'::jsonb,
-        '$0.35/5s · $0.70/10s',
-        '400 CR = ~$12.50 revenue vs $0.35 cost → 97% margin',
-        '✦ Extremely high margin (97%!)\n✦ Multi-image composition\n✦ Best product identity preservation\n✦ Battle-tested, reliable pipeline',
+        '$1.40/5s · $2.80/10s ($0.28/sec)',
+        '400 CR = ~$12.50 revenue vs $1.40 cost → 89% margin',
+        '✦ High margin (89%)\n✦ Multi-image composition\n✦ Best product identity preservation\n✦ Battle-tested, reliable pipeline',
         '⚠ ~2-3 min generation time\n⚠ Occasional face distortion\n⚠ cfg_scale tuning needed'
     ),
     (
@@ -310,10 +310,10 @@ VALUES (
         false,
         21,
         '{"cfg_scale": 0.5}'::jsonb,
-        '$0.35/5s · $0.70/10s',
-        '350 CR = ~$10.94 revenue vs $0.35 cost → 97% margin',
-        '✦ Better product/fashion detail\n✦ Newer model architecture\n✦ Same API cost as v2.5 = same margin\n✦ May outperform v2.5 for some use cases',
-        '⚠ Less tested in our pipeline\n⚠ May behave differently with multi-image\n⚠ "standard" tier, not "master"'
+        '$1.40/5s · $2.80/10s ($0.28/sec)',
+        '350 CR = ~$10.94 revenue vs $1.40 cost → 87% margin',
+        '✦ High margin (87%)\n✦ Better product/fashion detail\n✦ Newer model architecture\n✦ May outperform v2.5 for some use cases',
+        '⚠ Less tested in our pipeline\n⚠ May behave differently with multi-image\n⚠ "standard" tier (not master quality)'
     ),
     (
         'minimax-hailuo-pro',
@@ -332,8 +332,8 @@ VALUES (
         '{}'::jsonb,
         '$0.49 / 5s video',
         '450 CR = ~$14.06 revenue vs $0.49 cost → 97% margin',
-        '✦ Best character expressions\n✦ Realistic physics\n✦ Very high margin (97%)\n✦ Great for people-focused ads',
-        '⚠ 5s max duration (no 10s option)\n⚠ Multi-image may not work\n⚠ Different API response format'
+        '✦ Extremely high margin (97%)\n✦ Best character expressions\n✦ Realistic physics\n✦ 3x cheaper API than Kling',
+        '⚠ 5s max duration (no 10s option)\n⚠ Multi-image may not work\n⚠ Different API input format'
     ),
     (
         'veo3',
@@ -350,10 +350,10 @@ VALUES (
         false,
         23,
         '{}'::jsonb,
-        '$2.50/5s · $5.00/10s',
+        '$2.50/5s · $5.00/10s ($0.50/sec)',
         '500 CR = ~$15.63 revenue vs $2.50 cost → 84% margin',
         '✦ Best cinematic quality overall\n✦ Native 4K resolution\n✦ Google AI infrastructure\n✦ Film-level camera movement',
-        '⚠ Most expensive API model\n⚠ Lower margin (84%) vs Kling\n⚠ New on fal.ai, less stable\n⚠ May have rate limit issues'
+        '⚠ Most expensive API ($2.50/5s vs Kling $1.40/5s)\n⚠ Lower margin (84%) vs Kling (89%)\n⚠ New on fal.ai, less stable\n⚠ May have rate limit issues'
     );
 -- 7. Grant permissions
 GRANT SELECT ON ai_models TO authenticated;
