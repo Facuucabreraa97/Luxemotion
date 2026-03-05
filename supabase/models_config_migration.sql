@@ -254,6 +254,7 @@ VALUES (
     );
 -- ═══════════════════════════════════════════════════
 -- 6. SEED: VIDEO MASTER MODELS
+-- Prices verified from fal.ai billing. $/sec × duration = total cost per video.
 -- ═══════════════════════════════════════════════════
 INSERT INTO ai_models (
         id,
@@ -276,12 +277,12 @@ INSERT INTO ai_models (
         cons
     )
 VALUES (
-        'kling-v2.5-master',
+        'kling-v2-master',
         'video',
         'fal',
         'fal-ai/kling-video/v2/master/image-to-video',
-        'Kling v2.5 Pro',
-        'Cinema-grade 1080p video with multi-image support for product placement scenes.',
+        'Kling V2 Master',
+        'Cinema-grade 1080p video. Multi-image support. Our current production model.',
         'master',
         400,
         800,
@@ -290,30 +291,50 @@ VALUES (
         true,
         20,
         '{"cfg_scale": 0.5, "negative_prompt": "blur, distort, low quality, wrong product, different person"}'::jsonb,
-        '$1.40/5s · $2.80/10s ($0.28/sec)',
-        '400 CR = ~$12.50 revenue vs $1.40 cost → 89% margin',
-        '✦ High margin (89%)\n✦ Multi-image composition\n✦ Best product identity preservation\n✦ Battle-tested, reliable pipeline',
-        '⚠ ~2-3 min generation time\n⚠ Occasional face distortion\n⚠ cfg_scale tuning needed'
+        '$0.28/sec → $1.40/5s · $2.80/10s',
+        '400 CR (~$12.50) vs $1.40 API → 89% margin',
+        '✦ Battle-tested in production\n✦ Multi-image composition works\n✦ Good product identity preservation\n✦ 89% profit margin',
+        '⚠ Most expensive Kling variant ($0.28/sec)\n⚠ Older model (V2, not V3)\n⚠ ~2-3 min generation time\n⚠ Occasional face distortion'
     ),
     (
-        'kling-v2.6',
+        'kling-v25-turbo-pro',
         'video',
         'fal',
-        'fal-ai/kling-video/v2.6/standard/image-to-video',
-        'Kling 2.6',
-        'Latest Kling with enhanced product detail retention and fashion-specific optimizations.',
+        'fal-ai/kling-video/v2.5-turbo/pro/image-to-video',
+        'Kling V2.5 Turbo Pro ⚡',
+        'Fastest Kling with Pro quality. 75% cheaper than V2 Master. Best cost/performance ratio.',
         'master',
-        350,
-        700,
+        400,
+        800,
         '1080p',
         '10s',
         false,
         21,
+        '{"cfg_scale": 0.5, "negative_prompt": "blur, distort, low quality, wrong product, different person"}'::jsonb,
+        '$0.07/sec → $0.35/5s · $0.70/10s',
+        '400 CR (~$12.50) vs $0.35 API → 97% margin 🔥',
+        '✦ 75% cheaper than V2 Master!\n✦ 97% profit margin (highest!)\n✦ Faster generation (Turbo)\n✦ Pro quality tier',
+        '⚠ "Turbo" may have slightly less detail\n⚠ Needs testing in our pipeline\n⚠ Multi-image support TBD'
+    ),
+    (
+        'kling-v3-pro',
+        'video',
+        'fal',
+        'fal-ai/kling-video/v3/pro/image-to-video',
+        'Kling V3 Pro 🆕',
+        'Latest generation Kling. Superior motion quality, character consistency, and cinematics.',
+        'master',
+        400,
+        800,
+        '1080p',
+        '10s',
+        false,
+        22,
         '{"cfg_scale": 0.5}'::jsonb,
-        '$1.40/5s · $2.80/10s ($0.28/sec)',
-        '350 CR = ~$10.94 revenue vs $1.40 cost → 87% margin',
-        '✦ High margin (87%)\n✦ Better product/fashion detail\n✦ Newer model architecture\n✦ May outperform v2.5 for some use cases',
-        '⚠ Less tested in our pipeline\n⚠ May behave differently with multi-image\n⚠ "standard" tier (not master quality)'
+        '$0.224/sec → $1.12/5s · $2.24/10s',
+        '400 CR (~$12.50) vs $1.12 API → 91% margin',
+        '✦ Latest Kling generation (V3)\n✦ Best motion + character quality\n✦ 20% cheaper than V2 Master\n✦ 91% profit margin',
+        '⚠ New model — needs pipeline testing\n⚠ API params may differ from V2\n⚠ Motion-control variant also available'
     ),
     (
         'minimax-hailuo-pro',
@@ -321,19 +342,19 @@ VALUES (
         'fal',
         'fal-ai/minimax/video-01-live',
         'Hailuo 02 Pro',
-        'Best character expressions and realistic physics simulation. Great for people-focused content.',
+        'Best character expressions and realistic physics. Great for people-focused content.',
         'master',
         450,
         900,
         '1080p',
         '5s',
         false,
-        22,
+        23,
         '{}'::jsonb,
-        '$0.49 / 5s video',
-        '450 CR = ~$14.06 revenue vs $0.49 cost → 97% margin',
-        '✦ Extremely high margin (97%)\n✦ Best character expressions\n✦ Realistic physics\n✦ 3x cheaper API than Kling',
-        '⚠ 5s max duration (no 10s option)\n⚠ Multi-image may not work\n⚠ Different API input format'
+        '$0.49 / 5s video total',
+        '450 CR (~$14.06) vs $0.49 API → 97% margin',
+        '✦ 97% margin (matches Turbo Pro)\n✦ Best character expressions\n✦ Realistic physics simulation\n✦ 3x cheaper API than V2 Master',
+        '⚠ 5s max (no 10s option)\n⚠ Multi-image may not work\n⚠ Different API input format'
     ),
     (
         'veo3',
@@ -341,19 +362,19 @@ VALUES (
         'fal',
         'fal-ai/veo3',
         'Google Veo 3.1',
-        'Google cinematic AI. Native 4K support with best film language understanding. Premium tier.',
+        'Google cinematic AI. Native 4K, best film language understanding. Premium quality tier.',
         'master',
         500,
         1000,
         '4K',
         '8s',
         false,
-        23,
+        24,
         '{}'::jsonb,
-        '$2.50/5s · $5.00/10s ($0.50/sec)',
-        '500 CR = ~$15.63 revenue vs $2.50 cost → 84% margin',
+        '$0.50/sec → $2.50/5s · $5.00/10s',
+        '500 CR (~$15.63) vs $2.50 API → 84% margin',
         '✦ Best cinematic quality overall\n✦ Native 4K resolution\n✦ Google AI infrastructure\n✦ Film-level camera movement',
-        '⚠ Most expensive API ($2.50/5s vs Kling $1.40/5s)\n⚠ Lower margin (84%) vs Kling (89%)\n⚠ New on fal.ai, less stable\n⚠ May have rate limit issues'
+        '⚠ Most expensive ($0.50/sec)\n⚠ 84% margin (lowest of all)\n⚠ New on fal.ai, less stable\n⚠ May have rate limit issues'
     );
 -- 7. Grant permissions
 GRANT SELECT ON ai_models TO authenticated;
