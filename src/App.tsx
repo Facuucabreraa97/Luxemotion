@@ -1670,9 +1670,7 @@ function AppContent() {
             <Route
                 path="/admin"
                 element={
-                    <ProtectedRoute requireAdmin={true} profile={profile}>
-                        <Admin />
-                    </ProtectedRoute>
+                    session ? <Admin /> : <Navigate to="/login" replace />
                 }
             />
             <Route path="/app" element={<ProtectedLayout session={session} credits={credits} handleLogout={handleLogout} setSelPlan={setSelPlan} profile={profile} mode={mode} selPlan={selPlan} notify={notify} />}>
