@@ -20,7 +20,7 @@ i18n
       lookupLocalStorage: 'i18nextLng'
     },
     interpolation: {
-      escapeValue: true
+      escapeValue: false
     }
   });
 
