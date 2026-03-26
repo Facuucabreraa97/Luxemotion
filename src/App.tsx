@@ -1195,25 +1195,33 @@ const SettingsPage = ({ profile, setProfile, notify }: any) => {
   );
 };
 
+const STUDIO_DRAFT_KEY = 'mivideoai_studio_draft';
+
 const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile }: any) => {
   const { mode } = useMode();
   const location = useLocation();
   const { t } = useTranslation();
-  const [img, setImg] = useState<string|null>(null);
-  const [prod, setProd] = useState<string|null>(null);
-  const [vid, setVid] = useState<string|null>(null);
-  const [type, setType] = useState<'img'|'vid'>('img');
-  const [prompt, setPrompt] = useState('');
-  const [cam, setCam] = useState('static');
-  const [ratio, setRatio] = useState('9:16');
-  const [dur, setDur] = useState(5);
+
+  // Restore draft from localStorage
+  const savedDraft = useRef<any>(null);
+  try { savedDraft.current = JSON.parse(localStorage.getItem(STUDIO_DRAFT_KEY) || 'null'); } catch { savedDraft.current = null; }
+  const draft = savedDraft.current;
+
+  const [img, setImg] = useState<string|null>(draft?.img || null);
+  const [prod, setProd] = useState<string|null>(draft?.prod || null);
+  const [vid, setVid] = useState<string|null>(draft?.vid || null);
+  const [type, setType] = useState<'img'|'vid'>(draft?.type || 'img');
+  const [prompt, setPrompt] = useState(draft?.prompt || '');
+  const [cam, setCam] = useState(draft?.cam || 'static');
+  const [ratio, setRatio] = useState(draft?.ratio || '9:16');
+  const [dur, setDur] = useState(draft?.dur || 5);
   const [velvetFilter, setVelvetFilter] = useState(false);
-  const [velvetStyle, setVelvetStyle] = useState('leaked');
+  const [velvetStyle, setVelvetStyle] = useState(draft?.velvetStyle || 'leaked');
 
   // Voice State
-  const [voiceMode, setVoiceMode] = useState(false);
-  const [voiceScript, setVoiceScript] = useState('');
-  const [voiceId, setVoiceId] = useState(VOICES[0].id);
+  const [voiceMode, setVoiceMode] = useState(draft?.voiceMode || false);
+  const [voiceScript, setVoiceScript] = useState(draft?.voiceScript || '');
+  const [voiceId, setVoiceId] = useState(draft?.voiceId || VOICES[0].id);
 
   // Cost State
   const [totalCost, setTotalCost] = useState(0);
@@ -1227,12 +1235,22 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile }
   const DEMO_IMG = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop";
   const DEMO_PROD = "https://images.unsplash.com/photo-1541643600914-78b084683601?q=80&w=800&auto=format&fit=crop";
 
+  // Auto-save draft to localStorage
+  useEffect(() => {
+      if (!init.current) return;
+      const timer = setTimeout(() => {
+          const draftData = { prompt, cam, ratio, dur, velvetStyle, voiceMode, voiceScript, voiceId, type };
+          localStorage.setItem(STUDIO_DRAFT_KEY, JSON.stringify(draftData));
+      }, 500);
+      return () => clearTimeout(timer);
+  }, [prompt, cam, ratio, dur, velvetStyle, voiceMode, voiceScript, voiceId, type]);
+
   useEffect(() => {
       if(!init.current) {
           if (location.state?.remixPrompt) {
               setPrompt(location.state.remixPrompt);
               notify(t('studio.remix_loaded'));
-          } else {
+          } else if (!draft?.prompt) {
               setImg(DEMO_IMG); setProd(DEMO_PROD); setPrompt("Cinematic slow motion shot, elegant lighting, 8k resolution");
           }
           init.current=true;
@@ -1311,6 +1329,8 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile }
               onGen({url: d.videoUrl, cost, id: realId, date: new Date().toLocaleDateString(), prompt, aspectRatio: ratio});
               if (d.voiceWarning) notify(`Video generado (Voz falló: se cobraron ${cost - 20}cr)`);
               else notify(t('studio.generated_success'));
+              // Clear draft after successful generation
+              localStorage.removeItem(STUDIO_DRAFT_KEY);
           } else throw new Error(d.error);
       } catch(e:any) { console.error(e); notify(t('auth.connection_error')); } finally { setLoading(false); }
   };
@@ -1487,7 +1507,10 @@ const StudioPage = ({ onGen, credits, notify, onUp, userPlan, talents, profile }
               <Loader2 className="animate-spin" size={18} /> Creating magic...
             </span>
           ) : (
-            <span>Generate Video ({totalCost} CR)</span>
+            <span className="flex flex-col items-center">
+              <span>{t('studio.generate')} ({totalCost} CR)</span>
+              <span className="text-[7px] opacity-60 font-normal normal-case tracking-normal">{getEstimatedTime()}</span>
+            </span>
           )}
         </button>
       </div>
