@@ -1,67 +1,79 @@
-export enum AspectRatio {
-  LANDSCAPE = '16:9',
-  PORTRAIT = '9:16',
-  SQUARE = '1:1'
-}
-
-export enum Resolution {
-  HD = '720p',
-  FHD = '1080p'
-}
-
 export interface UserProfile {
-  name: string;
+  id: string;
   email: string;
-  phone?: string;
-  instagram?: string;
-  telegram?: string;
-  avatar?: string | null;
-  credits?: number;
-  plan?: 'starter' | 'creator' | 'agency';
+  full_name?: string;
+  avatar_url?: string;
+  credits: number;
   is_admin?: boolean;
-  role?: string;
 }
 
-export interface Talent {
+export interface Asset {
   id: string;
+  created_at: string;
   name: string;
+  description?: string;
   image_url: string;
-  notes?: string;
+  video_url?: string;
+  price: number;
+  currency: string;
+  royalty_percent: number;
+  creator_id: string;
+  owner_id: string;
+  for_sale: boolean;
+  supply_total: number;
+  supply_sold: number;
+  is_draft?: boolean;
+
+  // Remix / GenAI Fields
+  seed?: number; // Int8 in DB, number in JS (safe up to 2^53)
+  generation_config?: Record<string, unknown>;
+  prompt_structure?: {
+    user_prompt: string;
+    system_prompt?: string;
+    full_prompt: string;
+  };
+  is_public?: boolean;
 }
 
-export interface GeneratedVideo {
+export interface Transaction {
+  id: number;
+  created_at: string;
+  type: 'MINT' | 'BUY' | 'GENERATE' | 'DEPOSIT';
+  amount: number;
+  metadata?: Record<string, unknown>;
+}
+
+export interface Achievement {
   id: string;
-  url: string;
-  prompt: string;
-  date: string;
-  aspectRatio: string;
-  cost: number;
+  code: string;
+  title: string;
+  description: string;
+  icon_url: string;
+  xp_reward: number;
 }
 
-export interface VideoGenerationState {
-  isGenerating: boolean;
-  progress: string;
-  videoUrl: string | null;
-  error: string | null;
-  simulationData?: SimulationMetadata | null;
+export interface Quest {
+  id: string;
+  code: string;
+  frequency: 'DAILY' | 'WEEKLY' | 'EPIC';
+  title: string;
+  target_count: number;
+  xp_reward: number;
+  credits_reward: number;
 }
 
-export interface SimulationMetadata {
-  subject: string;
-  wardrobe: string;
-  environment: string;
-  mood: string;
-  colors: string[];
-  materials: string[];
-  lighting: string;
-  framing: string;
-  pose: string;
-  cinematicKeywords: string[];
+export interface UserQuestProgress {
+  user_id: string;
+  quest_id: string;
+  current_count: number;
+  is_completed: boolean;
+  is_claimed: boolean;
+  cycle_start: string;
 }
 
-export interface GenerationParams {
-  prompt: string;
-  image: string | null; // Base64
-  aspectRatio: AspectRatio;
-  resolution: Resolution;
+export interface UserGamificationStats {
+  xp: number;
+  level: number;
+  current_streak: number;
+  achievements: string[]; // List of Achievement IDs
 }

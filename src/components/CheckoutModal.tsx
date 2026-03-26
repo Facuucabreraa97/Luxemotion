@@ -1,106 +1,524 @@
-import React, { useState } from 'react';
-import { CreditCard, Bitcoin, Shield, X } from 'lucide-react';
-import { PRICING } from '../constants';
-import { S } from '../styles';
-import { CONFIG } from '../config';
-import { useMode } from '../context/ModeContext';
-import { useTranslation } from 'react-i18next';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Upload, Copy, CheckCircle, Loader2, ArrowLeft } from 'lucide-react';
+import { PaymentService, PaymentMethodConfig } from '@/services/payment.service';
+import { useTranslation } from '@/context/LanguageContext';
 
-export const CheckoutModal = ({ planKey, annual, onClose }: { planKey: string, annual: boolean, onClose: () => void }) => {
-  const { mode } = useMode();
+interface CheckoutModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  planName?: string;
+  creditAmount: number;
+  priceUSD: number;
+  planTier?: string;
+  billingCycle?: 'monthly' | 'yearly';
+}
+
+type Step = 'select_method' | 'payment_details' | 'upload_proof' | 'confirmation';
+
+export const CheckoutModal: React.FC<CheckoutModalProps> = ({
+  isOpen,
+  onClose,
+  planName,
+  creditAmount,
+  priceUSD,
+  planTier,
+  billingCycle,
+}) => {
+  const [methods, setMethods] = useState<PaymentMethodConfig[]>([]);
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethodConfig | null>(null);
+  const [step, setStep] = useState<Step>('select_method');
   const { t } = useTranslation();
-  const p = PRICING[planKey as keyof typeof PRICING];
-  const [proc, setProc] = useState(false);
-  const [currency, setCurrency] = useState<'USD'|'ARS'>('USD');
-  const [method, setMethod] = useState<'card'|'crypto'>('card');
-  const finalPrice = annual && (p as any).yearlyPrice ? (p as any).yearlyPrice : p.price;
-  const displayPrice = currency === 'ARS' ? finalPrice * 1150 : finalPrice;
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const [proofPreview, setProofPreview] = useState<string | null>(null);
+  const [txHash, setTxHash] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [lastTxId, setLastTxId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const submittingRef = useRef(false);
 
-  const handlePay = async () => {
-      setProc(true);
-      try {
-          const r = await fetch(`${CONFIG.API_URL}/create-preference`, {
-              method: 'POST', headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({ title: `Plan ${p.name}`, price: displayPrice, quantity: 1, currency })
-          });
-          const d = await r.json();
-          if (d.url) window.location.href = d.url;
-          else throw new Error(t('common.error'));
-      } catch(e) { alert(t('auth.connection_error')); setProc(false); }
+  useEffect(() => {
+    if (isOpen) {
+      setStep('select_method');
+      setSelectedMethod(null);
+      setProofFile(null);
+      setProofPreview(null);
+      setTxHash('');
+      setSubmitError(null);
+      setLastTxId(null);
+      loadMethods();
+    }
+  }, [isOpen]);
+
+  const loadMethods = async () => {
+    setLoading(true);
+    const data = await PaymentService.getPaymentMethods();
+    setMethods(data);
+    setLoading(false);
   };
 
-  // Adaptive Styles
-  const panelClass = mode === 'velvet'
-    ? S.panel
-    : 'bg-white border border-gray-200 shadow-2xl text-black';
+  const handleCopy = (text: string, label: string) => {
+    try {
+      navigator.clipboard.writeText(text);
+    } catch {
+      // Fallback for HTTP or unsupported browsers
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    setCopied(label);
+    setTimeout(() => setCopied(null), 2000);
+  };
 
-  const textPrimary = mode === 'velvet' ? 'text-white' : 'text-black';
-  const textSecondary = mode === 'velvet' ? 'text-white/50' : 'text-gray-700';
-  const textAccent = mode === 'velvet' ? 'text-[#C6A649]' : 'text-blue-600';
-  const closeBtn = mode === 'velvet' ? 'text-white/30 hover:text-white' : 'text-gray-400 hover:text-black';
-  const summaryBox = mode === 'velvet' ? 'bg-white/5' : 'bg-gray-50 border border-gray-100';
-  const summaryText = mode === 'velvet' ? 'text-white/80' : 'text-gray-700';
-  const methodActive = mode === 'velvet' ? 'border-[#C6A649] bg-[#C6A649]/10 text-[#C6A649]' : 'border-blue-600 bg-blue-50 text-blue-700';
-  const methodInactive = mode === 'velvet' ? 'border-white/10 text-white/40' : 'border-gray-200 text-gray-400 hover:border-gray-300';
-  const currencyActive = mode === 'velvet' ? 'bg-[#C6A649] text-black' : 'bg-black text-white';
-  const currencyInactive = mode === 'velvet' ? 'text-gray-500' : 'text-gray-400 hover:bg-white/50';
-  const divider = mode === 'velvet' ? 'border-white/10' : 'border-gray-200';
-  const totalLabel = mode === 'velvet' ? 'text-white/40' : 'text-gray-600';
-  const priceColor = mode === 'velvet' ? 'text-white' : 'text-black';
+  // F-1: Strict file validation
+  const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+  const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
-  // Button Style Override for Agency Mode
-  const actionBtn = mode === 'velvet'
-    ? S.btnGold
-    : 'bg-black text-white font-bold uppercase tracking-[0.2em] shadow-lg hover:bg-gray-800 hover:shadow-xl active:scale-95 transition-all duration-300 rounded-xl cursor-pointer';
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setSubmitError('Only PNG, JPG, or WebP images allowed');
+      e.target.value = '';
+      return;
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      setSubmitError('File too large. Max 5MB.');
+      e.target.value = '';
+      return;
+    }
+
+    setSubmitError(null);
+    setProofFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setProofPreview(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedMethod) return;
+    // F-8: Guard against double submit on slow networks
+    if (submittingRef.current) return;
+
+    const isCrypto = selectedMethod.id.includes('crypto');
+    if (isCrypto && !txHash.trim()) {
+      alert('Please enter the transaction hash');
+      return;
+    }
+    if (!isCrypto && !proofFile) {
+      alert('Please upload a proof of payment');
+      return;
+    }
+
+    setSubmitting(true);
+    submittingRef.current = true;
+    setSubmitError(null);
+    try {
+      // Anti-fraud: check for duplicate tx_hash
+      if (txHash.trim()) {
+        const isDuplicate = await PaymentService.checkDuplicateTxHash(txHash.trim());
+        if (isDuplicate) {
+          setSubmitError('Este comprobante ya fue registrado / This receipt was already submitted');
+          setSubmitting(false);
+          return;
+        }
+      }
+
+      const result = await PaymentService.submitPayment(
+        creditAmount,
+        selectedMethod.id,
+        proofFile || undefined,
+        txHash || undefined,
+        planName ? `${planName} Plan - ${creditAmount} Credits` : `${creditAmount} Credits`,
+        planTier,
+        billingCycle
+      );
+
+      if (result.success) {
+        setLastTxId(result.message); // store for WhatsApp
+        setStep('confirmation');
+      } else {
+        setSubmitError(result.message);
+      }
+    } catch {
+      setSubmitError('Error submitting payment. Please try again.');
+    } finally {
+      setSubmitting(false);
+      submittingRef.current = false;
+    }
+  };
+
+  if (!isOpen) return null;
+
+  const isCrypto = selectedMethod?.id.includes('crypto');
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
-      <div className={`w-full max-w-md p-8 rounded-[40px] text-center relative transition-colors duration-300 ${panelClass}`}>
-        <button onClick={onClose} className={`absolute top-6 right-6 ${closeBtn}`}><X size={20}/></button>
-        <h3 className={`${textPrimary} font-bold uppercase tracking-[0.3em] mb-2 text-sm`}>{t('billing.checkout.title')}</h3>
-        <p className={`${textAccent} text-xs font-bold uppercase tracking-widest mb-6`}>{p.name} {annual ? `(${t('billing.annual')})` : `(${t('billing.monthly')})`}</p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
 
-        <div className={`${summaryBox} p-4 rounded-xl mb-6 text-left`}>
-            <p className={`text-[10px] ${textSecondary} uppercase mb-2 font-bold`}>{t('billing.checkout.summary_title')}</p>
-            <ul className={`text-xs ${summaryText} space-y-1`}>
-                <li>• {t('billing.checkout.access', { credits: p.creds })}</li>
-                <li>• {t('billing.checkout.unlock', { plan: p.name === 'Influencer' ? 'Velvet' : 'Pro' })}</li>
-                <li>• {t('billing.checkout.cancel')}</li>
-            </ul>
+      {/* Modal */}
+      <div className="relative w-full max-w-lg bg-[#0a0a0a] border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-fade-in">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-white/10">
+          <div className="flex items-center gap-3">
+            {step !== 'select_method' && step !== 'confirmation' && (
+              <button
+                onClick={() => {
+                  if (step === 'upload_proof') setStep('payment_details');
+                  else setStep('select_method');
+                }}
+                className="p-1 hover:bg-white/10 rounded-lg transition"
+              >
+                <ArrowLeft size={18} />
+              </button>
+            )}
+            <div>
+              <h2 className="text-lg font-bold">
+                {step === 'confirmation' ? t('checkout.successTitle') : t('checkout.title')}
+              </h2>
+              {planName && step !== 'confirmation' && (
+                <p className="text-xs text-gray-500">{planName} Plan</p>
+              )}
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition">
+            <X size={18} />
+          </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 mb-4">
-            <button onClick={()=>setMethod('card')} className={`flex items-center justify-center gap-2 py-3 rounded-xl border transition-all ${method==='card' ? methodActive : methodInactive}`}>
-                <CreditCard size={14}/><span className="text-[10px] font-bold">{t('billing.pay_card')}</span>
-            </button>
-            <button onClick={()=>setMethod('crypto')} className={`flex items-center justify-center gap-2 py-3 rounded-xl border transition-all ${method==='crypto' ? methodActive : methodInactive}`}>
-                <Bitcoin size={14}/><span className="text-[10px] font-bold">USDT</span>
-            </button>
-        </div>
+        {/* Step Progress Indicator */}
+        {step !== 'confirmation' && (
+          <div className="px-6 pt-4">
+            <div className="flex items-center justify-between">
+              {['select_method', 'payment_details', 'upload_proof'].map((s, i) => {
+                const stepLabels = ['Method', 'Details', 'Proof'];
+                const stepNum = i + 1;
+                const steps: Step[] = ['select_method', 'payment_details', 'upload_proof'];
+                const currentIdx = steps.indexOf(step);
+                const isActive = i === currentIdx;
+                const isDone = i < currentIdx;
+                return (
+                  <React.Fragment key={s}>
+                    <div className="flex flex-col items-center gap-1">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
+                        isDone ? 'bg-emerald-500 text-black scale-90' :
+                        isActive ? 'bg-white text-black scale-110 shadow-[0_0_12px_rgba(255,255,255,0.3)]' :
+                        'bg-white/10 text-gray-600'
+                      }`}>
+                        {isDone ? '✓' : stepNum}
+                      </div>
+                      <span className={`text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                        isActive ? 'text-white' : isDone ? 'text-emerald-400' : 'text-gray-600'
+                      }`}>
+                        {stepLabels[i]}
+                      </span>
+                    </div>
+                    {i < 2 && (
+                      <div className={`flex-1 h-[2px] mx-2 rounded transition-colors duration-300 ${
+                        i < currentIdx ? 'bg-emerald-500' : 'bg-white/10'
+                      }`} />
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
-        <div className={`flex gap-2 mb-6 p-1 rounded-xl ${mode==='velvet'?'bg-black/30':'bg-gray-100'}`}>
-            <button onClick={()=>setCurrency('USD')} className={`flex-1 py-2 rounded-lg text-[10px] font-bold uppercase transition-all ${currency==='USD' ? currencyActive : currencyInactive}`}>USD / USDT</button>
-            <button onClick={()=>setCurrency('ARS')} className={`flex-1 py-2 rounded-lg text-[10px] font-bold uppercase transition-all ${currency==='ARS' ? currencyActive : currencyInactive}`}>Pesos ARS</button>
-        </div>
+        {/* Amount Badge */}
+        {step !== 'confirmation' && (
+          <div className="px-6 pt-4">
+            <div className="bg-white/5 rounded-xl p-4 flex justify-between items-center border border-white/5">
+              <div>
+                <span className="text-xs text-gray-500 uppercase font-bold">You'll receive</span>
+                <div className="text-2xl font-bold text-emerald-400">
+                  {creditAmount.toLocaleString()} <span className="text-sm text-gray-500">CR</span>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-xs text-gray-500 uppercase font-bold">{t('checkout.price')}</span>
+                <div className="text-2xl font-bold text-white">
+                  ${priceUSD.toFixed(2)}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
-        <div className={`flex justify-between items-end py-4 border-t ${divider} mb-6`}>
-            <div className="text-left"><span className={`block ${totalLabel} text-[10px] uppercase font-bold tracking-widest`}>{t('billing.checkout.total')}</span><span className={`text-[9px] ${textAccent}`}>{t('billing.checkout.vat_included')}</span></div>
-            <span className={`text-3xl font-bold ${priceColor} tracking-tighter`}>{currency === 'USD' ? '$' : '$'}{displayPrice.toLocaleString()}</span>
-        </div>
-        <button onClick={handlePay} disabled={proc} className={`w-full py-4 rounded-2xl text-xs ${actionBtn}`}>{proc ? t('common.processing') : t('billing.checkout.confirm_pay')}</button>
-        <p className={`text-[8px] ${textSecondary} mt-4 flex items-center justify-center gap-1`}><Shield size={8}/> {t('billing.checkout.secure')}</p>
+        {/* Content */}
+        <div className="p-6">
+          {/* STEP 1: Select Method */}
+          {step === 'select_method' && (
+            <div>
+              <p className="text-sm text-gray-400 mb-4">{t('checkout.selectMethod')}</p>
+              {loading ? (
+                <div className="text-center py-8 text-gray-500 animate-pulse">Loading methods...</div>
+              ) : methods.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">No payment methods available</div>
+              ) : (
+                <div className="space-y-3">
+                  {methods.map(method => (
+                    <button
+                      key={method.id}
+                      onClick={() => {
+                        setSelectedMethod(method);
+                        setStep('payment_details');
+                      }}
+                      className="w-full flex items-center justify-between p-4 bg-[#111] border border-white/10 rounded-xl hover:border-white/30 hover:bg-[#151515] transition group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
+                          {method.id.includes('mercadopago') ? '🏦' : '💎'}
+                        </div>
+                        <div className="text-left">
+                          <div className="font-bold text-white">{method.label}</div>
+                          <div className="text-xs text-gray-500">
+                            {method.data.network || 'Bank Transfer'}
+                          </div>
+                        </div>
+                      </div>
+                      <svg className="w-4 h-4 text-gray-600 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
-        <div className={`mt-6 border-t ${divider} pt-4`}>
-           <details className="group">
-              <summary className={`list-none text-[8px] ${textSecondary} uppercase tracking-widest cursor-pointer hover:opacity-100 transition-opacity flex items-center justify-center gap-2 opacity-70`}>
-                 {t('billing.terms_title')} <span className="group-open:rotate-180 transition-transform">▼</span>
-              </summary>
-              <p className={`text-[9px] ${textSecondary} mt-3 leading-relaxed px-4 opacity-80`}>
-                 {t('billing.terms_text')}
+          {/* STEP 2: Payment Details */}
+          {step === 'payment_details' && selectedMethod && (
+            <div>
+              <p className="text-sm text-gray-400 mb-4">
+                {selectedMethod.data.instructions || 'Send the exact amount and proceed to upload proof.'}
               </p>
-           </details>
+
+              {/* Payment Info Fields */}
+              <div className="space-y-3 mb-6">
+                {selectedMethod.data.alias && (
+                  <CopyField
+                    label="Alias"
+                    value={selectedMethod.data.alias}
+                    onCopy={handleCopy}
+                    copied={copied}
+                  />
+                )}
+                {selectedMethod.data.cvu && (
+                  <CopyField
+                    label="CVU"
+                    value={selectedMethod.data.cvu}
+                    onCopy={handleCopy}
+                    copied={copied}
+                  />
+                )}
+                {selectedMethod.data.wallet_address && (
+                  <CopyField
+                    label={`Wallet (${selectedMethod.data.network || 'Crypto'})`}
+                    value={selectedMethod.data.wallet_address}
+                    onCopy={handleCopy}
+                    copied={copied}
+                  />
+                )}
+              </div>
+
+              {/* QR Code */}
+              {selectedMethod.data.qr_url && (
+                <div className="flex justify-center mb-6">
+                  <img
+                    src={selectedMethod.data.qr_url}
+                    alt="QR Code"
+                    className="w-48 h-48 rounded-xl border border-white/10 bg-white p-2 object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* F-6: Show exact amount to pay */}
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 mb-4 text-center">
+                <span className="text-xs text-amber-400 uppercase font-bold">Amount to transfer</span>
+                <div className="text-2xl font-bold text-white mt-1">
+                  ${priceUSD.toFixed(2)} <span className="text-sm text-gray-400">USD</span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setStep('upload_proof')}
+                className="w-full py-3 bg-white text-black font-bold rounded-xl hover:bg-gray-200 transition text-sm"
+              >
+                {t('checkout.imadePay')}
+              </button>
+            </div>
+          )}
+
+          {/* STEP 3: Upload Proof */}
+          {step === 'upload_proof' && selectedMethod && (
+            <div>
+              <p className="text-sm text-gray-400 mb-4">
+                {isCrypto
+                  ? 'Paste the transaction hash and optionally upload a screenshot.'
+                  : 'Upload a screenshot of your payment receipt.'}
+              </p>
+
+              {/* TX Hash (Crypto) */}
+              {isCrypto && (
+                <div className="mb-4">
+                  <label className="block text-xs text-gray-500 uppercase font-bold mb-1">
+                    {t('checkout.txHash')} *
+                  </label>
+                  <input
+                    type="text"
+                    value={txHash}
+                    onChange={e => setTxHash(e.target.value)}
+                    placeholder="0x..."
+                    className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:border-white/30 transition"
+                  />
+                </div>
+              )}
+
+              {/* File Upload */}
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition ${
+                  proofPreview
+                    ? 'border-emerald-500/30 bg-emerald-500/5'
+                    : 'border-white/10 hover:border-white/30 bg-[#111]'
+                }`}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".png,.jpg,.jpeg,.webp"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+                {proofPreview ? (
+                  <div>
+                    <img
+                      src={proofPreview}
+                      alt="Proof"
+                      className="max-h-40 mx-auto rounded-lg mb-2 object-contain"
+                    />
+                    <p className="text-xs text-emerald-400 font-bold">
+                      ✓ {proofFile?.name}
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    <Upload size={32} className="mx-auto text-gray-600 mb-2" />
+                    <p className="text-sm text-gray-400">
+                      {t('checkout.uploadReceipt')}
+                    </p>
+                    <p className="text-xs text-gray-600 mt-1">
+                      {t('checkout.uploadHint')}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Submit */}
+              <button
+                onClick={handleSubmit}
+                disabled={submitting || (isCrypto ? !txHash.trim() : !proofFile)}
+                className="w-full py-3 mt-6 bg-emerald-500 text-black font-bold rounded-xl hover:bg-emerald-400 transition text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" /> {t('checkout.submitting')}
+                  </>
+                ) : (
+                  t('checkout.submit')
+                )}
+              </button>
+              {submitError && (
+                <div className="mt-3 bg-red-500/10 border border-red-500/20 rounded-lg p-3 text-red-400 text-sm text-center">
+                  ⚠️ {submitError}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* STEP 4: Confirmation */}
+          {step === 'confirmation' && (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle size={32} className="text-emerald-400" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">{t('checkout.successTitle')}</h3>
+              <p className="text-gray-400 text-sm mb-6">
+                {t('checkout.successMsg').split('\n').map((line, i) => (
+                  <React.Fragment key={i}>{line}{i === 0 && <br />}</React.Fragment>
+                ))}
+              </p>
+
+              {/* WhatsApp Concierge */}
+              {selectedMethod?.support_whatsapp_number && (
+                <a
+                  href={`https://wa.me/${selectedMethod.support_whatsapp_number}?text=${encodeURIComponent(
+                    `Hola! Acabo de enviar un pago por ${creditAmount} créditos vía ${selectedMethod.label}. ID: ${lastTxId || 'pending'}. Quedo a la espera de la confirmación.`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-5 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-500 transition text-sm mb-3"
+                >
+                  💬 Confirmar por WhatsApp
+                </a>
+              )}
+
+              <div>
+                <button
+                  onClick={onClose}
+                  className="px-6 py-3 bg-white text-black font-bold rounded-xl hover:bg-gray-200 transition text-sm"
+                >
+                  {t('checkout.close')}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 };
+
+// ── Helper: Copiable field ──
+const CopyField = ({
+  label,
+  value,
+  onCopy,
+  copied
+}: {
+  label: string;
+  value: string;
+  onCopy: (text: string, label: string) => void;
+  copied: string | null;
+}) => (
+  <div className="bg-[#111] border border-white/10 rounded-lg p-3">
+    <div className="text-xs text-gray-500 uppercase font-bold mb-1">{label}</div>
+    <div className="flex items-center justify-between gap-2">
+      <span className="text-sm font-mono text-white truncate">{value}</span>
+      <button
+        onClick={() => onCopy(value, label)}
+        className="shrink-0 p-1.5 hover:bg-white/10 rounded-lg transition"
+        title="Copy"
+      >
+        {copied === label ? (
+          <CheckCircle size={14} className="text-emerald-400" />
+        ) : (
+          <Copy size={14} className="text-gray-500" />
+        )}
+      </button>
+    </div>
+  </div>
+);

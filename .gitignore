@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# --- SENTINEL BLACKLIST (DO NOT REMOVE) ---
+.github/workflows/panopticon.yml
+src/pages/admin/Sentinel*
+supabase/migration_sentinel*
+.github/
+# ------------------------------------------
+

@@ -1,4 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
-import { CONFIG } from '../config';
 
-export const supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('🚨 FATAL: Missing Supabase Environment Variables');
+}
+
+// Export as a Singleton
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);

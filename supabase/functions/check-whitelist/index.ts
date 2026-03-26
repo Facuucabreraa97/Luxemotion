@@ -1,0 +1,83 @@
+// @ts-nocheck
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+
+const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') || 'https://www.mivideoai.com'
+
+const corsHeaders = {
+    'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+serve(async (req: Request) => {
+    if (req.method === 'OPTIONS') {
+        return new Response('ok', { headers: corsHeaders })
+    }
+
+    try {
+        const supabaseAdmin = createClient(
+            Deno.env.get('SUPABASE_URL') ?? '',
+            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+        )
+
+        const { email } = await req.json()
+
+        if (!email) {
+            throw new Error("Missing email")
+        }
+
+        // 0. Access Control — REQUIRE valid JWT
+        const authHeader = req.headers.get('Authorization')
+        if (!authHeader) {
+            return new Response(
+                JSON.stringify({ error: "Unauthorized: Authentication required" }),
+                { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+            )
+        }
+
+        const { data: { user } } = await supabaseAdmin.auth.getUser(authHeader.replace('Bearer ', ''))
+        if (!user) {
+            return new Response(
+                JSON.stringify({ error: "Invalid Token" }),
+                { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+            )
+        }
+
+        // Only allow checking own email OR admin checking any email
+        if (user.email !== email) {
+            const { data: profile } = await supabaseAdmin
+                .from('profiles')
+                .select('is_admin')
+                .eq('id', user.id)
+                .single()
+
+            if (!profile?.is_admin) {
+                return new Response(
+                    JSON.stringify({ error: "Forbidden: Cannot check other users' status" }),
+                    { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+                )
+            }
+        }
+
+
+        // Secure Lookup
+        const { data, error } = await supabaseAdmin
+            .from('whitelist')
+            .select('status')
+            .eq('email', email.toLowerCase())
+            .single()
+
+        const isAllowed = data?.status === 'approved'
+
+        return new Response(
+            JSON.stringify({ allowed: isAllowed, status: data?.status || 'pending' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        )
+
+    } catch (error) {
+        return new Response(
+            JSON.stringify({ error: 'Bad Request' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        )
+    }
+})
