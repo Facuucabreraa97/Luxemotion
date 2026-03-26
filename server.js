@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 import Replicate from 'replicate';
 import dotenv from 'dotenv';
 import { MercadoPagoConfig, Preference } from 'mercadopago';
@@ -14,21 +15,34 @@ if (process.env.NODE_ENV !== 'production') {
   dotenv.config();
 }
 
-console.log("--- DEBUGGING ENV VARS ---");
-console.log("SUPABASE_URL detected:", process.env.SUPABASE_URL ? "YES (Hidden value)" : "NO (Undefined)");
-console.log("SUPABASE_SERVICE_ROLE_KEY detected:", process.env.SUPABASE_SERVICE_ROLE_KEY ? "YES (Hidden value)" : "NO (Undefined)");
-console.log("SUPABASE_KEY detected:", process.env.SUPABASE_KEY ? "YES (Hidden value)" : "NO (Undefined)");
-console.log("--------------------------");
+if (process.env.NODE_ENV !== 'production') {
+  console.log("--- DEBUGGING ENV VARS ---");
+  console.log("SUPABASE_URL detected:", process.env.SUPABASE_URL ? "YES" : "NO");
+  console.log("SUPABASE_SERVICE_ROLE_KEY detected:", process.env.SUPABASE_SERVICE_ROLE_KEY ? "YES" : "NO");
+  console.log("--------------------------");
+}
 
 const app = express();
 
-// MOVE THIS TO THE BEGINNING OF THE FILE (After imports)
+// CORS: Restrict to known origins in production
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : ['http://localhost:5173', 'http://localhost:3000'];
+
 app.use(cors({
-origin: true,
-credentials: true,
-methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+  origin: process.env.NODE_ENV === 'production'
+    ? (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
+      }
+    : true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }));
-app.options(/.*/, cors()); // Enable pre-flight for EVERYTHING
+app.options(/.*/, cors());
 
 const port = process.env.PORT || 3001;
 
@@ -105,8 +119,36 @@ async function getUsdToArsRate() {
 // --- MIDDLEWARE ---
 app.use(helmet());
 app.use(compression());
-
 app.use(express.json({ limit: '50mb' }));
+
+// --- RATE LIMITING ---
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later.' }
+});
+
+const generateLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 5,
+  message: { error: 'Too many generation requests. Please wait.' }
+});
+
+const buyLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 10,
+  message: { error: 'Too many purchase attempts. Please wait.' }
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20,
+  message: { error: 'Too many attempts. Please try again later.' }
+});
+
+app.use('/api/', generalLimiter);
 
 // --- UTILS ---
 const getUser = async (req) => {
@@ -169,7 +211,7 @@ const analyzeProductImage = async (imageUrl) => {
 };
 
 // --- API GENERATE VIDEO (VELVET ENGINE) ---
-app.post('/api/generate', async (req, res) => {
+app.post('/api/generate', generateLimiter, async (req, res) => {
   try {
     const user = await getUser(req);
 
@@ -210,11 +252,15 @@ app.post('/api/generate', async (req, res) => {
       throw new Error(`Insufficient credits (${profile?.credits}cr). Needed ${cost}cr.`);
     }
 
-    // 3. Deduct Credits (if not admin)
+    // 3. Deduct Credits atomically (if not admin)
     // We deduct FULL amount upfront to prevent fraud. We refund if Phase 2 fails.
     if (!isAdmin) {
-      const { error: deductError } = await supabaseAdmin.from('profiles').update({ credits: profile.credits - cost }).eq('id', user.id);
+      const { data: remaining, error: deductError } = await supabaseAdmin.rpc('decrement_credits', {
+        p_user_id: user.id,
+        p_amount: cost
+      });
       if (deductError) throw new Error("Error updating balance");
+      if (remaining === -1) throw new Error(`Insufficient credits. Needed ${cost}cr.`);
     }
 
     // 4. Prompt Engineering (Vision & Logic)
@@ -222,14 +268,14 @@ app.post('/api/generate', async (req, res) => {
 
     // --- VISION MIDDLEWARE START ---
     if (product_image_url) {
-        console.log(`👁️ Vision Middleware Active for ${user.email}`);
+        if (process.env.NODE_ENV !== 'production') console.log("Vision Middleware Active");
         try {
             // Check if product image exists and inject specific prompt
             // "Professional cinematic product shot. A fashion model interacting naturally with a [product/bottle/item]. The product is clearly visible, in focus, and elegantly displayed."
 
             // We still analyze the image to know WHAT it is (bottle, bag, etc.)
             const visionOutput = await analyzeProductImage(product_image_url);
-            console.log(`👁️ Vision Output: "${visionOutput}"`);
+            if (process.env.NODE_ENV !== 'production') console.log("Vision Output:", visionOutput);
 
             // Inject into prompt (Enhanced Logic)
             effectivePrompt = `Commercial cinematic shot. A model holding and interacting with a ${visionOutput} naturally. The product is the main focus, clearly visible and sharp. ${effectivePrompt}`;
@@ -291,7 +337,7 @@ app.post('/api/generate', async (req, res) => {
         if (endImage) inputPayload.tail_image = endImage;
     }
 
-    console.log(`🎬 Generating ${mode?.toUpperCase() || 'STD'} for ${user.email} | Prompt: ${finalPrompt.substring(0, 50)}...`);
+    if (process.env.NODE_ENV !== 'production') console.log(`Generating ${mode?.toUpperCase() || 'STD'} for ${user.id}`);
 
     // PHASE 1: Base Video Generation
     const output = await replicate.run("kwaivgi/kling-v2.5-turbo-pro", { input: inputPayload });
@@ -303,7 +349,7 @@ app.post('/api/generate', async (req, res) => {
 
     // PHASE 2: Voice Layer (Conditional)
     if (voiceScript && voiceId) {
-        console.log(`🎤 Voice Mode Active: Script "${voiceScript.substring(0, 20)}..." | Voice: ${voiceId}`);
+        if (process.env.NODE_ENV !== 'production') console.log("Voice Mode Active");
         try {
             if (!elevenLabsApiKey) throw new Error("ElevenLabs API Key missing");
 
@@ -338,7 +384,7 @@ app.post('/api/generate', async (req, res) => {
                 .from('assets')
                 .getPublicUrl(audioFileName);
 
-            console.log("🔊 Audio uploaded:", audioUrl);
+            if (process.env.NODE_ENV !== 'production') console.log("Audio uploaded");
 
             // Step C: Lip-Sync (Replicate)
             // Using cjwbw/video-retalking
@@ -354,7 +400,7 @@ app.post('/api/generate', async (req, res) => {
 
             finalVideoUrl = Array.isArray(syncOutput) ? syncOutput[0] : syncOutput;
             voiceSuccess = true;
-            console.log("🗣️ LipSync Complete:", finalVideoUrl);
+            if (process.env.NODE_ENV !== 'production') console.log("LipSync Complete");
 
         } catch (voiceError) {
             console.warn("Voice Failure -> Downgrading to mute video");
@@ -363,20 +409,19 @@ app.post('/api/generate', async (req, res) => {
             // Revert to original video if voice failed
             finalVideoUrl = remoteUrl;
 
-            // Refund the extra cost (20 credits) - Wrapped to prevent crash
+            // Refund the voice cost (20 credits) atomically
             if (!isAdmin) {
                 try {
-                    await supabaseAdmin.from('profiles').update({ credits: profile.credits - 5 }).eq('id', user.id); // Refund 20, keeping 5 base
+                    await supabaseAdmin.rpc('increment_credits', { p_user_id: user.id, p_amount: 20 });
                     cost = 5; // Update cost variable for record keeping
-                    console.log("♻️ Credits refunded due to voice failure.");
                 } catch (refundError) {
-                    console.error("⚠️ Refund failed:", refundError.message);
+                    console.error("Refund failed:", refundError.message);
                 }
             }
         }
     }
 
-    console.log("💾 Proceeding to save generation...");
+    if (process.env.NODE_ENV !== 'production') console.log("Saving generation...");
 
     // 5. Upload Final Result to Storage
     const videoRes = await fetch(finalVideoUrl);
@@ -408,11 +453,14 @@ app.post('/api/generate', async (req, res) => {
         console.log("✅ Generation saved to DB:", genRecord.id);
     }
 
+    // Fetch actual current credits from DB to avoid stale values
+    const { data: updatedProfile } = await supabaseAdmin.from('profiles').select('credits').eq('id', user.id).single();
+
     res.json({
         id: genRecord ? genRecord.id : null,
         videoUrl: publicUrl,
         cost,
-        remainingCredits: isAdmin ? profile.credits : (voiceWarning ? profile.credits - 5 : profile.credits - cost),
+        remainingCredits: updatedProfile ? updatedProfile.credits : profile.credits,
         voiceWarning
     });
 
@@ -423,8 +471,9 @@ app.post('/api/generate', async (req, res) => {
 });
 
 // --- API PAYMENTS (Mercado Pago) ---
-app.post('/api/create-preference', async (req, res) => {
+app.post('/api/create-preference', authLimiter, async (req, res) => {
   try {
+    const user = await getUser(req);
     const { title, price, quantity, currency } = req.body;
 
     let finalPrice = price;
@@ -434,6 +483,7 @@ app.post('/api/create-preference', async (req, res) => {
     }
 
     const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    const webhookUrl = process.env.WEBHOOK_URL || `${clientUrl.replace(':5173', ':3001')}`;
 
     const preference = new Preference(client);
     const result = await preference.create({
@@ -441,177 +491,102 @@ app.post('/api/create-preference', async (req, res) => {
         items: [{ title, unit_price: Number(finalPrice), quantity: Number(quantity), currency_id: 'ARS' }],
         back_urls: { success: `${clientUrl}/app/billing?status=success`, failure: `${clientUrl}/app/billing?status=failure` },
         auto_return: "approved",
+        external_reference: user.id,
+        notification_url: `${webhookUrl}/api/webhooks/mercadopago`,
       }
     });
     res.json({ url: result.init_point, id: result.id });
   } catch (error) {
-    console.error("Payment Error:", error);
+    console.error("Payment Error:", error.message);
     res.status(500).json({ error: "Payment initiation failed" });
   }
 });
 
-// --- API BUY (ATOMIC TRANSACTION) ---
-app.post('/api/buy', async (req, res) => {
+// --- MERCADO PAGO WEBHOOK (Payment Confirmation) ---
+app.post('/api/webhooks/mercadopago', async (req, res) => {
+  try {
+    // Acknowledge receipt immediately
+    res.status(200).json({ received: true });
+
+    const { type, data } = req.body;
+
+    // Only process payment notifications
+    if (type !== 'payment') return;
+
+    const paymentId = data?.id;
+    if (!paymentId) return;
+
+    // Fetch payment details from MercadoPago API
+    const mpResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+      headers: { 'Authorization': `Bearer ${mpAccessToken}` }
+    });
+
+    if (!mpResponse.ok) {
+      console.error("MP webhook: Failed to fetch payment", paymentId);
+      return;
+    }
+
+    const payment = await mpResponse.json();
+
+    if (payment.status === 'approved') {
+      // Extract user info from external_reference or metadata
+      // The preference should include user_id in external_reference
+      const userId = payment.external_reference;
+      const creditsToAdd = payment.transaction_details?.total_paid_amount
+        ? Math.floor(payment.transaction_details.total_paid_amount)
+        : 0;
+
+      if (userId && creditsToAdd > 0) {
+        await supabaseAdmin.rpc('increment_credits', {
+          p_user_id: userId,
+          p_amount: creditsToAdd
+        });
+        console.log(`Webhook: Added ${creditsToAdd} credits to user ${userId}`);
+      }
+    }
+  } catch (error) {
+    console.error("Webhook processing error:", error.message);
+    // Don't return error status - MP will retry indefinitely
+  }
+});
+
+// --- API BUY (ATOMIC TRANSACTION via PostgreSQL RPC) ---
+app.post('/api/buy', buyLimiter, async (req, res) => {
     try {
-        console.log("--> Starting purchase (Zero Trust):", req.body);
+        // Authenticate the buyer from their JWT token - never trust client-supplied IDs
+        const user = await getUser(req);
+        const buyerId = user.id;
 
-        // STEP 1: KEY VERIFICATION (DEBUG)
-        const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-        console.log('🔑 SYSTEM CHECK:');
-        console.log('- Service Key Defined:', serviceKey ? 'YES' : 'NO');
-        console.log('- Service Key First 5 chars:', serviceKey ? serviceKey.substring(0, 5) : 'NULL');
-        // If it's 'NO', the server will throw a critical error (handled by createClient or downstream)
-
-        // 1. "ZERO TRUST" BUG FIX
         const { assetId, cost, assetType } = req.body;
-        const buyerId = req.body.buyerId || req.body.userId || req.body.user_id;
 
         if (!assetId) throw new Error("Asset ID is required");
-        if (!buyerId) throw new Error("Buyer ID is required");
         if (cost === undefined || cost === null) throw new Error("Cost is required");
 
-        // 1. NEW CLIENT instance with Service Role (Bypass RLS)
-        const adminSupabase = createClient(
-          process.env.SUPABASE_URL,
-          process.env.SUPABASE_SERVICE_ROLE_KEY,
-          { auth: { autoRefreshToken: false, persistSession: false } }
-        );
+        // Use atomic PostgreSQL function for the entire purchase
+        const { data: result, error: rpcError } = await supabaseAdmin.rpc('atomic_buy', {
+            p_buyer_id: buyerId,
+            p_asset_id: assetId,
+            p_cost: Math.round(Number(cost)),
+            p_asset_type: assetType || 'talent'
+        });
 
-        // Determine Table & Column
-        const table = (assetType === 'model' || assetType === 'talent') ? 'talents' : 'generations';
-        const saleColumn = 'is_for_sale'; // STANDARDIZATION: Both tables use is_for_sale
-
-        console.log(`Searching in table: ${table} for ID: ${assetId}`);
-
-        // 2. CLEAN QUERY (Search by ID in correct table)
-        const { data: item, error } = await adminSupabase
-            .from(table)
-            .select('*') // Fetch everything to see who the owner is
-            .eq('id', assetId)
-            .single();
-
-        // STEP 3: DETAILED ERROR LOG
-        if (error) {
-            console.error('❌ QUERY FAILED:', JSON.stringify(error, null, 2));
-             // Fall through to standard error handling or return 404
+        if (rpcError) {
+            console.error("Purchase RPC error:", rpcError.message);
+            throw new Error("Transaction failed at database level");
         }
 
-        if (error || !item) {
-            // If it doesn't exist -> Error 404
-            return res.status(404).json({ success: false, message: "Asset not found", debug_error: error });
+        if (!result.success) {
+            return res.status(400).json({ success: false, message: result.message });
         }
 
-        // Retrieve the actual seller from the DB
-        const sellerId = item.user_id;
-
-        // Self-Purchase Prevention
-        if (buyerId === sellerId) {
-             return res.status(400).json({ success: false, message: "You cannot purchase your own video." });
-        }
-
-        console.log(`Processing transfer: Buyer ${buyerId} -> Seller ${sellerId} for ${cost} credits`);
-
-        // 2. PROPERTY TRANSFER LOGIC (ATOMIC)
-
-        // Step A (Money):
-
-        // Check Buyer Balance
-        const { data: buyer, error: buyerError } = await adminSupabase
-            .from('profiles')
-            .select('credits, is_admin')
-            .eq('id', buyerId)
-            .single();
-
-        if (buyerError || !buyer) throw new Error("Buyer profile not found");
-
-        if (!buyer.is_admin && buyer.credits < cost) {
-            throw new Error(`Insufficient credits. You have ${buyer.credits}, needed ${cost}.`);
-        }
-
-        // Subtract cost from userId (Buyer)
-        if (!buyer.is_admin) {
-            const { error: deductError } = await adminSupabase
-                .from('profiles')
-                .update({ credits: buyer.credits - cost })
-                .eq('id', buyerId);
-
-            if (deductError) throw new Error("Failed to deduct credits from buyer");
-        }
-
-        // Add cost to sellerId (Seller)
-        const { data: seller, error: sellerError } = await adminSupabase
-            .from('profiles')
-            .select('credits')
-            .eq('id', sellerId)
-            .single();
-
-        if (seller) {
-            const { error: addError } = await adminSupabase
-                .from('profiles')
-                .update({ credits: seller.credits + cost })
-                .eq('id', sellerId);
-
-            if (addError) {
-                console.error("CRITICAL: Failed to pay seller after deducting buyer!", addError);
-            }
-        } else {
-             console.warn(`Seller profile ${sellerId} not found, could not credit funds.`);
-        }
-
-        // Step B (Asset Transfer):
-        // Execute an UPDATE on the correct table for the original record.
-        // PHASE 3: TRANSACTIONAL INTEGRITY (ACID COMPLIANCE)
-        // Ensure atomic update of all 4 columns.
-        const updatePayload = {
-            user_id: buyerId, // Change to userId (The Buyer's ID)
-            is_for_sale: false,
-            for_sale: false,
-            is_sold: true,
-            sold: true,
-            sales_count: (item.sales_count || 0) + 1 // INCREMENT COUNT
-        };
-
-        console.log("Updating asset status (ATOMIC):", updatePayload);
-
-        const { error: transferError } = await adminSupabase
-            .from(table)
-            .update(updatePayload)
-            .eq('id', assetId);
-
-        if (transferError) {
-             console.error("CRITICAL: Failed to transfer asset ownership!", transferError);
-             throw new Error("Failed to transfer asset ownership");
-        }
-
-        // 3. STATE SYNCHRONIZATION (Lock Original Video if Talent sold)
-        if (assetType === 'model' || assetType === 'talent') {
-            // We just sold a talent. We need to find its source video and lock it.
-            // Since we used adminSupabase to fetch 'item' earlier, we can check if it has source_generation_id
-
-            // 'item' is the talent record BEFORE update. It should have source_generation_id if it was created via our new endpoint.
-            if (item.source_generation_id) {
-                console.log(`🔒 Locking source video ${item.source_generation_id} due to Talent sale.`);
-                const { error: lockError } = await adminSupabase
-                    .from('generations')
-                    .update({ locked: true })
-                    .eq('id', item.source_generation_id);
-
-                if (lockError) {
-                    console.error("⚠️ Failed to lock source video:", lockError.message);
-                    // Non-fatal, but logged
-                }
-            }
-        }
-
-        // Success
         return res.status(200).json({
             success: true,
-            message: "Purchase and transfer successful",
-            remainingCredits: buyer.is_admin ? buyer.credits : buyer.credits - cost
+            message: result.message,
+            remainingCredits: result.remainingCredits
         });
 
     } catch (err) {
-        console.error("CRITICAL CRASH AT /api/buy:", err.message);
+        console.error("Purchase error:", err.message);
         res.status(500).json({ success: false, message: err.message });
     }
 });
@@ -998,4 +973,26 @@ app.post('/api/admin/ban', requireAdmin, async (req, res) => {
     }
 });
 
-app.listen(port, () => console.log(`🛡️  LUXEMOTION SENIOR SERVER RUNNING ON PORT ${port}`));
+// --- GLOBAL ERROR HANDLER ---
+app.use((err, req, res, next) => {
+  console.error("Unhandled error:", err.message);
+  res.status(500).json({ error: "Internal server error" });
+});
+
+// --- UNCAUGHT EXCEPTION HANDLER ---
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled Promise Rejection:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error.message);
+  // Give time to log, then exit
+  setTimeout(() => process.exit(1), 1000);
+});
+
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  }
+});

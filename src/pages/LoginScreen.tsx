@@ -12,18 +12,15 @@ interface LoginScreenProps {
 }
 
 export const LoginScreen = ({ onLogin, initialMode }: LoginScreenProps) => {
-  // Try to get search params if inside a router context
-  let searchParamsMode = null;
-  try {
-      const [searchParams] = useSearchParams();
-      const m = searchParams.get('mode');
-      if(m === 'register' || m === 'forgot' || m === 'login') searchParamsMode = m;
-  } catch (e) {
-      // Not in a router
-  }
+  // useSearchParams is safe here as LoginScreen is always rendered inside a Router context
+  const [searchParams] = useSearchParams();
+  const searchParamsMode = searchParams.get('mode');
+  const validMode = (searchParamsMode === 'register' || searchParamsMode === 'forgot' || searchParamsMode === 'login')
+    ? searchParamsMode
+    : null;
 
   const [load, setLoad] = useState(false);
-  const [mode, setMode] = useState<'login'|'register'|'forgot'>((searchParamsMode as any) || initialMode || 'login');
+  const [mode, setMode] = useState<'login'|'register'|'forgot'>(validMode || initialMode || 'login');
   const [email, setEmail] = useState('');
   const [pass, setPass] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);

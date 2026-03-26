@@ -1,23 +1,22 @@
 import React, { useState } from 'react';
 import { Download, Globe, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { S } from '../styles';
 import { useMode } from '../context/ModeContext';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../components/Toast';
 import { VideoCard } from '../components/VideoCard';
 
-export const GalleryPage = ({ videos }: any) => {
+export const GalleryPage = ({ videos, onVideosChange }: { videos: any[]; onVideosChange?: (videos: any[]) => void }) => {
   const { mode } = useMode();
   const { showToast } = useToast();
+  const { t } = useTranslation();
   const [publishing, setPublishing] = useState<string | null>(null);
 
   const togglePublish = async (video: any) => {
     setPublishing(video.id);
     try {
-        // Toggle (optimistic UI could be implemented if videos state was managed here more deeply, but for now we call API)
-        const isPublic = !video.is_public; // Needs video to have is_public prop.
-        // NOTE: 'videos' prop comes from App.tsx, which maps backend data. We need to ensure 'is_public' is passed down.
-        // Assuming the parent component passes is_public.
+        const isPublic = !video.is_public;
 
         const { data: { session } } = await supabase.auth.getSession();
 
@@ -30,16 +29,19 @@ export const GalleryPage = ({ videos }: any) => {
             body: JSON.stringify({
                 id: video.id,
                 type: 'video',
-                is_public: isPublic // Toggle to the new state
+                is_public: isPublic
             })
         });
 
         if (res.ok) {
             showToast(isPublic ? t('gallery.published') : t('gallery.unpublished'), 'success');
-            // Optimistically update the UI by reloading the page or ideally updating state from parent.
-            // For now, we force a reload to reflect state if we don't have a state setter passed down.
-            // A better approach in a larger app would be to use a callback prop "onUpdate".
-            window.location.reload();
+            // Update local state instead of reloading the page
+            const updatedVideos = videos.map(v =>
+                v.id === video.id ? { ...v, is_public: isPublic } : v
+            );
+            if (onVideosChange) {
+                onVideosChange(updatedVideos);
+            }
         } else {
              throw new Error("Failed");
         }
@@ -49,8 +51,6 @@ export const GalleryPage = ({ videos }: any) => {
         setPublishing(null);
     }
   };
-
-  const { t } = useTranslation();
 
   return (
   <div className={`p-6 lg:p-12 pb-32 animate-in fade-in ${mode==='velvet'?'':'bg-gray-50'}`}>
